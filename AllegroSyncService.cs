@@ -32,7 +32,7 @@ namespace Reklamacje_Dane
             System.Diagnostics.Debug.WriteLine($"[AllegroSync] {DateTime.Now:HH:mm:ss} > {message}");
         }
 
-        public async Task<AllegroSyncResult> SynchronizeDisputesAsync(IProgress<string> progress)
+        public async Task<AllegroSyncResult> SynchronizeDisputesAsync(IProgress<string> progress = null)
         {
             Log("=== ROZPOCZĘCIE PEŁNEJ SYNCHRONIZACJI ===");
 
@@ -52,6 +52,7 @@ namespace Reklamacje_Dane
                 Log("Pobieranie listy istniejących ID zgłoszeń z bazy...");
                 var existingDisputeIds = await GetExistingDisputeIdsAsync(con);
                 Log($"Załadowano {existingDisputeIds.Count} istniejących zgłoszeń z lokalnej bazy.");
+                var messageCounts = await GetExistingMessageCountsAsync(con);
 
                 int newDisputesCounter = 0;
 
@@ -117,8 +118,13 @@ namespace Reklamacje_Dane
                                     await UpdateExistingIssueStatusAsync(issue, con);
                                 }
 
-                                // === WSPÓLNE: SYNCHRONIZACJA CZATU ===
-                                await SynchronizeChatForIssueAsync(apiClient, issue, con);
+                                // === WSPÓLNE: SYNCHRONIZACJA CZATU (tylko jeśli są nowe wiadomości) ===
+                                int localCount = messageCounts.TryGetValue(issue.Id, out var storedCount) ? storedCount : 0;
+                                bool shouldSyncChat = issue.Chat == null || issue.Chat.MessagesCount > localCount;
+                                if (shouldSyncChat)
+                                {
+                                    await SynchronizeChatForIssueAsync(apiClient, issue, con);
+                                }
                             }
                             catch (Exception exIssue)
                             {
@@ -402,6 +408,26 @@ namespace Reklamacje_Dane
                 }
             }
             return ids;
+        }
+
+        private async Task<Dictionary<string, int>> GetExistingMessageCountsAsync(MySqlConnection con)
+        {
+            var counts = new Dictionary<string, int>();
+            using (var cmd = new MySqlCommand("SELECT DisputeId, LastMessageCount FROM AllegroDisputes", con))
+            {
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        if (!reader.IsDBNull(0))
+                        {
+                            int count = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+                            counts[reader.GetString(0)] = count;
+                        }
+                    }
+                }
+            }
+            return counts;
         }
 
         private async Task<int> GetUnregisteredDisputesCountAsync(MySqlConnection con)

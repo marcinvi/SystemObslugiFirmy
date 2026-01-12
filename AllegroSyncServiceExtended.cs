@@ -368,7 +368,8 @@ namespace Reklamacje_Dane
                 cmd.Parameters.AddWithValue("@ReferenceNumber", returnData.ReferenceNumber ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@OrderId", returnData.OrderId ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@BuyerLogin", returnData.Buyer?.Login ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@BuyerEmail", (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BuyerEmail",
+                    orderDetails?.Buyer?.Email ?? returnData.Buyer?.Email ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@CreatedAt", returnData.CreatedAt ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@StatusAllegro", returnData.Status ?? (object)DBNull.Value);
 
@@ -577,33 +578,12 @@ namespace Reklamacje_Dane
                 }
 
                 // ═══════════════════════════════════════════════════════
-                // KROK 2: Porównaj z bazą - czy są nowe?
+                // KROK 2: Przygotuj dane pomocnicze z bazy
                 // ═══════════════════════════════════════════════════════
-                int countInDb = await GetIssuesCountInDbAsync(accountId, con);
-                int countInApi = allIssuesFromApi.Count;
-
-                System.Diagnostics.Debug.WriteLine($"[SYNC COMPARE] API: {countInApi} issues, DB: {countInDb} issues");
-
-                if (countInApi == countInDb)
-                {
-                    // Same liczby - POMIŃ synchronizację (nawet czatów - za wolno!)
-                    progress?.Report($"Konto {accountId}: Issues OK ({countInApi}) - nic do synchronizacji");
-                    System.Diagnostics.Debug.WriteLine($"[SYNC QUICK] Issues aktualne - pomijam (w tym czaty - za wolno)");
-
-                    // ⚠️ WYŁĄCZONE: Synchronizacja czatów dla 300 issues = 600 API calls = 5+ minut!
-                    // result.IssuesWithNewMessages = await SynchronizeChatsOnlyAsync(apiClient, accountId, con, progress);
-                    result.IssuesWithNewMessages = 0;
-
-                    progress?.Report($"Konto {accountId}: ✅ OK! (Issues: 0, Czaty: POMINIĘTE)");
-                    await LogSyncCompleteAsync(logId, "SUCCESS", 0, 0, result.IssuesWithNewMessages, con);
-                    return result;
-                }
-
-                // ═══════════════════════════════════════════════════════
-                // KROK 3: PEŁNA SYNCHRONIZACJA - są nowe issues!
-                // ═══════════════════════════════════════════════════════
-                progress?.Report($"Konto {accountId}: Nowe issues ({countInApi} vs {countInDb}) - synchronizuję...");
-                System.Diagnostics.Debug.WriteLine($"[SYNC FULL] Znaleziono nowe issues - pełna sync");
+                var existingIds = await GetExistingDisputeIdsAsync(accountId, con);
+                var messageCounts = await GetExistingMessageCountsAsync(accountId, con);
+                var issuesNeedingDetails = await GetIssuesNeedingDetailsAsync(accountId, con);
+                bool hasLastMessageIdColumn = await CheckLastMessageIdColumnExists(con);
 
                 result.TotalProcessed = allIssuesFromApi.Count;
 
@@ -616,22 +596,32 @@ namespace Reklamacje_Dane
                         progress?.Report($"Konto {accountId}: Issues {current}/{allIssuesFromApi.Count}...");
                     }
 
-                    await ProcessSingleIssueAsync(apiClient, issueShort, accountId, con, result);
+                    bool isNew = !existingIds.Contains(issueShort.Id);
+                    bool needsDetails = isNew || issuesNeedingDetails.Contains(issueShort.Id);
+
+                    if (needsDetails)
+                    {
+                        await ProcessSingleIssueAsync(apiClient, issueShort, accountId, con, result);
+                    }
+                    else
+                    {
+                        await UpdateIssueFromSummaryAsync(issueShort, con);
+                    }
+
+                    int localCount = messageCounts.TryGetValue(issueShort.Id, out var storedCount) ? storedCount : 0;
+                    bool shouldSyncChat = issueShort.Chat == null || issueShort.Chat.MessagesCount > localCount;
+                    if (shouldSyncChat)
+                    {
+                        bool hasNewMessages = await SynchronizeChatForIssueAsync_Fixed(
+                            apiClient, issueShort, con, hasLastMessageIdColumn);
+                        if (hasNewMessages)
+                        {
+                            result.IssuesWithNewMessages++;
+                        }
+                    }
                 }
 
                 System.Diagnostics.Debug.WriteLine($"[SYNC] Issues: {result.TotalProcessed} (Nowych: {result.NewIssues})");
-
-                // ═══════════════════════════════════════════════════════
-                // KROK 4: Synchronizuj czaty - TYMCZASOWO WYŁĄCZONE!
-                // ═══════════════════════════════════════════════════════
-                // ⚠️ WYŁĄCZONE: Synchronizacja czatów zajmuje 90% czasu (300 issues * 2 API calls = 600 calls!)
-                // TODO: Włączyć po naprawieniu wydajności
-                
-                progress?.Report($"Konto {accountId}: ⚠️ Czaty pominięte (oszczędność czasu)");
-                System.Diagnostics.Debug.WriteLine($"[SYNC] Czaty POMINIĘTE dla oszczędności czasu");
-                
-                 result.IssuesWithNewMessages = await SynchronizeChatsOnlyAsync(apiClient, accountId, con, progress);
-                result.IssuesWithNewMessages = 0;
 
                 progress?.Report($"Konto {accountId}: ✅ OK! (Nowych: {result.NewIssues}, Czaty: {result.IssuesWithNewMessages})");
                 await LogSyncCompleteAsync(logId, "SUCCESS", result.TotalProcessed, result.NewIssues, result.IssuesWithNewMessages, con);
@@ -670,20 +660,80 @@ namespace Reklamacje_Dane
             return null;
         }
 
-        /// <summary>
-        /// ⭐ NAPRAWIONA METODA: Zwraca liczbę issues w bazie (nie ID!)
-        /// </summary>
-        private async Task<int> GetIssuesCountInDbAsync(int accountId, MySqlConnection con)
+        private async Task<HashSet<string>> GetExistingDisputeIdsAsync(int accountId, MySqlConnection con)
         {
+            var ids = new HashSet<string>();
             var cmd = new MySqlCommand(@"
-                SELECT COUNT(*) 
+                SELECT DisputeId
                 FROM AllegroDisputes 
                 WHERE AllegroAccountId = @AccountId", con);
 
             cmd.Parameters.AddWithValue("@AccountId", accountId);
 
-            var result = await cmd.ExecuteScalarAsync();
-            return Convert.ToInt32(result);
+            using (var reader = await cmd.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull(0))
+                    {
+                        ids.Add(reader.GetString(0));
+                    }
+                }
+            }
+            return ids;
+        }
+
+        private async Task<Dictionary<string, int>> GetExistingMessageCountsAsync(int accountId, MySqlConnection con)
+        {
+            var counts = new Dictionary<string, int>();
+            var cmd = new MySqlCommand(@"
+                SELECT DisputeId, LastMessageCount
+                FROM AllegroDisputes
+                WHERE AllegroAccountId = @AccountId", con);
+
+            cmd.Parameters.AddWithValue("@AccountId", accountId);
+
+            using (var reader = await cmd.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull(0))
+                    {
+                        int count = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+                        counts[reader.GetString(0)] = count;
+                    }
+                }
+            }
+            return counts;
+        }
+
+        private async Task<HashSet<string>> GetIssuesNeedingDetailsAsync(int accountId, MySqlConnection con)
+        {
+            var ids = new HashSet<string>();
+            var cmd = new MySqlCommand(@"
+                SELECT DisputeId
+                FROM AllegroDisputes
+                WHERE AllegroAccountId = @AccountId
+                  AND (
+                        BuyerLogin IS NULL OR BuyerLogin = ''
+                     OR BuyerEmail IS NULL OR BuyerEmail = ''
+                     OR ProductName IS NULL OR ProductName = ''
+                     OR OrderId IS NULL OR OrderId = ''
+                  )", con);
+
+            cmd.Parameters.AddWithValue("@AccountId", accountId);
+
+            using (var reader = await cmd.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    if (!reader.IsDBNull(0))
+                    {
+                        ids.Add(reader.GetString(0));
+                    }
+                }
+            }
+            return ids;
         }
 
         private async Task<int> SynchronizeChatsOnlyAsync(
@@ -697,16 +747,16 @@ namespace Reklamacje_Dane
             // ⭐ SPRAWDŹ czy kolumna LastMessageId istnieje
             bool hasLastMessageIdColumn = await CheckLastMessageIdColumnExists(con);
 
-            var issues = new List<string>();
+            var issues = new List<(string Id, string Type)>();
             using (var cmd = new MySqlCommand(
-                "SELECT DisputeId FROM AllegroDisputes WHERE AllegroAccountId = @AccountId", con))
+                "SELECT DisputeId, Type FROM AllegroDisputes WHERE AllegroAccountId = @AccountId", con))
             {
                 cmd.Parameters.AddWithValue("@AccountId", accountId);
                 using (var reader = await cmd.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
                     {
-                        issues.Add(reader["DisputeId"].ToString());
+                        issues.Add((reader["DisputeId"].ToString(), reader["Type"]?.ToString()));
                     }
                 }
             }
@@ -714,7 +764,7 @@ namespace Reklamacje_Dane
             System.Diagnostics.Debug.WriteLine($"[SYNC CHATS] Sprawdzanie {issues.Count} issues");
 
             int current = 0;
-            foreach (var issueId in issues)
+            foreach (var issueData in issues)
             {
                 current++;
                 if (current % 10 == 0)
@@ -724,8 +774,11 @@ namespace Reklamacje_Dane
 
                 try
                 {
-                    var issue = await apiClient.GetIssueDetailsAsync(issueId);
-                    if (issue == null) continue;
+                    var issue = new Issue
+                    {
+                        Id = issueData.Id,
+                        Type = issueData.Type
+                    };
 
                     bool hasNewMessages = await SynchronizeChatForIssueAsync_Fixed(
                         apiClient, issue, con, hasLastMessageIdColumn);
@@ -736,7 +789,7 @@ namespace Reklamacje_Dane
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ERROR] Czat {issueId}: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[ERROR] Czat {issueData.Id}: {ex.Message}");
                 }
             }
 
@@ -771,6 +824,30 @@ namespace Reklamacje_Dane
             {
                 result.ErrorMessages.Add($"Issue {issueShort.Id}: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"[ERROR] Issue {issueShort.Id}: {ex.Message}");
+            }
+        }
+
+        private async Task UpdateIssueFromSummaryAsync(Issue issue, MySqlConnection con)
+        {
+            const string sql = @"
+                UPDATE AllegroDisputes SET
+                    StatusAllegro = @StatusAllegro,
+                    ClosedAt = @ClosedAt,
+                    DecisionDueDate = @DecisionDueDate,
+                    ReasonType = @ReasonType,
+                    ReasonDescription = @ReasonDescription,
+                    LastCheckedAt = NOW()
+                WHERE DisputeId = @DisputeId";
+
+            using (var cmd = new MySqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@DisputeId", issue.Id);
+                cmd.Parameters.AddWithValue("@StatusAllegro", issue.CurrentState?.Status ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@ClosedAt", issue.ClosedAt ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@DecisionDueDate", issue.DecisionDueDate ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@ReasonType", issue.Reason?.Type ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@ReasonDescription", issue.Reason?.Description ?? (object)DBNull.Value);
+                await cmd.ExecuteNonQueryAsync();
             }
         }
 
@@ -809,7 +886,9 @@ namespace Reklamacje_Dane
                     return false;
                 }
 
-                var latestMessage = messagesFromApi.First();
+                var latestMessage = messagesFromApi
+                    .OrderByDescending(message => message.CreatedAt)
+                    .First();
                 string latestMessageId = latestMessage.Id;
 
                 // ⭐ NAPRAWKA: Sprawdź LastMessageId TYLKO jeśli kolumna istnieje
