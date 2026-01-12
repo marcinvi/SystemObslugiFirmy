@@ -133,6 +133,9 @@ namespace Reklamacje_Dane
             progressBar.Style = ProgressBarStyle.Blocks;
             progressBar.Value = progressBar.Maximum;
             btnContinue.Visible = true;
+            btnContinue.Enabled = true;
+            btnContinue.BringToFront();
+            btnContinue.Focus();
 
             if (_hasErrorOccurred)
             {
@@ -148,8 +151,8 @@ namespace Reklamacje_Dane
 
         private void btnContinue_Click(object sender, EventArgs e)
         {
-            this.DialogResult = DialogResult.OK;
-            this.Close();
+            DialogResult = DialogResult.OK;
+            Close();
         }
     
         /// <summary>
