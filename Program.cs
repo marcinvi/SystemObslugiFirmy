@@ -36,6 +36,13 @@ namespace Reklamacje_Dane
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            Application.Idle += (s, e) =>
+            {
+                foreach (Form form in Application.OpenForms)
+                {
+                    SpellCheckManager.EnableSpellCheckForAllTextBoxes(form);
+                }
+            };
 
             // --- Ustawienie klucza szyfrowania ---
             try

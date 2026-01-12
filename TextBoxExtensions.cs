@@ -10,6 +10,7 @@ namespace Reklamacje_Dane
     public static class TextBoxExtensions
     {
         private const int EM_SETCUEBANNER = 0x1501;
+        private const int SpellCheckDebounceMs = 300;
         private static Dictionary<Control, SpellCheckContext> _spellCheckContexts = new Dictionary<Control, SpellCheckContext>();
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -39,11 +40,24 @@ namespace Reklamacje_Dane
             if (_spellCheckContexts.ContainsKey(textBox))
                 return;
 
+            if (highlightErrors && !SpellCheckConfig.HighlightErrors)
+                highlightErrors = false;
+
             var context = new SpellCheckContext
             {
                 Control = textBox,
                 HighlightErrors = highlightErrors,
-                ContextMenu = new ContextMenuStrip()
+                ContextMenu = new ContextMenuStrip(),
+                DebounceTimer = new Timer { Interval = SpellCheckDebounceMs }
+            };
+
+            context.DebounceTimer.Tick += (s, e) =>
+            {
+                context.DebounceTimer.Stop();
+                if (context.HighlightErrors && !textBox.IsDisposed)
+                {
+                    CheckSpelling(textBox);
+                }
             };
 
             _spellCheckContexts[textBox] = context;
@@ -74,6 +88,8 @@ namespace Reklamacje_Dane
             textBox.MouseDown -= OnMouseDown;
             textBox.Disposed -= OnTextBoxDisposed;
 
+            context.DebounceTimer?.Stop();
+            context.DebounceTimer?.Dispose();
             context.ContextMenu?.Dispose();
             _spellCheckContexts.Remove(textBox);
 
@@ -101,7 +117,8 @@ namespace Reklamacje_Dane
                 var context = _spellCheckContexts[textBox];
                 if (context.HighlightErrors && textBox is RichTextBox)
                 {
-                    CheckSpelling(textBox);
+                    context.DebounceTimer?.Stop();
+                    context.DebounceTimer?.Start();
                 }
             }
         }
@@ -115,6 +132,9 @@ namespace Reklamacje_Dane
                 return;
 
             var context = _spellCheckContexts[textBox];
+
+            if (!SpellCheckConfig.EnableContextMenu)
+                return;
             
             // Znajdź słowo pod kursorem
             int charIndex = textBox.GetCharIndexFromPosition(e.Location);
@@ -138,7 +158,7 @@ namespace Reklamacje_Dane
             if (suggestions.Any())
             {
                 // Dodaj sugestie
-                foreach (var suggestion in suggestions.Take(10))
+                foreach (var suggestion in suggestions.Take(Math.Max(1, SpellCheckConfig.MaxSuggestions)))
                 {
                     var menuItem = new ToolStripMenuItem(suggestion);
                     menuItem.Font = new Font(menuItem.Font, FontStyle.Bold);
@@ -287,6 +307,7 @@ namespace Reklamacje_Dane
             public Control Control { get; set; }
             public bool HighlightErrors { get; set; }
             public ContextMenuStrip ContextMenu { get; set; }
+            public Timer DebounceTimer { get; set; }
         }
 
         private class WordInfo
