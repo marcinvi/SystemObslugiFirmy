@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.VisualBasic.FileIO;
 using Microsoft.Web.WebView2.Core; // <— ważne!
-
+using System.Collections.Generic;
 // Użycie aliasów, aby uniknąć konfliktów nazw między WPF a WinForms
 using WpfControls = System.Windows.Controls;
 using WpfMedia = System.Windows.Media;
