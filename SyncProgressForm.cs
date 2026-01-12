@@ -20,6 +20,10 @@ namespace Reklamacje_Dane
             InitializeComponent();
             lstLog.DrawMode = DrawMode.OwnerDrawFixed;
             lstLog.DrawItem += LstLog_DrawItem;
+            btnContinue.DialogResult = DialogResult.OK;
+            btnContinue.Click -= btnContinue_Click;
+            btnContinue.Click += btnContinue_Click;
+            AcceptButton = btnContinue;
 
             // Po pokazaniu okna uruchom asynchroniczną synchronizację
             this.Shown += SyncProgressForm_Shown;
@@ -126,6 +130,10 @@ namespace Reklamacje_Dane
             progressBar.Style = ProgressBarStyle.Blocks;
             progressBar.Value = progressBar.Maximum;
             btnContinue.Visible = true;
+            btnContinue.Enabled = true;
+            btnContinue.DialogResult = DialogResult.OK;
+            btnContinue.BringToFront();
+            btnContinue.Focus();
 
             if (_hasErrorOccurred)
             {
@@ -141,8 +149,8 @@ namespace Reklamacje_Dane
 
         private void btnContinue_Click(object sender, EventArgs e)
         {
-            this.DialogResult = DialogResult.OK;
-            this.Close();
+            DialogResult = DialogResult.OK;
+            Close();
         }
     }
 }
