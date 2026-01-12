@@ -565,6 +565,50 @@ namespace Reklamacje_Dane
             LogToJournal("Ustawienia i dane domyślne załadowane.");
         }
 
+        /// <summary>
+        /// Włącza sprawdzanie pisowni po polsku dla wszystkich TextBoxów w formularzu
+        /// </summary>
+        private void EnableSpellCheckOnAllTextBoxes()
+        {
+            try
+            {
+                foreach (Control control in GetAllControls(this))
+                {
+                    if (control is RichTextBox richTextBox)
+                    {
+                        richTextBox.EnableSpellCheck(true);
+                    }
+                    else if (control is TextBox textBox && !(textBox is SpellCheckTextBox))
+                    {
+                        textBox.EnableSpellCheck(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Błąd włączania sprawdzania pisowni: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Rekurencyjnie pobiera wszystkie kontrolki z kontenera
+        /// </summary>
+        private IEnumerable<Control> GetAllControls(Control container)
+        {
+            foreach (Control control in container.Controls)
+            {
+                yield return control;
+
+                if (control.HasChildren)
+                {
+                    foreach (Control child in GetAllControls(control))
+                    {
+                        yield return child;
+                    }
+                }
+            }
+        }
+
         #endregion
     }
 

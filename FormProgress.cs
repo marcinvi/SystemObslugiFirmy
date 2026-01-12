@@ -1,5 +1,6 @@
 // Plik: FormProgress.cs
 using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using Org.BouncyCastle.Asn1.Cmp;
 
