@@ -9,6 +9,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json; // Potrzebne do zapisu/odczytu widoku
+using System.Collections.Generic;
+
 
 namespace Reklamacje_Dane
 {
