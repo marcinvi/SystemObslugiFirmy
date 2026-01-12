@@ -88,6 +88,60 @@ namespace Reklamacje_Dane
         }
 
         /// <summary>
+        /// Opóźnienie (ms) przed uruchomieniem sprawdzania po wpisaniu tekstu
+        /// </summary>
+        public static int DebounceMs
+        {
+            get
+            {
+                try
+                {
+                    return int.Parse(ConfigurationManager.AppSettings["SpellCheck_DebounceMs"] ?? "800");
+                }
+                catch
+                {
+                    return 800;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Maksymalna długość tekstu (znaków), dla której podkreślamy błędy
+        /// </summary>
+        public static int MaxHighlightTextLength
+        {
+            get
+            {
+                try
+                {
+                    return int.Parse(ConfigurationManager.AppSettings["SpellCheck_MaxHighlightTextLength"] ?? "4000");
+                }
+                catch
+                {
+                    return 4000;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Maksymalna liczba podkreślanych błędów (ograniczenie kosztu UI)
+        /// </summary>
+        public static int MaxHighlightErrors
+        {
+            get
+            {
+                try
+                {
+                    return int.Parse(ConfigurationManager.AppSettings["SpellCheck_MaxHighlightErrors"] ?? "200");
+                }
+                catch
+                {
+                    return 200;
+                }
+            }
+        }
+
+        /// <summary>
         /// Kolor podkreślenia błędów
         /// </summary>
         public static Color ErrorColor
