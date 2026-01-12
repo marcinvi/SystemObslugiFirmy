@@ -10,6 +10,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -44,6 +45,8 @@ namespace Reklamacje_Dane
         private int _lastUnregisteredReturns = -1;
         private readonly HashSet<int> _shownReminders = new HashSet<int>();
         private readonly Dictionary<string, string> _syncStatus = new Dictionary<string, string>();
+        private int _isLoadingData;
+        private int _pendingLoad;
 
         // Serwisy
         private readonly AllegroSyncService _allegroSyncService;
@@ -162,7 +165,7 @@ namespace Reklamacje_Dane
 
             // 2. Startujemy ładowanie danych (nie blokujemy UI)
             // Używamy FireAndForgetSafe, żeby formularz się pokazał od razu, a dane "wskoczyły" za chwilę
-            LoadDataAsync().FireAndForgetSafe(this);
+            RequestDataReload();
 
             // 3. Timery startujemy z lekkim opóźnieniem, żeby nie zamulać startu
             InitializeTimers();
@@ -178,6 +181,12 @@ namespace Reklamacje_Dane
 
         private async Task LoadDataAsync()
         {
+            if (Interlocked.Exchange(ref _isLoadingData, 1) == 1)
+            {
+                Interlocked.Exchange(ref _pendingLoad, 1);
+                return;
+            }
+
             try
             {
                 SetActivity("Odświeżanie danych...");
@@ -200,6 +209,11 @@ namespace Reklamacje_Dane
             finally
             {
                 SetActivity("");
+                Interlocked.Exchange(ref _isLoadingData, 0);
+                if (Interlocked.Exchange(ref _pendingLoad, 0) == 1)
+                {
+                    RequestDataReload();
+                }
             }
         }
 
@@ -506,9 +520,19 @@ namespace Reklamacje_Dane
             });
         }
 
-        private void HandleUpdateNeeded() => SafeInvoke(async () => await LoadDataAsync());
-        private void refreshIcon_Click(object sender, EventArgs e) => _ = LoadDataAsync();
-        private void lblLastRefresh_Click(object sender, EventArgs e) => _ = LoadDataAsync();
+        private void RequestDataReload()
+        {
+            IWin32Window owner = this.FindForm();
+            if (owner == null)
+            {
+                owner = this;
+            }
+            LoadDataAsync().FireAndForgetSafe(owner);
+        }
+
+        private void HandleUpdateNeeded() => SafeInvoke(RequestDataReload);
+        private void refreshIcon_Click(object sender, EventArgs e) => RequestDataReload();
+        private void lblLastRefresh_Click(object sender, EventArgs e) => RequestDataReload();
 
         // --- ZAKŁADKI PRZYPOMNIEŃ ---
 
@@ -742,7 +766,7 @@ namespace Reklamacje_Dane
             if (dataGridViewProcessing.CurrentRow == null) return;
             string nrZgloszenia = dataGridViewProcessing.CurrentRow.Cells["NrZgloszenia"].Value.ToString();
             var result = MessageBox.Show($"Czy na pewno chcesz przenieść zgłoszenie {nrZgloszenia} do archiwum?", "Potwierdzenie", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (result == DialogResult.Yes) { await ArchiveComplaintAsync(nrZgloszenia); await LoadDataAsync(); }
+            if (result == DialogResult.Yes) { await ArchiveComplaintAsync(nrZgloszenia); RequestDataReload(); }
         }
 
         private void kopiujNumerZgłoszeniaToolStripMenuItem_Click(object sender, EventArgs e) { if (dataGridViewProcessing.CurrentRow != null) Clipboard.SetText(dataGridViewProcessing.CurrentRow.Cells["NrZgloszenia"].Value.ToString()); }
@@ -789,7 +813,7 @@ namespace Reklamacje_Dane
         private void EnsureProcessingGridScrollable() { try { dataGridViewProcessing.ScrollBars = ScrollBars.Both; typeof(DataGridView).GetProperty("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(dataGridViewProcessing, true, null); } catch { } }
         private void txtFilterProcessing_TextChanged(object sender, EventArgs e) { if (dataGridViewProcessing.DataSource is DataTable dt) { string f = txtFilterProcessing.Text.Replace("'", "''"); dt.DefaultView.RowFilter = string.IsNullOrWhiteSpace(f) ? "" : $"NrZgloszenia LIKE '%{f}%' OR Klient LIKE '%{f}%'"; } }
         private void HighlightMenuButton(object sender) { foreach (Control c in pnlMenuButtons.Controls) if (c is Button b) { b.BackColor = Color.FromArgb(21, 32, 54); b.ForeColor = Color.FromArgb(180, 190, 210); } if (sender is Button btn) { btn.BackColor = Color.FromArgb(30, 41, 59); btn.ForeColor = Color.White; } }
-        private void menuStronaGlowna_Click(object sender, EventArgs e) { HighlightMenuButton(sender); _ = LoadDataAsync(); }
+        private void menuStronaGlowna_Click(object sender, EventArgs e) { HighlightMenuButton(sender); RequestDataReload(); }
         private void menuNiezarejestrowaneGoogle_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUniversalWizardV2(WizardSource.GoogleSheet).Show(); }
         private void menuNiezarejestrowaneAllegro_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUniversalWizardV2(WizardSource.Allegro).Show(); }
         private void menuDodajNowe_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUniversalWizardV2(WizardSource.Manual).Show(); }
@@ -803,6 +827,6 @@ namespace Reklamacje_Dane
         private void menuProducenci_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new Form16().Show(); }
         private void menuUstawienia_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUstawienia().Show(); }
         private void menuSledzeniePrzesylek_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormDpdTracking().Show(); }
-        private void menuNiezarejestrowaneZwroty_Click(object sender, EventArgs e) { HighlightMenuButton(sender); try { var dt = new DataTable(); using (var con = Database.GetNewOpenConnection()) using (var da = new MySqlDataAdapter("SELECT Id, DataPrzekazania, PrzekazanePrzez, DaneKlienta, DaneProduktu FROM NiezarejestrowaneZwrotyReklamacyjne WHERE IFNULL(CzyZarejestrowane,0)=0", con)) da.Fill(dt); new FormUniversalWizard(WizardSource.Zwroty).Show(); } catch (Exception ex) { MessageBox.Show("Błąd: " + ex.Message); } }
+        private void menuNiezarejestrowaneZwroty_Click(object sender, EventArgs e) { HighlightMenuButton(sender); try { new FormUniversalWizard(WizardSource.Zwroty).Show(); } catch (Exception ex) { MessageBox.Show("Błąd: " + ex.Message); } }
     }
 }
