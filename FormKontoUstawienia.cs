@@ -1,5 +1,6 @@
 // Plik: FormKontoUstawienia.cs (Wersja zmodernizowana)
 using System;
+using System.Collections.Generic;
 using MySql.Data.MySqlClient;
 using System.Security.Cryptography;
 using System.Threading.Tasks;

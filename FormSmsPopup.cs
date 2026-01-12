@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using MySql.Data.MySqlClient; // Upewnij się, że masz ten using do parametrów SQL
 using System.Drawing;
