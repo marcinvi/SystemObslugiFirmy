@@ -131,26 +131,14 @@ namespace Reklamacje_Dane
                         // Celowo puste - jeśli formularz nie istnieje, idź dalej.
                     }
 
-                    try
+                    using (var dashboard = new FormDashboard(fullName, userRole))
                     {
-                        using (var dashboard = new FormDashboard(fullName, userRole))
-                        {
-                            dashboard.ShowDialog();
+                        dashboard.ShowDialog();
 
-                            if (dashboard.DialogResult == DialogResult.Retry)
-                                continue;
+                        if (dashboard.DialogResult == DialogResult.Retry)
+                            continue;
 
-                            break;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(
-                            $"Nie udało się uruchomić dashboardu:\n\n{ex.Message}",
-                            "Błąd uruchomienia dashboardu",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error);
-                        continue;
+                        break;
                     }
                 }
             }
