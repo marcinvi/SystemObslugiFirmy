@@ -900,6 +900,7 @@
     </Compile>
     <Compile Include="SpellCheckHelper.cs" />
     <Compile Include="SpellCheckInjector.cs" />
+    <Compile Include="SpellCheckManager.cs" />
     <Compile Include="Sprawdz.cs" />
     <Compile Include="Form10.cs">
       <SubType>Form</SubType>

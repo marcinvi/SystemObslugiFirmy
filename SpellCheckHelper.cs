@@ -20,11 +20,14 @@ namespace Reklamacje_Dane
         private HashSet<string> _customDictionary;
         private string _customDictionaryPath;
         private bool _isInitialized = false;
+        private bool _initAttempted = false;
 
         private SpellCheckHelper()
         {
             _customDictionary = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            _customDictionaryPath = Path.Combine(Application.StartupPath, "custom_dictionary.txt");
+            _customDictionaryPath = string.IsNullOrWhiteSpace(SpellCheckConfig.CustomDictionaryPath)
+                ? Path.Combine(Application.StartupPath, "custom_dictionary.txt")
+                : SpellCheckConfig.CustomDictionaryPath;
             LoadCustomDictionary();
         }
 
@@ -57,11 +60,21 @@ namespace Reklamacje_Dane
             if (_isInitialized)
                 return true;
 
+            if (_initAttempted)
+                return false;
+
+            _initAttempted = true;
+
             try
             {
-                string appPath = Application.StartupPath;
-                string affPath = Path.Combine(appPath, "pl_PL.aff");
-                string dicPath = Path.Combine(appPath, "pl_PL.dic");
+                string dictionaryRoot = string.IsNullOrWhiteSpace(SpellCheckConfig.DictionaryPath)
+                    ? Application.StartupPath
+                    : SpellCheckConfig.DictionaryPath;
+                string language = string.IsNullOrWhiteSpace(SpellCheckConfig.Language)
+                    ? "pl_PL"
+                    : SpellCheckConfig.Language;
+                string affPath = Path.Combine(dictionaryRoot, $"{language}.aff");
+                string dicPath = Path.Combine(dictionaryRoot, $"{language}.dic");
 
                 if (!File.Exists(affPath) || !File.Exists(dicPath))
                 {
@@ -77,6 +90,7 @@ namespace Reklamacje_Dane
 
                 _hunspell = new Hunspell(affPath, dicPath);
                 _isInitialized = true;
+                _initAttempted = false;
                 return true;
             }
             catch (Exception ex)
@@ -118,7 +132,8 @@ namespace Reklamacje_Dane
             try
             {
                 var suggestions = _hunspell.Suggest(word);
-                return suggestions?.Take(10).ToList() ?? new List<string>();
+                int maxSuggestions = Math.Max(1, SpellCheckConfig.MaxSuggestions);
+                return suggestions?.Take(maxSuggestions).ToList() ?? new List<string>();
             }
             catch
             {
@@ -218,7 +233,7 @@ namespace Reklamacje_Dane
                 {
                     if (currentWord.Length > 0)
                     {
-                        if (!IsCorrect(currentWord))
+                        if (ShouldCheckWord(currentWord) && !IsCorrect(currentWord))
                         {
                             errors.Add(new SpellCheckError
                             {
@@ -234,7 +249,7 @@ namespace Reklamacje_Dane
             }
 
             // Sprawdź ostatnie słowo
-            if (currentWord.Length > 0 && !IsCorrect(currentWord))
+            if (currentWord.Length > 0 && ShouldCheckWord(currentWord) && !IsCorrect(currentWord))
             {
                 errors.Add(new SpellCheckError
                 {
@@ -253,6 +268,21 @@ namespace Reklamacje_Dane
             _hunspell?.Dispose();
             _hunspell = null;
             _isInitialized = false;
+            _initAttempted = false;
+        }
+
+        private static bool ShouldCheckWord(string word)
+        {
+            if (word.Length < SpellCheckConfig.MinWordLength)
+                return false;
+
+            if (SpellCheckConfig.IgnoreAllCaps && word.All(char.IsUpper))
+                return false;
+
+            if (SpellCheckConfig.IgnoreWordsWithNumbers && word.Any(char.IsDigit))
+                return false;
+
+            return true;
         }
     }
 
