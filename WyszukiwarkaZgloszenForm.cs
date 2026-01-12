@@ -358,45 +358,6 @@ namespace Reklamacje_Dane
             }
         }
 
-        // Pomocnicza klasa definicji kolumny
-        private class ColumnDefinition
-        {
-            public string PropertyName { get; set; }
-            public string DisplayName { get; set; }
-            public int Width { get; set; }
-            public bool VisibleByDefault { get; set; }
-
-            public ColumnDefinition(string prop, string display, int width, bool visible = true)
-            {
-                PropertyName = prop;
-                DisplayName = display;
-                Width = width;
-                VisibleByDefault = visible;
-            }
-        }
-    }
-
-    // Cache singleton (taki sam jak wcześniej)
-    public sealed class DataCache
-    {
-        private static readonly Lazy<DataCache> _instance = new Lazy<DataCache>(() => new DataCache());
-        public static DataCache Instance => _instance.Value;
-
-        private List<ComplaintViewModel> _cachedData;
-        private DateTime _lastUpdate;
-
-        private DataCache() { }
-
-        public bool HasData() => _cachedData != null && _cachedData.Count > 0;
-        public List<ComplaintViewModel> GetData() => _cachedData;
-        public void SetData(List<ComplaintViewModel> data)
-        {
-            _cachedData = data;
-            _lastUpdate = DateTime.Now;
-        }
-        public void Clear() => _cachedData = null;
-        public DateTime LastUpdate => _lastUpdate;
-    
         /// <summary>
         /// Włącza sprawdzanie pisowni po polsku dla wszystkich TextBoxów w formularzu
         /// </summary>
@@ -442,5 +403,44 @@ namespace Reklamacje_Dane
                 }
             }
         }
+
+        // Pomocnicza klasa definicji kolumny
+        private class ColumnDefinition
+        {
+            public string PropertyName { get; set; }
+            public string DisplayName { get; set; }
+            public int Width { get; set; }
+            public bool VisibleByDefault { get; set; }
+
+            public ColumnDefinition(string prop, string display, int width, bool visible = true)
+            {
+                PropertyName = prop;
+                DisplayName = display;
+                Width = width;
+                VisibleByDefault = visible;
+            }
+        }
+    }
+
+    // Cache singleton (taki sam jak wcześniej)
+    public sealed class DataCache
+    {
+        private static readonly Lazy<DataCache> _instance = new Lazy<DataCache>(() => new DataCache());
+        public static DataCache Instance => _instance.Value;
+
+        private List<ComplaintViewModel> _cachedData;
+        private DateTime _lastUpdate;
+
+        private DataCache() { }
+
+        public bool HasData() => _cachedData != null && _cachedData.Count > 0;
+        public List<ComplaintViewModel> GetData() => _cachedData;
+        public void SetData(List<ComplaintViewModel> data)
+        {
+            _cachedData = data;
+            _lastUpdate = DateTime.Now;
+        }
+        public void Clear() => _cachedData = null;
+        public DateTime LastUpdate => _lastUpdate;
 }
 }

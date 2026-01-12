@@ -1209,7 +1209,7 @@ namespace Reklamacje_Dane
                     }
                 }
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Błąd włączania sprawdzania pisowni: {ex.Message}");
             }

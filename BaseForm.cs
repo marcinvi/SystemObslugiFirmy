@@ -1,3 +1,4 @@
+using System;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Drawing;
@@ -27,7 +28,6 @@ namespace Reklamacje_Dane
             // Jeśli plik ikony nazywa się inaczej lub nie jest w zasobach,
             // Visual Studio może tu pokazać błąd - można go wtedy tymczasowo usunąć.
             // this.Icon = Properties.Resources.top;
-        
 
             // Włącz sprawdzanie pisowni dla wszystkich TextBoxów
             EnableSpellCheckOnAllTextBoxes();
@@ -78,5 +78,5 @@ namespace Reklamacje_Dane
                 }
             }
         }
-}
+    }
 }
