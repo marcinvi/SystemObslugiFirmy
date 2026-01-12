@@ -9,7 +9,7 @@ using PdfSharp.Pdf;
 using PdfSharp.Pdf.AcroForms;
 using PdfSharp.Pdf.IO;
 using OutlookApp = Microsoft.Office.Interop.Outlook;
-
+using System.Collections.Generic;
 namespace Reklamacje_Dane
 {
     public partial class Form7 : Form

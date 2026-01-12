@@ -3,7 +3,7 @@ using System.Data;
 using MySql.Data.MySqlClient;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
+using System.Collections.Generic;
 namespace Reklamacje_Dane
 {
     public partial class FormPodsumowanieZwrotu : Form
