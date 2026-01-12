@@ -1647,17 +1647,7 @@ namespace Reklamacje_Dane
         }
 
         #endregion
-    }
 
-    /// <summary>
-    /// Klasa pomocnicza dla zgłoszeń z Google Sheets
-    /// </summary>
-    public class ZgloszenieZArkusza
-    {
-        public IList<object> RowData { get; set; }
-        public string SourceSheet { get; set; }
-        public int RowIndex { get; set; }
-    
         /// <summary>
         /// Włącza sprawdzanie pisowni po polsku dla wszystkich TextBoxów w formularzu
         /// </summary>
@@ -1703,5 +1693,15 @@ namespace Reklamacje_Dane
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Klasa pomocnicza dla zgłoszeń z Google Sheets
+    /// </summary>
+    public class ZgloszenieZArkusza
+    {
+        public IList<object> RowData { get; set; }
+        public string SourceSheet { get; set; }
+        public int RowIndex { get; set; }
 }
 }

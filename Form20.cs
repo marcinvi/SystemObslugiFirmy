@@ -320,16 +320,7 @@ namespace Reklamacje_Dane
         {
 
         }
-    }
 
-    // Klasa pomocnicza do zapisu ustawień widoku
-    public class ColumnSetting
-    {
-        public string Name { get; set; }
-        public bool Visible { get; set; }
-        public int Width { get; set; }
-        public int DisplayIndex { get; set; }
-    
         /// <summary>
         /// Włącza sprawdzanie pisowni po polsku dla wszystkich TextBoxów w formularzu
         /// </summary>
@@ -375,5 +366,14 @@ namespace Reklamacje_Dane
                 }
             }
         }
-}
+    }
+
+    // Klasa pomocnicza do zapisu ustawień widoku
+    public class ColumnSetting
+    {
+        public string Name { get; set; }
+        public bool Visible { get; set; }
+        public int Width { get; set; }
+        public int DisplayIndex { get; set; }
+    }
 }
