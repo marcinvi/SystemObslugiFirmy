@@ -3,6 +3,14 @@
   "WorkspaceRootPath": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\Report1.rdlc||{46F6D2A1-5E86-4080-A799-01F3D0E23796}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Report1.rdlc||{46F6D2A1-5E86-4080-A799-01F3D0E23796}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\RegisterForm.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:RegisterForm.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\Reklamacje Dane.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Reklamacje Dane.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
     }
@@ -27,6 +35,29 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "Report1.rdlc [Design]",
+              "DocumentMoniker": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\Report1.rdlc",
+              "RelativeDocumentMoniker": "Report1.rdlc",
+              "ToolTip": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\Report1.rdlc [Design]",
+              "RelativeToolTip": "Report1.rdlc [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001755|",
+              "WhenOpened": "2026-01-12T10:54:53.535Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "RegisterForm.resx",
+              "DocumentMoniker": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\RegisterForm.resx",
+              "RelativeDocumentMoniker": "RegisterForm.resx",
+              "ToolTip": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\RegisterForm.resx",
+              "RelativeToolTip": "RegisterForm.resx",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001005|",
+              "WhenOpened": "2026-01-12T10:54:49.214Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "Reklamacje Dane.csproj",
               "DocumentMoniker": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\Reklamacje Dane.csproj",
               "RelativeDocumentMoniker": "Reklamacje Dane.csproj",
@@ -34,8 +65,7 @@
               "RelativeToolTip": "Reklamacje Dane.csproj",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-01-12T10:54:20.498Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-01-12T10:54:20.498Z"
             }
           ]
         }

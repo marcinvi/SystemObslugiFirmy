@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:tns="http://events.dpdinfoservices.dpd.com.pl/" targetNamespace="http://events.dpdinfoservices.dpd.com.pl/" version="1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="Exception" type="tns:Exception" />
+  <xs:element name="getEventsForCustomerV1" type="tns:getEventsForCustomerV1" />
+  <xs:element name="getEventsForCustomerV1Response" type="tns:getEventsForCustomerV1Response" />
+  <xs:element name="getEventsForCustomerV2" type="tns:getEventsForCustomerV2" />
+  <xs:element name="getEventsForCustomerV2Response" type="tns:getEventsForCustomerV2Response" />
+  <xs:element name="getEventsForCustomerV3" type="tns:getEventsForCustomerV3" />
+  <xs:element name="getEventsForCustomerV3Response" type="tns:getEventsForCustomerV3Response" />
+  <xs:element name="getEventsForCustomerV4" type="tns:getEventsForCustomerV4" />
+  <xs:element name="getEventsForCustomerV4Response" type="tns:getEventsForCustomerV4Response" />
+  <xs:element name="getEventsForWaybillV1" type="tns:getEventsForWaybillV1" />
+  <xs:element name="getEventsForWaybillV1Response" type="tns:getEventsForWaybillV1Response" />
+  <xs:element name="markEventsAsProcessedV1" type="tns:markEventsAsProcessedV1" />
+  <xs:element name="markEventsAsProcessedV1Response" type="tns:markEventsAsProcessedV1Response" />
+  <xs:complexType name="markEventsAsProcessedV1">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="confirmId" type="xs:string" />
+      <xs:element minOccurs="0" name="authDataV1" type="tns:authDataV1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="authDataV1">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="channel" type="xs:string" />
+      <xs:element minOccurs="0" name="login" type="xs:string" />
+      <xs:element minOccurs="0" name="password" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="markEventsAsProcessedV1Response">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:boolean" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="Exception">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="message" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getEventsForCustomerV4">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="limit" type="xs:int" />
+      <xs:element minOccurs="0" name="language" type="xs:string" />
+      <xs:element minOccurs="0" name="authDataV1" type="tns:authDataV1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getEventsForCustomerV4Response">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:customerEventsResponseV2" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="customerEventsResponseV2">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="confirmId" type="xs:string" />
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="eventsList" nillable="true" type="tns:customerEventV2" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="customerEventV2">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="businessCode" type="xs:string" />
+      <xs:element minOccurs="0" name="country" type="xs:string" />
+      <xs:element minOccurs="0" name="depot" type="xs:string" />
+      <xs:element minOccurs="0" name="description" type="xs:string" />
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="eventDataList" nillable="true" type="tns:customerEventDataV2" />
+      <xs:element minOccurs="0" name="eventTime" type="xs:string" />
+      <xs:element name="id" type="xs:long" />
+      <xs:element name="objectId" type="xs:long" />
+      <xs:element minOccurs="0" name="operationType" type="xs:string" />
+      <xs:element minOccurs="0" name="packageReference" type="xs:string" />
+      <xs:element minOccurs="0" name="parcelReference" type="xs:string" />
+      <xs:element minOccurs="0" name="waybill" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="customerEventDataV2">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="code" type="xs:string" />
+      <xs:element minOccurs="0" name="value" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getEventsForCustomerV3">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="limit" type="xs:int" />
+      <xs:element minOccurs="0" name="authDataV1" type="tns:authDataV1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getEventsForCustomerV3Response">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:customerEventsResponseV2" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getEventsForCustomerV2">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="limit" type="xs:int" />
+      <xs:element minOccurs="0" name="language" type="xs:string" />
+      <xs:element minOccurs="0" name="authDataV1" type="tns:authDataV1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getEventsForCustomerV2Response">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:customerEventsResponseV1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="customerEventsResponseV1">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="confirmId" type="xs:string" />
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="eventsList" nillable="true" type="tns:customerEventV1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="customerEventV1">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="businessCode" type="xs:string" />
+      <xs:element minOccurs="0" name="country" type="xs:string" />
+      <xs:element minOccurs="0" name="depot" type="xs:string" />
+      <xs:element minOccurs="0" name="description" type="xs:string" />
+      <xs:element minOccurs="0" name="eventData1" type="xs:string" />
+      <xs:element minOccurs="0" name="eventData2" type="xs:string" />
+      <xs:element minOccurs="0" name="eventData3" type="xs:string" />
+      <xs:element minOccurs="0" name="eventTime" type="xs:string" />
+      <xs:element name="id" type="xs:long" />
+      <xs:element name="objectId" type="xs:long" />
+      <xs:element minOccurs="0" name="operationType" type="xs:string" />
+      <xs:element minOccurs="0" name="packageReference" type="xs:string" />
+      <xs:element minOccurs="0" name="parcelReference" type="xs:string" />
+      <xs:element minOccurs="0" name="waybill" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getEventsForCustomerV1">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="limit" type="xs:int" />
+      <xs:element minOccurs="0" name="authDataV1" type="tns:authDataV1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getEventsForCustomerV1Response">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:customerEventsResponseV1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getEventsForWaybillV1">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="waybill" type="xs:string" />
+      <xs:element minOccurs="0" name="eventsSelectType" type="tns:eventsSelectTypeEnum" />
+      <xs:element minOccurs="0" name="language" type="xs:string" />
+      <xs:element minOccurs="0" name="authDataV1" type="tns:authDataV1" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="getEventsForWaybillV1Response">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:customerEventsResponseV3" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="customerEventsResponseV3">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="confirmId" type="xs:string" />
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="eventsList" nillable="true" type="tns:customerEventV3" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="customerEventV3">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="businessCode" type="xs:string" />
+      <xs:element minOccurs="0" name="country" type="xs:string" />
+      <xs:element minOccurs="0" name="depot" type="xs:string" />
+      <xs:element minOccurs="0" name="depotName" type="xs:string" />
+      <xs:element minOccurs="0" name="description" type="xs:string" />
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="eventDataList" nillable="true" type="tns:customerEventDataV3" />
+      <xs:element minOccurs="0" name="eventTime" type="xs:string" />
+      <xs:element name="objectId" type="xs:long" />
+      <xs:element minOccurs="0" name="packageReference" type="xs:string" />
+      <xs:element minOccurs="0" name="parcelReference" type="xs:string" />
+      <xs:element minOccurs="0" name="waybill" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="customerEventDataV3">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="code" type="xs:string" />
+      <xs:element minOccurs="0" name="description" type="xs:string" />
+      <xs:element minOccurs="0" name="value" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="eventsSelectTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ALL" />
+      <xs:enumeration value="ONLY_LAST" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

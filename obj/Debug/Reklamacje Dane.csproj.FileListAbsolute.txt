@@ -1,0 +1,54 @@
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje Dane.csproj.AssemblyReference.cache
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Interop.Outlook.dll
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje Dane.csproj.ResolveComReference.cache
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.AddActionControl.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.ChatMessageBubble.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.ClientInfoControl.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.AddEntryForm.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form10.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form11.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form12.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormPolaczenie.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormUploader.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormWybierzZgloszenie.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormAllegroIssue.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form19.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form20.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form15.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form16.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form17.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form18.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form2.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form3.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form4.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form5.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form6.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form7.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form8.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form9.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormDashboard.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormDodajZwrotReczny.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormDpdTracking.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormEmail.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormHandlowiecSzczegoly.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormHandlowiecSzczegolyReczny.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormReportToManufacturer.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormStanMagazynowy.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormSzablonyEmail.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormUstawienia.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormWiadomosci.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormZwrotSzczegoly.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormZwrotWplaty.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.HandlowiecControl.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.KWZForm.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FakturaForm.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.MagazynControl.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.ReklamacjeControl.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.StandardReminderCard.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.SyncProgressForm.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.WRLForm.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.LoginForm.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.WyszukiwarkaZgloszenForm.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.Form2.pl.resources
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje Dane.csproj.GenerateResource.cache
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje Dane.csproj.CoreCompileInputs.cache
