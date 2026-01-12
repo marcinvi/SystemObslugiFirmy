@@ -52,7 +52,7 @@ namespace Reklamacje_Dane
         
 
             // Włącz sprawdzanie pisowni dla wszystkich TextBoxów
-            EnableSpellCheckOnAllTextBoxes();
+         
         }
 
         private void AttachEventHandlers()
