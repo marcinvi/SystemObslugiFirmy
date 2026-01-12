@@ -28,6 +28,9 @@ namespace Reklamacje_Dane
             if (textBox == null)
                 return;
 
+            if (!SpellCheckConfig.IsEnabled)
+                return;
+
             // Inicjalizuj SpellChecker jeśli jeszcze nie został
             if (!SpellCheckHelper.Instance.Initialize())
                 return;
