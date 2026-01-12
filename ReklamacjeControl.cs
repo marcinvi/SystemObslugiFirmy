@@ -522,7 +522,11 @@ namespace Reklamacje_Dane
 
         private void RequestDataReload()
         {
-            var owner = this.FindForm() ?? this;
+            IWin32Window owner = this.FindForm();
+            if (owner == null)
+            {
+                owner = this;
+            }
             LoadDataAsync().FireAndForgetSafe(owner);
         }
 

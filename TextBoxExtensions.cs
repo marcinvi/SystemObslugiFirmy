@@ -10,6 +10,7 @@ namespace Reklamacje_Dane
     public static class TextBoxExtensions
     {
         private const int EM_SETCUEBANNER = 0x1501;
+        private const int SpellCheckDebounceMs = 300;
         private static Dictionary<Control, SpellCheckContext> _spellCheckContexts = new Dictionary<Control, SpellCheckContext>();
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -47,7 +48,7 @@ namespace Reklamacje_Dane
                 Control = textBox,
                 HighlightErrors = highlightErrors,
                 ContextMenu = new ContextMenuStrip(),
-                DebounceTimer = new Timer { Interval = SpellCheckConfig.DebounceMs }
+                DebounceTimer = new Timer { Interval = SpellCheckDebounceMs }
             };
 
             context.DebounceTimer.Tick += (s, e) =>
@@ -116,22 +117,6 @@ namespace Reklamacje_Dane
                 var context = _spellCheckContexts[textBox];
                 if (context.HighlightErrors && textBox is RichTextBox)
                 {
-                    int maxLength = Math.Max(0, SpellCheckConfig.MaxHighlightTextLength);
-                    if (maxLength > 0 && textBox.TextLength > maxLength)
-                    {
-                        if (!context.HighlightSuppressed)
-                        {
-                            context.HighlightSuppressed = true;
-                            ClearHighlights(textBox);
-                        }
-                        return;
-                    }
-
-                    if (context.HighlightSuppressed)
-                    {
-                        context.HighlightSuppressed = false;
-                    }
-
                     context.DebounceTimer?.Stop();
                     context.DebounceTimer?.Start();
                 }
@@ -340,7 +325,6 @@ namespace Reklamacje_Dane
             public bool HighlightErrors { get; set; }
             public ContextMenuStrip ContextMenu { get; set; }
             public Timer DebounceTimer { get; set; }
-            public bool HighlightSuppressed { get; set; }
         }
 
         private class WordInfo
