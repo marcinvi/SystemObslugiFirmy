@@ -42,6 +42,42 @@ namespace Reklamacje_Dane
         [DisplayName("Kod Prod.")] // Dodatkowe pole
         public string KodProducenta { get; set; }
 
+        [DisplayName("Data Zakupu")]
+        public DateTime? DataZakupu { get; set; }
+
+        [DisplayName("Status DPD")]
+        public string StatusDpd { get; set; }
+
+        [DisplayName("Data Zamknięcia")]
+        public DateTime? DataZamkniecia { get; set; }
+
+        [DisplayName("Usterka")]
+        public string Usterka { get; set; }
+
+        [DisplayName("Opis Usterki")]
+        public string OpisUsterki { get; set; }
+
+        [DisplayName("Uwagi")]
+        public string Uwagi { get; set; }
+
+        [DisplayName("Opiekun")]
+        public string Opiekun { get; set; }
+
+        [DisplayName("NIP")]
+        public string KlientNip { get; set; }
+
+        [DisplayName("Allegro Login")]
+        public string AllegroBuyerLogin { get; set; }
+
+        [DisplayName("Allegro Order")]
+        public string AllegroOrderId { get; set; }
+
+        [DisplayName("Allegro Dispute")]
+        public string AllegroDisputeId { get; set; }
+
+        [DisplayName("Allegro Konto")]
+        public string AllegroAccountId { get; set; }
+
         // To pole jest ukryte (nie ma DisplayName lub ignorowane w logice)
         [Browsable(false)]
         public string SearchVector { get; private set; }
@@ -49,7 +85,7 @@ namespace Reklamacje_Dane
         public void BuildSearchVector()
         {
             // Łączymy wszystko w jeden ciąg dla szybkości
-            SearchVector = $"{NrZgloszenia} {Klient} {Produkt} {SN} {FV} {Skad} {Producent} {Status} {NazwaKrotka} {KodProducenta}".ToLower();
+            SearchVector = $"{NrZgloszenia} {Klient} {Produkt} {SN} {FV} {Skad} {Producent} {Status} {NazwaKrotka} {KodProducenta} {Usterka} {OpisUsterki} {Uwagi} {Opiekun} {StatusDpd} {AllegroBuyerLogin} {AllegroOrderId} {AllegroDisputeId} {AllegroAccountId} {KlientNip}".ToLower();
         }
     }
 }

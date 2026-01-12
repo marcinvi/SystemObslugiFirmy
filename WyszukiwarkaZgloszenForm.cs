@@ -26,6 +26,9 @@ namespace Reklamacje_Dane
         private Label _lblStats;
         private Panel _loadingOverlay;
         private Label _lblLoading;
+        private Panel _filterPanelContainer;
+        private Panel _filterPanel;
+        private readonly Dictionary<string, TextBox> _columnFilters = new Dictionary<string, TextBox>();
 
         // Dostępne kolumny (użytkownik może wybierać które pokazać)
         private readonly List<ColumnDefinition> _availableColumns = new List<ColumnDefinition>
@@ -41,7 +44,19 @@ namespace Reklamacje_Dane
             new ColumnDefinition("SN", "S/N", 100),
             new ColumnDefinition("FV", "Faktura", 100),
             new ColumnDefinition("Skad", "Źródło", 100),
-            new ColumnDefinition("Producent", "Producent", 120)
+            new ColumnDefinition("Producent", "Producent", 120),
+            new ColumnDefinition("DataZakupu", "Data Zakupu", 120, false),
+            new ColumnDefinition("StatusDpd", "Status DPD", 120, false),
+            new ColumnDefinition("DataZamkniecia", "Data Zamknięcia", 120, false),
+            new ColumnDefinition("Usterka", "Usterka", 180, false),
+            new ColumnDefinition("OpisUsterki", "Opis Usterki", 200, false),
+            new ColumnDefinition("Uwagi", "Uwagi", 200, false),
+            new ColumnDefinition("Opiekun", "Opiekun", 140, false),
+            new ColumnDefinition("KlientNip", "NIP", 120, false),
+            new ColumnDefinition("AllegroBuyerLogin", "Allegro Login", 140, false),
+            new ColumnDefinition("AllegroOrderId", "Allegro Order", 140, false),
+            new ColumnDefinition("AllegroDisputeId", "Allegro Dispute", 140, false),
+            new ColumnDefinition("AllegroAccountId", "Allegro Konto", 120, false)
         };
 
         public WyszukiwarkaZgloszenForm()
@@ -151,6 +166,20 @@ namespace Reklamacje_Dane
 
             topBar.Controls.AddRange(new Control[] { lblTitle, _txtSearch, btnRefresh, btnColumns, btnExport, _lblStats });
 
+            _filterPanelContainer = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 34,
+                BackColor = Color.FromArgb(250, 250, 250)
+            };
+
+            _filterPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(250, 250, 250)
+            };
+            _filterPanelContainer.Controls.Add(_filterPanel);
+
             // Grid
             _grid = new DataGridView
             {
@@ -194,7 +223,25 @@ namespace Reklamacje_Dane
                 }
             };
 
+            _grid.ColumnWidthChanged += (s, e) => SyncFilterWidth(e.Column);
+            _grid.ColumnDisplayIndexChanged += (s, e) => BuildColumnFilters();
+            _grid.ColumnStateChanged += (s, e) =>
+            {
+                if (e.StateChanged == DataGridViewElementStates.Visible)
+                {
+                    BuildColumnFilters();
+                }
+            };
+            _grid.Scroll += (s, e) =>
+            {
+                if (e.ScrollOrientation == ScrollOrientation.HorizontalScroll)
+                {
+                    _filterPanel.Left = -_grid.HorizontalScrollingOffset;
+                }
+            };
+
             mainPanel.Controls.Add(_grid);
+            mainPanel.Controls.Add(_filterPanelContainer);
             mainPanel.Controls.Add(topBar);
 
             this.Controls.Add(mainPanel);
@@ -219,6 +266,60 @@ namespace Reklamacje_Dane
                     Visible = colDef.VisibleByDefault
                 };
                 _grid.Columns.Add(col);
+            }
+
+            BuildColumnFilters();
+        }
+
+        private void BuildColumnFilters()
+        {
+            var existingFilters = _columnFilters.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Text);
+            _columnFilters.Clear();
+            _filterPanel.Controls.Clear();
+
+            int x = 0;
+            var visibleColumns = _grid.Columns.Cast<DataGridViewColumn>()
+                .Where(c => c.Visible)
+                .OrderBy(c => c.DisplayIndex)
+                .ToList();
+
+            foreach (var column in visibleColumns)
+            {
+                var textBox = new TextBox
+                {
+                    Width = column.Width,
+                    Height = 24,
+                    Font = new Font("Segoe UI", 9F),
+                    BorderStyle = BorderStyle.FixedSingle,
+                    Tag = column.DataPropertyName,
+                    Location = new Point(x, 4)
+                };
+
+                if (existingFilters.TryGetValue(column.DataPropertyName, out var value))
+                {
+                    textBox.Text = value;
+                }
+
+                textBox.TextChanged += (s, e) => ApplyFilters();
+
+                _filterPanel.Controls.Add(textBox);
+                _columnFilters[column.DataPropertyName] = textBox;
+
+                x += column.Width;
+            }
+
+            _filterPanel.Width = Math.Max(x, _filterPanelContainer.Width);
+            _filterPanel.Left = -_grid.HorizontalScrollingOffset;
+        }
+
+        private void SyncFilterWidth(DataGridViewColumn column)
+        {
+            if (column == null || !column.Visible) return;
+
+            if (_columnFilters.TryGetValue(column.DataPropertyName, out var textBox))
+            {
+                textBox.Width = column.Width;
+                BuildColumnFilters();
             }
         }
 
@@ -266,9 +367,35 @@ namespace Reklamacje_Dane
                 _filteredData = _allData.Where(x => terms.All(term => x.SearchVector.Contains(term))).ToList();
             }
 
+            foreach (var filter in _columnFilters.Where(kvp => !string.IsNullOrWhiteSpace(kvp.Value.Text)))
+            {
+                var term = filter.Value.Text.Trim().ToLower();
+                _filteredData = _filteredData
+                    .Where(item => ColumnMatches(item, filter.Key, term))
+                    .ToList();
+            }
+
             _grid.DataSource = _filteredData;
             _lblStats.Text = $"Wyniki: {_filteredData.Count} / {_allData.Count}";
             _lblStats.ForeColor = _filteredData.Count > 0 ? Color.Green : Color.Red;
+        }
+
+        private bool ColumnMatches(ComplaintViewModel item, string propertyName, string term)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(propertyName)) return false;
+
+            var prop = item.GetType().GetProperty(propertyName);
+            if (prop == null) return false;
+
+            var value = prop.GetValue(item);
+            var text = value switch
+            {
+                DateTime dateTime => dateTime.ToString("yyyy-MM-dd HH:mm"),
+                DateTime? dateTime => dateTime.HasValue ? dateTime.Value.ToString("yyyy-MM-dd HH:mm") : string.Empty,
+                _ => value?.ToString() ?? string.Empty
+            };
+
+            return text.ToLower().Contains(term);
         }
 
         private void ShowColumnSelector(object sender, EventArgs e)
