@@ -21,6 +21,8 @@ namespace Reklamacje_Dane
             InitializeComponent();
             lstLog.DrawMode = DrawMode.OwnerDrawFixed;
             lstLog.DrawItem += LstLog_DrawItem;
+            btnContinue.DialogResult = DialogResult.OK;
+            AcceptButton = btnContinue;
 
             // Po pokazaniu okna uruchom asynchroniczną synchronizację
             this.Shown += SyncProgressForm_Shown;
