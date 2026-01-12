@@ -1,0 +1,159 @@
+<!-- 
+  ===============================================
+  KONFIGURACJA SPRAWDZANIA PISOWNI
+  ===============================================
+  Dodaj tę sekcję do swojego pliku App.config
+  ===============================================
+-->
+
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  
+  <!-- Sekcja konfiguracji sprawdzania pisowni -->
+  <appSettings>
+    
+    <!-- Włącz/wyłącz sprawdzanie pisowni globalnie -->
+    <add key="SpellCheck_Enabled" value="true"/>
+    
+    <!-- Język słownika (np. pl_PL, en_US, de_DE) -->
+    <add key="SpellCheck_Language" value="pl_PL"/>
+    
+    <!-- Ścieżka do plików słownika (puste = folder aplikacji) -->
+    <add key="SpellCheck_DictionaryPath" value=""/>
+    
+    <!-- Maksymalna liczba sugestii -->
+    <add key="SpellCheck_MaxSuggestions" value="10"/>
+    
+    <!-- Automatyczne podkreślanie błędów (tylko RichTextBox) -->
+    <add key="SpellCheck_HighlightErrors" value="true"/>
+    
+    <!-- Kolor podkreślenia błędów (Red, Blue, Green, itp.) -->
+    <add key="SpellCheck_ErrorColor" value="Red"/>
+    
+    <!-- Włącz menu kontekstowe -->
+    <add key="SpellCheck_ContextMenu" value="true"/>
+    
+    <!-- Zapisuj słownik własny automatycznie -->
+    <add key="SpellCheck_AutoSaveCustomDictionary" value="true"/>
+    
+    <!-- Ścieżka do słownika własnego (puste = custom_dictionary.txt w folderze aplikacji) -->
+    <add key="SpellCheck_CustomDictionaryPath" value=""/>
+    
+    <!-- Ignoruj słowa krótsze niż (liczba znaków) -->
+    <add key="SpellCheck_MinWordLength" value="2"/>
+    
+    <!-- Ignoruj słowa pisane wielkimi literami -->
+    <add key="SpellCheck_IgnoreAllCaps" value="true"/>
+    
+    <!-- Ignoruj słowa zawierające cyfry -->
+    <add key="SpellCheck_IgnoreWordsWithNumbers" value="true"/>
+    
+    <!-- Loguj błędy sprawdzania pisowni -->
+    <add key="SpellCheck_EnableLogging" value="false"/>
+    
+  </appSettings>
+  
+</configuration>
+
+<!-- 
+  ===============================================
+  UŻYCIE W KODZIE:
+  ===============================================
+  
+  using System.Configuration;
+  
+  // Sprawdź czy sprawdzanie jest włączone
+  bool enabled = bool.Parse(ConfigurationManager.AppSettings["SpellCheck_Enabled"] ?? "true");
+  
+  // Pobierz język
+  string language = ConfigurationManager.AppSettings["SpellCheck_Language"] ?? "pl_PL";
+  
+  // Pobierz maksymalną liczbę sugestii
+  int maxSuggestions = int.Parse(ConfigurationManager.AppSettings["SpellCheck_MaxSuggestions"] ?? "10");
+  
+  ===============================================
+  PRZYKŁAD ROZSZERZONEJ INICJALIZACJI:
+  ===============================================
+  
+  public class SpellCheckConfig
+  {
+      public static bool IsEnabled 
+      {
+          get 
+          {
+              return bool.Parse(ConfigurationManager.AppSettings["SpellCheck_Enabled"] ?? "true");
+          }
+      }
+      
+      public static string Language
+      {
+          get
+          {
+              return ConfigurationManager.AppSettings["SpellCheck_Language"] ?? "pl_PL";
+          }
+      }
+      
+      public static int MaxSuggestions
+      {
+          get
+          {
+              return int.Parse(ConfigurationManager.AppSettings["SpellCheck_MaxSuggestions"] ?? "10");
+          }
+      }
+      
+      public static bool HighlightErrors
+      {
+          get
+          {
+              return bool.Parse(ConfigurationManager.AppSettings["SpellCheck_HighlightErrors"] ?? "true");
+          }
+      }
+      
+      public static Color ErrorColor
+      {
+          get
+          {
+              string colorName = ConfigurationManager.AppSettings["SpellCheck_ErrorColor"] ?? "Red";
+              return Color.FromName(colorName);
+          }
+      }
+  }
+  
+  ===============================================
+  DOSTĘPNE JĘZYKI:
+  ===============================================
+  
+  Aby dodać nowy język:
+  1. Pobierz pliki .aff i .dic dla danego języka z:
+     https://github.com/LibreOffice/dictionaries
+  
+  2. Umieść je w folderze aplikacji
+  
+  3. Zmień wartość SpellCheck_Language w App.config
+  
+  Przykłady:
+  - pl_PL - Polski
+  - en_US - Angielski (USA)
+  - en_GB - Angielski (UK)
+  - de_DE - Niemiecki
+  - fr_FR - Francuski
+  - es_ES - Hiszpański
+  - it_IT - Włoski
+  
+  ===============================================
+  ZAAWANSOWANE OPCJE:
+  ===============================================
+  
+  <!-- Wielojęzyczne sprawdzanie -->
+  <add key="SpellCheck_Languages" value="pl_PL;en_US"/>
+  
+  <!-- Wykluczenia dla konkretnych formularzy -->
+  <add key="SpellCheck_ExcludeForms" value="Form1;Form2;LoginForm"/>
+  
+  <!-- Włącz cache sugestii (przyspiesza działanie) -->
+  <add key="SpellCheck_EnableSuggestionCache" value="true"/>
+  
+  <!-- Maksymalny rozmiar cache (liczba słów) -->
+  <add key="SpellCheck_CacheSize" value="1000"/>
+  
+-->

@@ -1,0 +1,22 @@
+===== RAPORT DODAWANIA SPRAWDZANIA PISOWNI =====
+
+Przetworzone formularze (0):
+
+Błędy (15):
+  ✗ Faktura: Nie znaleziono konstruktora
+  ✗ FormAllegroIssue_NEW: Nie znaleziono konstruktora
+  ✗ FormMailProgressr: Nie znaleziono konstruktora
+  ✗ FormSmsPopup_BACKUP_ORIGINAL: Nie znaleziono konstruktora
+  ✗ FormSmsPopup_NAPRAWIONY: Nie znaleziono konstruktora
+  ✗ FormSzczegolyCzesci: Nie znaleziono konstruktora
+  ✗ FormWiadomosciodl: Nie znaleziono konstruktora
+  ✗ FormWiadomosci_ULTRA_SIMPLE: Nie znaleziono konstruktora
+  ✗ KWZ: Nie znaleziono konstruktora
+  ✗ MagazynControl.SendDecisionEmails: Nie znaleziono konstruktora
+  ✗ WRL: Nie znaleziono konstruktora
+  ✗ WyszukiwarkaZgloszenFormold: Nie znaleziono konstruktora
+  ✗ WyszukiwarkaZgloszenForm_BACKUP_ORIGINAL: Nie znaleziono konstruktora
+  ✗ WyszukiwarkaZgloszenForm_FIXED_THREADING: Nie znaleziono konstruktora
+  ✗ WyszukiwarkaZgloszenForm_NAPRAWIONY: Nie znaleziono konstruktora
+
+===== KONIEC RAPORTU =====

@@ -1,0 +1,1529 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="15.0">
+  <Import Project="packages\EntityFramework.6.5.1\build\EntityFramework.props" Condition="Exists('packages\EntityFramework.6.5.1\build\EntityFramework.props')" />
+  <Import Project="packages\Microsoft.SqlServer.Types.160.1000.6\build\net462\Microsoft.SqlServer.Types.props" Condition="Exists('packages\Microsoft.SqlServer.Types.160.1000.6\build\net462\Microsoft.SqlServer.Types.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{AF0A90D1-DA6D-4B00-87B6-A96FF9222C69}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Reklamacje_Dane</RootNamespace>
+    <AssemblyName>Reklamacje Dane</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>C:\Users\Marcin\Desktop\WebSite\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <PublishWizardCompleted>true</PublishWizardCompleted>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>0</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <UseVSHostingProcess>true</UseVSHostingProcess>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>true</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestCertificateThumbprint>E80DC692BA76F00AFCC9B820335550F21ECF0877</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestKeyFile>Reklamacje Dane_TemporaryKey.pfx</ManifestKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignManifests>true</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>top.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BitMiracle.LibTiff.NET, Version=2.3.642.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\BitMiracle.LibTiff.NET.2.3.642.0\lib\net20\BitMiracle.LibTiff.NET.dll</HintPath>
+    </Reference>
+    <Reference Include="BouncyCastle.Crypto, Version=1.8.9.0, Culture=neutral, PublicKeyToken=0e99375e54769942">
+      <HintPath>packages\BouncyCastle.1.8.9\lib\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="BouncyCastle.Cryptography, Version=2.0.0.0, Culture=neutral, PublicKeyToken=072edcf4a5328938, processorArchitecture=MSIL">
+      <HintPath>packages\BouncyCastle.Cryptography.2.6.2\lib\net461\BouncyCastle.Cryptography.dll</HintPath>
+    </Reference>
+    <Reference Include="Dapper, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Dapper.2.1.66\lib\net461\Dapper.dll</HintPath>
+    </Reference>
+    <Reference Include="DeepL.net, Version=1.0.0.0, Culture=neutral, PublicKeyToken=9a2d79e62551bd3c, processorArchitecture=MSIL">
+      <HintPath>packages\DeepL.net.1.15.0\lib\netstandard2.0\DeepL.net.dll</HintPath>
+    </Reference>
+    <Reference Include="DevExpress.WinterJoySkin, Version=1.0.3.0, Culture=neutral, PublicKeyToken=95fc6c5621878f0a, processorArchitecture=MSIL">
+      <HintPath>packages\DevExpress.Win.WinterJoySkin.1.0.3\lib\net452\DevExpress.WinterJoySkin.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>packages\EntityFramework.6.5.1\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>packages\EntityFramework.6.5.1\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis, Version=1.68.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>packages\Google.Apis.1.68.0\lib\net462\Google.Apis.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.Auth, Version=1.68.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>packages\Google.Apis.Auth.1.68.0\lib\net462\Google.Apis.Auth.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.Core, Version=1.68.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>packages\Google.Apis.Core.1.68.0\lib\net462\Google.Apis.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.Drive.v3, Version=1.68.0.3627, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>packages\Google.Apis.Drive.v3.1.68.0.3627\lib\net462\Google.Apis.Drive.v3.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.Sheets.v4, Version=1.68.0.3658, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>packages\Google.Apis.Sheets.v4.1.68.0.3658\lib\net462\Google.Apis.Sheets.v4.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Protobuf, Version=3.32.0.0, Culture=neutral, PublicKeyToken=a7d26565bac4d604, processorArchitecture=MSIL">
+      <HintPath>packages\Google.Protobuf.3.32.0\lib\net45\Google.Protobuf.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib, Version=1.4.2.13, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
+      <HintPath>packages\SharpZipLib.1.4.2\lib\netstandard2.0\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="itextsharp, Version=5.5.13.4, Culture=neutral, PublicKeyToken=8354ae6d2174ddca, processorArchitecture=MSIL">
+      <HintPath>packages\iTextSharp.5.5.13.4\lib\net461\itextsharp.dll</HintPath>
+    </Reference>
+    <Reference Include="K4os.Compression.LZ4, Version=1.3.8.0, Culture=neutral, PublicKeyToken=2186fa9121ef231d, processorArchitecture=MSIL">
+      <HintPath>packages\K4os.Compression.LZ4.1.3.8\lib\net462\K4os.Compression.LZ4.dll</HintPath>
+    </Reference>
+    <Reference Include="K4os.Compression.LZ4.Streams, Version=1.3.8.0, Culture=neutral, PublicKeyToken=2186fa9121ef231d, processorArchitecture=MSIL">
+      <HintPath>packages\K4os.Compression.LZ4.Streams.1.3.8\lib\net462\K4os.Compression.LZ4.Streams.dll</HintPath>
+    </Reference>
+    <Reference Include="K4os.Hash.xxHash, Version=1.0.8.0, Culture=neutral, PublicKeyToken=32cd54395057cec3, processorArchitecture=MSIL">
+      <HintPath>packages\K4os.Hash.xxHash.1.0.8\lib\net462\K4os.Hash.xxHash.dll</HintPath>
+    </Reference>
+    <Reference Include="MailKit, Version=4.14.0.0, Culture=neutral, PublicKeyToken=4e064fe7c44a8f1b, processorArchitecture=MSIL">
+      <HintPath>..\packages\MailKit.4.14.1\lib\net47\MailKit.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=9.0.0.8, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Bcl.AsyncInterfaces.9.0.8\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Data.Sqlite, Version=9.0.9.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Data.Sqlite.Core.9.0.9\lib\netstandard2.0\Microsoft.Data.Sqlite.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection, Version=8.0.0.1, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.DependencyInjection.8.0.1\lib\net462\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=8.0.0.2, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.DependencyInjection.Abstractions.8.0.2\lib\net462\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Http, Version=5.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.Http.5.0.0\lib\net461\Microsoft.Extensions.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Http.Polly, Version=5.0.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.Http.Polly.5.0.1\lib\netstandard2.0\Microsoft.Extensions.Http.Polly.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging, Version=8.0.0.1, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.Logging.8.0.1\lib\net462\Microsoft.Extensions.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=8.0.0.2, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.Logging.Abstractions.8.0.2\lib\net462\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Options, Version=8.0.0.2, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.Options.8.0.2\lib\net462\Microsoft.Extensions.Options.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Primitives, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Extensions.Primitives.8.0.0\lib\net462\Microsoft.Extensions.Primitives.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Office.Interop.Excel, Version=15.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Office.Interop.Excel.15.0.4795.1001\lib\net20\Microsoft.Office.Interop.Excel.dll</HintPath>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.Common, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.ReportingServices.ReportViewerControl.Winforms.150.1652.0\lib\net40\Microsoft.ReportViewer.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.DataVisualization, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.ReportingServices.ReportViewerControl.Winforms.150.1652.0\lib\net40\Microsoft.ReportViewer.DataVisualization.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.Design, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.ReportingServices.ReportViewerControl.Winforms.150.1652.0\lib\net40\Microsoft.ReportViewer.Design.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.ProcessingObjectModel, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.ReportingServices.ReportViewerControl.Winforms.150.1652.0\lib\net40\Microsoft.ReportViewer.ProcessingObjectModel.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.WinForms, Version=15.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.ReportingServices.ReportViewerControl.Winforms.150.1652.0\lib\net40\Microsoft.ReportViewer.WinForms.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.Types, Version=16.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.SqlServer.Types.160.1000.6\lib\net462\Microsoft.SqlServer.Types.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="Microsoft.Web.WebView2.Core, Version=1.0.2957.106, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Web.WebView2.1.0.2957.106\lib\net462\Microsoft.Web.WebView2.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Web.WebView2.WinForms, Version=1.0.2957.106, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Web.WebView2.1.0.2957.106\lib\net462\Microsoft.Web.WebView2.WinForms.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Web.WebView2.Wpf, Version=1.0.2957.106, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Web.WebView2.1.0.2957.106\lib\net462\Microsoft.Web.WebView2.Wpf.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Web.XmlTransform, Version=2.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Web.Xdt.2.1.1\lib\net40\Microsoft.Web.XmlTransform.dll</HintPath>
+    </Reference>
+    <Reference Include="MimeKit, Version=4.14.0.0, Culture=neutral, PublicKeyToken=bede1c8a46c66814, processorArchitecture=MSIL">
+      <HintPath>..\packages\MimeKit.4.14.0\lib\net47\MimeKit.dll</HintPath>
+    </Reference>
+    <Reference Include="MySql.Data, Version=9.5.0.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+      <HintPath>packages\MySql.Data.9.5.0\lib\net462\MySql.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="NetSpell.SpellChecker, Version=2.1.7.41329, Culture=neutral, PublicKeyToken=318b389f0db66e46">
+      <HintPath>packages\NetSpell.2.1.7\lib\NetSpell.SpellChecker.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="NHunspell, Version=1.2.5554.16953, Culture=neutral, PublicKeyToken=1ac793ea843b4366, processorArchitecture=MSIL">
+      <HintPath>packages\NHunspell.1.2.5554.16953\lib\net\NHunspell.dll</HintPath>
+    </Reference>
+    <Reference Include="NuGet.Core, Version=2.14.0.832, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>packages\NuGet.Core.2.14.0\lib\net40-Client\NuGet.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp-gdi, Version=6.2.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp-GDI.6.2.0\lib\net462\PdfSharp-gdi.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.BarCodes-gdi, Version=6.2.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp-GDI.6.2.0\lib\net462\PdfSharp.BarCodes-gdi.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.Charting-gdi, Version=6.2.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp-GDI.6.2.0\lib\net462\PdfSharp.Charting-gdi.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.Quality-gdi, Version=6.2.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp-GDI.6.2.0\lib\net462\PdfSharp.Quality-gdi.dll</HintPath>
+    </Reference>
+    <Reference Include="PdfSharp.Snippets-gdi, Version=6.2.0.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
+      <HintPath>packages\PDFsharp-GDI.6.2.0\lib\net462\PdfSharp.Snippets-gdi.dll</HintPath>
+    </Reference>
+    <Reference Include="Polly, Version=7.0.0.0, Culture=neutral, PublicKeyToken=c8a3ffc3f8f825cc, processorArchitecture=MSIL">
+      <HintPath>packages\Polly.7.1.0\lib\netstandard2.0\Polly.dll</HintPath>
+    </Reference>
+    <Reference Include="Polly.Extensions.Http, Version=3.0.0.0, Culture=neutral, PublicKeyToken=c8a3ffc3f8f825cc, processorArchitecture=MSIL">
+      <HintPath>packages\Polly.Extensions.Http.3.0.0\lib\netstandard2.0\Polly.Extensions.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="QRCoder, Version=1.7.0.0, Culture=neutral, PublicKeyToken=c4ed5b9ae8358a28, processorArchitecture=MSIL">
+      <HintPath>..\packages\QRCoder.1.7.0\lib\net40\QRCoder.dll</HintPath>
+    </Reference>
+    <Reference Include="RestSharp, Version=112.1.0.0, Culture=neutral, PublicKeyToken=598062e77f915f75, processorArchitecture=MSIL">
+      <HintPath>packages\RestSharp.112.1.0\lib\net471\RestSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="RtfPipe, Version=2.0.7677.4303, Culture=neutral, PublicKeyToken=5f6ab4ce530296d2, processorArchitecture=MSIL">
+      <HintPath>packages\RtfPipe.2.0.7677.4303\lib\net45\RtfPipe.dll</HintPath>
+    </Reference>
+    <Reference Include="SixLabors.Fonts, Version=1.0.0.0, Culture=neutral, PublicKeyToken=d998eea7b14cab13, processorArchitecture=MSIL">
+      <HintPath>packages\SixLabors.Fonts.1.0.0\lib\netstandard2.0\SixLabors.Fonts.dll</HintPath>
+    </Reference>
+    <Reference Include="SixLabors.ImageSharp, Version=1.0.0.0, Culture=neutral, PublicKeyToken=d998eea7b14cab13, processorArchitecture=MSIL">
+      <HintPath>packages\SixLabors.ImageSharp.1.0.4\lib\net472\SixLabors.ImageSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCLRaw.core, Version=2.1.10.2445, Culture=neutral, PublicKeyToken=1488e028ca7ab535, processorArchitecture=MSIL">
+      <HintPath>packages\SQLitePCLRaw.core.2.1.10\lib\netstandard2.0\SQLitePCLRaw.core.dll</HintPath>
+    </Reference>
+    <Reference Include="System">
+      <HintPath>..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2\System.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Buffers, Version=4.0.4.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.6.0\lib\net462\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.CodeDom, Version=7.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.CodeDom.7.0.0\lib\net462\System.CodeDom.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Configuration.ConfigurationManager, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Configuration.ConfigurationManager.8.0.0\lib\net462\System.Configuration.ConfigurationManager.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.SQLite, Version=1.0.119.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>packages\Stub.System.Data.SQLite.Core.NetStandard.1.0.119.0\lib\netstandard2.0\System.Data.SQLite.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data.SQLite.EF6, Version=1.0.119.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>packages\System.Data.SQLite.EF6.2.0.1\lib\net471\System.Data.SQLite.EF6.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data.SQLite.Linq, Version=1.0.119.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>packages\System.Data.SQLite.Linq.1.0.119.0\lib\net46\System.Data.SQLite.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Design" />
+    <Reference Include="System.Diagnostics.DiagnosticSource, Version=8.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Diagnostics.DiagnosticSource.8.0.1\lib\net462\System.Diagnostics.DiagnosticSource.dll</HintPath>
+    </Reference>
+    <Reference Include="System.EnterpriseServices" />
+    <Reference Include="System.Formats.Asn1, Version=8.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Formats.Asn1.8.0.1\lib\net462\System.Formats.Asn1.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO.Pipelines, Version=9.0.0.8, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.IO.Pipelines.9.0.8\lib\net462\System.IO.Pipelines.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Management" />
+    <Reference Include="System.Memory, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.6.0\lib\net462\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Messaging" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.5.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.6.0\lib\net462\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Resources.Extensions, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Resources.Extensions.6.0.0\lib\net461\System.Resources.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.1.0\lib\net462\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Security.Cryptography.Pkcs, Version=8.0.0.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.Security.Cryptography.Pkcs.8.0.1\lib\net462\System.Security.Cryptography.Pkcs.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Text.Encodings.Web, Version=9.0.0.8, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Text.Encodings.Web.9.0.8\lib\net462\System.Text.Encodings.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Json, Version=9.0.0.8, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Text.Json.9.0.8\lib\net462\System.Text.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.6.0\lib\net462\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Transactions" />
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="WindowsFormsIntegration" />
+    <Reference Include="ZstdSharp, Version=0.8.6.0, Culture=neutral, PublicKeyToken=8d151af33a4ad5cf, processorArchitecture=MSIL">
+      <HintPath>packages\ZstdSharp.Port.0.8.6\lib\net462\ZstdSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AddActionControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AddActionControl.Designer.cs">
+      <DependentUpon>AddActionControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AddEntryForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AddEntryForm.Designer.cs">
+      <DependentUpon>AddEntryForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AdminControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AdminControl.Designer.cs">
+      <DependentUpon>AdminControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AllegroAccount.cs" />
+    <Compile Include="AllegroAccountService.cs" />
+    <Compile Include="AllegroApiClient.cs" />
+    <Compile Include="AllegroApiClient.IssuesHelpers.cs" />
+    <Compile Include="AllegroApiModels.cs" />
+    <Compile Include="AllegroApiService.cs" />
+    <Compile Include="AllegroApiServiceModels.cs" />
+    <Compile Include="AllegroChatService.cs" />
+    <Compile Include="AllegroIssueModels.cs" />
+    <Compile Include="AllegroOpiekunowieControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AllegroOpiekunowieControl.Designer.cs">
+      <DependentUpon>AllegroOpiekunowieControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AllegroOrderModels.cs" />
+    <Compile Include="AllegroReturnsModels.cs" />
+    <Compile Include="AllegroStartupAuth.cs" />
+    <Compile Include="AllegroSyncHelper.cs" />
+    <Compile Include="AllegroSyncManager.cs" />
+    <Compile Include="AllegroSyncService.cs" />
+    <Compile Include="AppEvents.cs" />
+    <Compile Include="BackupService.cs" />
+    <Compile Include="BaseForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="BaseForm.Designer.cs">
+      <DependentUpon>BaseForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CardPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ChatBubble.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ChatMessageBubble.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ChatMessageBubble.Designer.cs">
+      <DependentUpon>ChatMessageBubble.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ChatMessageControl.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Class1.cs" />
+    <Compile Include="ComplaintViewModel.cs" />
+    <Compile Include="ComplaintWorkflowControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ComplaintWorkflowControl.Designer.cs">
+      <DependentUpon>ComplaintWorkflowControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Connected Services\DPDInfoService\Reference.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Compile>
+    <Compile Include="ContactHistoryControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ContactHistoryControl.Designer.cs">
+      <DependentUpon>ContactHistoryControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ContactRepository.cs" />
+    <Compile Include="DbConfig.cs" />
+    <Compile Include="ComplaintSearchService.cs" />
+    <Compile Include="DatabaseService.cs" />
+    <Compile Include="EnhancedModels.cs" />
+    <Compile Include="FastDataService.cs" />
+    <Compile Include="FormSpellCheckTest.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormUniversalWizardV2.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MessageBubble.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="PerformanceLogger.cs" />
+    <Compile Include="ClientInfoControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ClientInfoControl.Designer.cs">
+      <DependentUpon>ClientInfoControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DataGridViewExtensions.cs" />
+    <Compile Include="DelegacjeControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="DelegacjeControl.Designer.cs">
+      <DependentUpon>DelegacjeControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DpdDatabaseService.cs" />
+    <Compile Include="DpdTrackingModels.cs" />
+    <Compile Include="DpdTrackingService.cs" />
+    <Compile Include="EmailService.cs" />
+    <Compile Include="EmailTemplateService.cs" />
+    <Compile Include="EncryptionHelper.cs" />
+    <Compile Include="DatabaseHelper.cs" />
+    <Compile Include="Dzialanie.cs" />
+    <Compile Include="DziennikLogger.cs" />
+    <Compile Include="FontResolver.cs" />
+    <Compile Include="FormDodajKonto.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDodajKonto.Designer.cs">
+      <DependentUpon>FormDodajKonto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormEdytorPodpisu.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormEdytorPodpisu.Designer.cs">
+      <DependentUpon>FormEdytorPodpisu.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormHistoria.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormHistoria.Designer.cs">
+      <DependentUpon>FormHistoria.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormPhoneGallery.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPhoneGallery.Designer.cs">
+      <DependentUpon>FormPhoneGallery.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormPodgladEmail.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPodgladEmail.Designer.cs">
+      <DependentUpon>FormPodgladEmail.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormPolaczenie.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPolaczenie.Designer.cs">
+      <DependentUpon>FormPolaczenie.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormPowiadomieniePrzesylka.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormProduktSelect.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormSkrzynka.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormSkrzynka.Designer.cs">
+      <DependentUpon>FormSkrzynka.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormSmsPopup.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormTemplateEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormTemplateEditor.Designer.cs">
+      <DependentUpon>FormTemplateEditor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormWybierzZgloszenie.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDodajNadwyzke.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDodajNadwyzke.Designer.cs">
+      <DependentUpon>FormDodajNadwyzke.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormSnoozeWybor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormSnoozeWybor.Designer.cs">
+      <DependentUpon>FormSnoozeWybor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormComplaintProcess.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormComplaintProcess.Designer.cs">
+      <DependentUpon>FormComplaintProcess.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDashboard.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDashboard.Designer.cs">
+      <DependentUpon>FormDashboard.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDecyzjaSprzet.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDecyzjaSprzet.Designer.cs">
+      <DependentUpon>FormDecyzjaSprzet.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDodajDoMagazynu.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDodajDoMagazynu.Designer.cs">
+      <DependentUpon>FormDodajDoMagazynu.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDodajDzialanie.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDodajDzialanie.Designer.cs">
+      <DependentUpon>FormDodajDzialanie.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDodajZwrotReczny.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDodajZwrotReczny.Designer.cs">
+      <DependentUpon>FormDodajZwrotReczny.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDpdTracking.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDpdTracking.Designer.cs">
+      <DependentUpon>FormDpdTracking.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormHandlowiecSzczegoly.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormHandlowiecSzczegoly.Designer.cs">
+      <DependentUpon>FormHandlowiecSzczegoly.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormHandlowiecSzczegolyReczny.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormHandlowiecSzczegolyReczny.Designer.cs">
+      <DependentUpon>FormHandlowiecSzczegolyReczny.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormKontoUstawienia.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormKontoUstawienia.Designer.cs">
+      <DependentUpon>FormKontoUstawienia.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormMagazynAction.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormMagazynAction.Designer.cs">
+      <DependentUpon>FormMagazynAction.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormMailProgressr.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormMailProgressr.Designer.cs">
+      <DependentUpon>FormMailProgressr.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormNowaWiadomosc.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormNowaWiadomosc.Designer.cs">
+      <DependentUpon>FormNowaWiadomosc.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormOdrzucZwrot.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormOdrzucZwrot.Designer.cs">
+      <DependentUpon>FormOdrzucZwrot.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormPrompt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPrompt.Designer.cs" />
+    <Compile Include="FormPrzypomnieniePopup.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPrzypomnieniePopup.Designer.cs">
+      <DependentUpon>FormPrzypomnieniePopup.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormReportToManufacturer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormReportToManufacturer.Designer.cs">
+      <DependentUpon>FormReportToManufacturer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormStanMagazynowy.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormStanMagazynowy.Designer.cs">
+      <DependentUpon>FormStanMagazynowy.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormSzablonyDzialan.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormSzablonyDzialan.Designer.cs">
+      <DependentUpon>FormSzablonyDzialan.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormSzczegolyCzesci.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormSzczegolyCzesci.Designer.cs">
+      <DependentUpon>FormSzczegolyCzesci.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormUniversalWizard.cs" />
+    <Compile Include="FormUniversalWizard.Designer.cs">
+      <DependentUpon>FormUniversalWizard.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormAllegroChat.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormAllegroChat.Designer.cs">
+      <DependentUpon>FormAllegroChat.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormAllegroIssue.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormAllegroIssue.Designer.cs">
+      <DependentUpon>FormAllegroIssue.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form19.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form19.Designer.cs">
+      <DependentUpon>Form19.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDodajEdytujKontoAllegro.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDodajEdytujKontoAllegro.Designer.cs">
+      <DependentUpon>FormDodajEdytujKontoAllegro.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormDodajPrzypomnienie.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormDodajPrzypomnienie.Designer.cs">
+      <DependentUpon>FormDodajPrzypomnienie.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormEditAction.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormEditAction.Designer.cs">
+      <DependentUpon>FormEditAction.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormFileViewer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormFileViewer.Designer.cs">
+      <DependentUpon>FormFileViewer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormInputBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormInputBox.Designer.cs">
+      <DependentUpon>FormInputBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormPowiadomieniaToast.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPowiadomieniaToast.Designer.cs">
+      <DependentUpon>FormPowiadomieniaToast.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormPrzypomnienia.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPrzypomnienia.Designer.cs">
+      <DependentUpon>FormPrzypomnienia.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormSzablonyEmail.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormSzablonyEmail.Designer.cs">
+      <DependentUpon>FormSzablonyEmail.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormUploader.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormUploader.Designer.cs">
+      <DependentUpon>FormUploader.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormUstawienia.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormUstawienia.Designer.cs">
+      <DependentUpon>FormUstawienia.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormWiadomosci.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormWiadomosci.Designer.cs">
+      <DependentUpon>FormWiadomosci.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormWprowadzNumer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormWprowadzNumer.Designer.cs">
+      <DependentUpon>FormWprowadzNumer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormWybierzCzesc.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormWybierzCzesc.Designer.cs">
+      <DependentUpon>FormWybierzCzesc.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormWybierzProdukt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormWybierzProdukt.Designer.cs">
+      <DependentUpon>FormWybierzProdukt.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormWyswietlAdresy.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormWyswietlAdresy.Designer.cs">
+      <DependentUpon>FormWyswietlAdresy.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormWyswietlWiadomosc.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormWyswietlWiadomosc.Designer.cs">
+      <DependentUpon>FormWyswietlWiadomosc.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormZarzadzajKontami.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormZarzadzajKontami.Designer.cs">
+      <DependentUpon>FormZarzadzajKontami.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormZarzadzajStatusami.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormZarzadzajStatusami.Designer.cs">
+      <DependentUpon>FormZarzadzajStatusami.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormZglosNieobecnosc.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormZglosNieobecnosc.Designer.cs">
+      <DependentUpon>FormZglosNieobecnosc.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormZmienHaslo.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormZmienHaslo.Designer.cs">
+      <DependentUpon>FormZmienHaslo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormZwrotPodsumowanie.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormZwrotPodsumowanie.Designer.cs">
+      <DependentUpon>FormZwrotPodsumowanie.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormZwrotWplaty.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormZwrotWplaty.Designer.cs">
+      <DependentUpon>FormZwrotWplaty.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GoogleSheetsDataService.cs" />
+    <Compile Include="HandlowiecControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="HandlowiecControl.Designer.cs">
+      <DependentUpon>HandlowiecControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="HtmlHelper.cs" />
+    <Compile Include="InitialAllegroSynchronizer.cs" />
+    <Compile Include="IssueDecisionHelper.cs" />
+    <Compile Include="Klient.cs" />
+    <Compile Include="KomunikatorControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="KomunikatorControl.Designer.cs">
+      <DependentUpon>KomunikatorControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MagazynControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="MagazynControl.Designer.cs">
+      <DependentUpon>MagazynControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MagazynControl.SendDecisionEmails.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="MagazynDatabaseHelper.cs" />
+    <Compile Include="MagazynService.cs" />
+    <Compile Include="MessageBubbleControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="MessageBubbleControl.Designer.cs">
+      <DependentUpon>MessageBubbleControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MessageListItem.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="MessageListItem.Designer.cs">
+      <DependentUpon>MessageListItem.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MessageService.cs" />
+    <Compile Include="modele.cs" />
+    <Compile Include="ModelsAndRepo.cs" />
+    <Compile Include="ModuleInfo.cs" />
+    <Compile Include="NewMessageAttachment.Partial.cs" />
+    <Compile Include="PasswordHelper.cs" />
+    <Compile Include="PdfFormHelperSharp5.cs" />
+    <Compile Include="PhoneClient.cs" />
+    <Compile Include="ProductInfoControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ProductInfoControl.Designer.cs">
+      <DependentUpon>ProductInfoControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="PrzypomnieniaService.cs" />
+    <Compile Include="ReklamacjeControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ReklamacjeControl.Designer.cs">
+      <DependentUpon>ReklamacjeControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ReminderCard.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ReminderCard.Designer.cs">
+      <DependentUpon>ReminderCard.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ReminderService.cs" />
+    <Compile Include="RtfHelper.cs" />
+    <Compile Include="SearchAndSuggestionService.cs" />
+    <Compile Include="SecureSettingsService.cs" />
+    <Compile Include="SecurityHelper.cs" />
+    <Compile Include="SessionManager.cs" />
+    <Compile Include="SettingsProvider.cs" />
+    <Compile Include="ShipmentNotificationService.cs" />
+    <Compile Include="SmartSearchService.cs" />
+    <Compile Include="SmartSearchService.Designer.cs">
+      <DependentUpon>SmartSearchService.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SpellCheckConfig.cs" />
+    <Compile Include="SpellCheckControls.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="SpellCheckHelper.cs" />
+    <Compile Include="SpellCheckInjector.cs" />
+    <Compile Include="Sprawdz.cs" />
+    <Compile Include="Form10.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form10.Designer.cs">
+      <DependentUpon>Form10.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form11.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form11.Designer.cs">
+      <DependentUpon>Form11.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form12.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form12.Designer.cs">
+      <DependentUpon>Form12.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form20.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form20.Designer.cs">
+      <DependentUpon>Form20.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form15.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form15.Designer.cs">
+      <DependentUpon>Form15.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form16.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form16.Designer.cs">
+      <DependentUpon>Form16.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form17.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form17.Designer.cs">
+      <DependentUpon>Form17.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form18.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form18.Designer.cs">
+      <DependentUpon>Form18.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form3.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form3.Designer.cs">
+      <DependentUpon>Form3.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form4.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form4.Designer.cs">
+      <DependentUpon>Form4.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form5.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form5.Designer.cs">
+      <DependentUpon>Form5.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form6.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form6.Designer.cs">
+      <DependentUpon>Form6.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form7.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form7.Designer.cs">
+      <DependentUpon>Form7.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form8.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form8.Designer.cs">
+      <DependentUpon>Form8.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form9.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form9.Designer.cs">
+      <DependentUpon>Form9.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormEmail.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormEmail.Designer.cs">
+      <DependentUpon>FormEmail.cs</DependentUpon>
+    </Compile>
+    <Compile Include="KWZ.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="KWZ.Designer.cs">
+      <DependentUpon>KWZ.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Faktura.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Faktura.Designer.cs">
+      <DependentUpon>Faktura.cs</DependentUpon>
+    </Compile>
+    <Compile Include="StatusService.cs" />
+    <Compile Include="StyleGuide.cs" />
+    <Compile Include="SyncProgressForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SyncProgressForm.Designer.cs">
+      <DependentUpon>SyncProgressForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SyncRunLogger.cs" />
+    <Compile Include="SyncStatusPanel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SzablonEmail.cs" />
+    <Compile Include="TextBoxExtensions.cs" />
+    <Compile Include="TextCheckResult.cs" />
+    <Compile Include="TimelineItemControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="TimelineItemControl.Designer.cs">
+      <DependentUpon>TimelineItemControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ToastManager.cs" />
+    <Compile Include="UpdateManager.cs" />
+    <Compile Include="UpdateSignal.cs" />
+    <Compile Include="UserService.cs" />
+    <Compile Include="ViewModels.cs" />
+    <Compile Include="ViewModels.Designer.cs">
+      <DependentUpon>ViewModels.cs</DependentUpon>
+    </Compile>
+    <Compile Include="WeryfikacjaControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="WeryfikacjaControl.Designer.cs">
+      <DependentUpon>WeryfikacjaControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="WRL.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="WRL.Designer.cs">
+      <DependentUpon>WRL.cs</DependentUpon>
+    </Compile>
+    <Compile Include="synchronizacja.cs" />
+    <Compile Include="Database.cs" />
+    <Compile Include="Form2.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form2.Designer.cs">
+      <DependentUpon>Form2.cs</DependentUpon>
+    </Compile>
+    <Compile Include="RegisterForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RegisterForm.Designer.cs">
+      <DependentUpon>RegisterForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="LoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="LoginForm.Designer.cs">
+      <DependentUpon>LoginForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GoogleServiceHelper.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="WyszukiwarkaZgloszenForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="WyszukiwarkaZgloszenForm.Designer.cs">
+      <DependentUpon>WyszukiwarkaZgloszenForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ZgloszeniaService.cs" />
+    <Compile Include="ZwrotyPodsumowanieControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ZwrotyPodsumowanieControl.Designer.cs">
+      <DependentUpon>ZwrotyPodsumowanieControl.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="AddActionControl.resx">
+      <DependentUpon>AddActionControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ChatMessageBubble.resx">
+      <DependentUpon>ChatMessageBubble.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ClientInfoControl.resx">
+      <DependentUpon>ClientInfoControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="AddEntryForm.resx">
+      <DependentUpon>AddEntryForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form10.resx">
+      <DependentUpon>Form10.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form11.resx">
+      <DependentUpon>Form11.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form12.resx">
+      <DependentUpon>Form12.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormPolaczenie.resx">
+      <DependentUpon>FormPolaczenie.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormUploader.resx">
+      <DependentUpon>FormUploader.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormWybierzZgloszenie.resx">
+      <DependentUpon>FormWybierzZgloszenie.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormAllegroIssue.resx">
+      <DependentUpon>FormAllegroIssue.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form19.resx">
+      <DependentUpon>Form19.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form2.pl.resx">
+      <DependentUpon>Form2.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form20.resx">
+      <DependentUpon>Form20.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form15.resx">
+      <DependentUpon>Form15.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form16.resx">
+      <DependentUpon>Form16.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form17.resx">
+      <DependentUpon>Form17.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form18.resx">
+      <DependentUpon>Form18.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form2.resx">
+      <DependentUpon>Form2.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form3.resx">
+      <DependentUpon>Form3.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form4.resx">
+      <DependentUpon>Form4.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form5.resx">
+      <DependentUpon>Form5.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form6.resx">
+      <DependentUpon>Form6.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form7.resx">
+      <DependentUpon>Form7.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form8.resx">
+      <DependentUpon>Form8.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form9.resx">
+      <DependentUpon>Form9.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormDashboard.resx">
+      <DependentUpon>FormDashboard.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormDodajZwrotReczny.resx">
+      <DependentUpon>FormDodajZwrotReczny.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormDpdTracking.resx">
+      <DependentUpon>FormDpdTracking.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormEmail.resx">
+      <DependentUpon>FormEmail.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormHandlowiecSzczegoly.resx">
+      <DependentUpon>FormHandlowiecSzczegoly.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormHandlowiecSzczegolyReczny.resx">
+      <DependentUpon>FormHandlowiecSzczegolyReczny.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormReportToManufacturer.resx">
+      <DependentUpon>FormReportToManufacturer.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormStanMagazynowy.resx">
+      <DependentUpon>FormStanMagazynowy.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormSzablonyEmail.resx">
+      <DependentUpon>FormSzablonyEmail.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormUstawienia.resx">
+      <DependentUpon>FormUstawienia.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormWiadomosci.resx">
+      <DependentUpon>FormWiadomosci.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormZwrotSzczegoly.resx">
+      <DependentUpon>FormZwrotSzczegoly.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormZwrotWplaty.resx">
+      <DependentUpon>FormZwrotWplaty.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="HandlowiecControl.resx">
+      <DependentUpon>HandlowiecControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="KWZ.resx">
+      <DependentUpon>KWZ.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Faktura.resx">
+      <DependentUpon>Faktura.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MagazynControl.resx">
+      <DependentUpon>MagazynControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ReklamacjeControl.resx">
+      <DependentUpon>ReklamacjeControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ReminderCard.resx">
+      <DependentUpon>ReminderCard.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SyncProgressForm.resx">
+      <DependentUpon>SyncProgressForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WRL.resx">
+      <DependentUpon>WRL.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LoginForm.resx">
+      <DependentUpon>LoginForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WyszukiwarkaZgloszenForm.resx">
+      <DependentUpon>WyszukiwarkaZgloszenForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="app.manifest" />
+    <EmbeddedResource Include="Fonts\arial.ttf" />
+    <EmbeddedResource Include="Fonts\arialbd.ttf" />
+    <EmbeddedResource Include="Fonts\arialbi.ttf" />
+    <EmbeddedResource Include="Fonts\ariali.ttf" />
+    <None Include="Connected Services\DPDInfoService\DPDInfoServicesObjEvents.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Connected Services\DPDInfoService\DPDInfoServicesObjEventsService.wsdl" />
+    <None Include="Connected Services\DPDInfoService\Reklamacje_Dane.DPDInfoService.customerEventsResponseV1.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\DPDInfoService\Reklamacje_Dane.DPDInfoService.customerEventsResponseV2.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\DPDInfoService\Reklamacje_Dane.DPDInfoService.customerEventsResponseV3.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\DPDInfoService\Reklamacje_Dane.DPDInfoService.getEventsForCustomerV1Response.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\DPDInfoService\Reklamacje_Dane.DPDInfoService.getEventsForCustomerV2Response.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\DPDInfoService\Reklamacje_Dane.DPDInfoService.getEventsForCustomerV3Response.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\DPDInfoService\Reklamacje_Dane.DPDInfoService.getEventsForCustomerV4Response.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\DPDInfoService\Reklamacje_Dane.DPDInfoService.getEventsForWaybillV1Response.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\DPDInfoService\Reklamacje_Dane.DPDInfoService.markEventsAsProcessedV1Response.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="packages.config" />
+    <None Include="pl_PL.aff">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="pl_PL.dic">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Properties\app.manifest" />
+    <None Include="Properties\DataSources\Form5.Klient.datasource" />
+    <None Include="Properties\DataSources\Form6.datasource" />
+    <None Include="Properties\DataSources\Form6.Serwisant.datasource" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <None Include="Reklamacje Dane_TemporaryKey.pfx" />
+    <None Include="reklamacje-baza-e2a6599c24f7.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="reklamacje-baza-ed853b4e33f7.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\refresh_icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\menu_icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\menu_icon2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Obraz5.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Obraz6.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\notification_icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\logo2.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\logo1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="Microsoft.Office.Core">
+      <Guid>{2DF8D04C-5BFA-101B-BDE5-00AA0044DE52}</Guid>
+      <VersionMajor>2</VersionMajor>
+      <VersionMinor>8</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>primary</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="Microsoft.Office.Interop.Outlook">
+      <Guid>{00062FFF-0000-0000-C000-000000000046}</Guid>
+      <VersionMajor>9</VersionMajor>
+      <VersionMinor>6</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>primary</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="Microsoft.Vbe.Interop.Forms">
+      <Guid>{0D452EE1-E08F-101A-852E-02608C4D0BB4}</Guid>
+      <VersionMajor>2</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>primary</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="Outlook">
+      <Guid>{E200D5A9-37B3-4992-99A6-DDAC4ABA8152}</Guid>
+      <VersionMajor>9</VersionMajor>
+      <VersionMinor>6</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="stdole">
+      <Guid>{00020430-0000-0000-C000-000000000046}</Guid>
+      <VersionMajor>2</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>primary</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Connected Services\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz1.svg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz2.svg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz3.svg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz4.svg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz5.svg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz6.svg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz7.svg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz8.svg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz9.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz10.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz11.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz12.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz13.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz14.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz15.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Release\Obraz16.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\animation.gif" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.7.2 %28x86 i x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Obraz1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\ikona.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\top.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Hunspellx64.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Hunspellx86.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\menu_icon.bmp" />
+    <None Include="Properties\Resources\menu_icon.png" />
+    <None Include="Properties\Resources\menu_icon2.png" />
+    <None Include="Properties\Resources\logo1.png" />
+    <None Include="Properties\Resources\notification_icon.png" />
+    <None Include="Connected Services\DPDInfoService\configuration91.svcinfo" />
+    <None Include="Connected Services\DPDInfoService\configuration.svcinfo" />
+    <None Include="Connected Services\DPDInfoService\Reference.svcmap">
+      <Generator>WCF Proxy Generator</Generator>
+      <LastGenOutput>Reference.cs</LastGenOutput>
+    </None>
+    <Content Include="Database1.mdf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Database1_log.ldf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <DependentUpon>Database1.mdf</DependentUpon>
+    </Content>
+    <Content Include="top.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <WebReferences Include="Web References\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>Ten projekt zawiera odwołania do pakietów NuGet, których nie ma na tym komputerze. Użyj przywracania pakietów NuGet, aby je pobrać. Aby uzyskać więcej informacji, zobacz http://go.microsoft.com/fwlink/?LinkID=322105. Brakujący plik: {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\Microsoft.Web.WebView2.1.0.2957.106\build\Microsoft.Web.WebView2.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Web.WebView2.1.0.2957.106\build\Microsoft.Web.WebView2.targets'))" />
+    <Error Condition="!Exists('packages\Microsoft.SqlServer.Types.160.1000.6\build\net462\Microsoft.SqlServer.Types.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.SqlServer.Types.160.1000.6\build\net462\Microsoft.SqlServer.Types.props'))" />
+    <Error Condition="!Exists('packages\EntityFramework.6.5.1\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\EntityFramework.6.5.1\build\EntityFramework.props'))" />
+    <Error Condition="!Exists('packages\EntityFramework.6.5.1\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\EntityFramework.6.5.1\build\EntityFramework.targets'))" />
+    <Error Condition="!Exists('packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets'))" />
+  </Target>
+  <Import Project="packages\Microsoft.Web.WebView2.1.0.2957.106\build\Microsoft.Web.WebView2.targets" Condition="Exists('packages\Microsoft.Web.WebView2.1.0.2957.106\build\Microsoft.Web.WebView2.targets')" />
+  <ItemGroup>
+    <Compile Include="FormProgress.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormProgress.Designer.cs">
+      <DependentUpon>FormProgress.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormPodsumowanieZwrotu.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPodsumowanieZwrotu.Designer.cs">
+      <DependentUpon>FormPodsumowanieZwrotu.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormZwrotSzczegoly.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormZwrotSzczegoly.Designer.cs">
+      <DependentUpon>FormZwrotSzczegoly.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="MessageCard.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="MessageCard.Designer.cs">
+      <DependentUpon>MessageCard.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Allegro\" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadataStorage Include="Connected Services\DPDInfoService\" />
+  </ItemGroup>
+  <Import Project="packages\EntityFramework.6.5.1\build\EntityFramework.targets" Condition="Exists('packages\EntityFramework.6.5.1\build\EntityFramework.targets')" />
+  <Import Project="packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets" Condition="Exists('packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.119.0\build\net46\Stub.System.Data.SQLite.Core.NetFramework.targets')" />
+</Project>

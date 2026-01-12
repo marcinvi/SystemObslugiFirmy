@@ -1,0 +1,1066 @@
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.AssemblyReference.cache
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form1.resources
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Properties.Resources.resources
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.GenerateResource.cache
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.CoreCompileInputs.cache
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-e2a6599c24f7.json
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-ed853b4e33f7.json
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.config
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.pdb
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.dll
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.dll
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.dll
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.dll
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.dll
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.dll
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.dll
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.pdb
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.xml
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.pdb
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.xml
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.pdb
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.xml
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.pdb
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.xml
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.pdb
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.xml
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.xml
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.xml
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamac.F9ABD5A1.Up2Date
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.pdb
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.manifest
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.application
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.TrustInfo.xml
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe.manifest
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.application
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.AddEntryForm.resources
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.LoginForm.resources
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.RegisterForm.resources
+C:\Users\mpaprocki\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form2.resources
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-e2a6599c24f7.json
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-ed853b4e33f7.json
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.config
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.manifest
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.application
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.pdb
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.pdb
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.xml
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.pdb
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.xml
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.pdb
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.xml
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.pdb
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.xml
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.pdb
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.xml
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.xml
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.xml
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.AssemblyReference.cache
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form1.resources
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.AddEntryForm.resources
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form2.resources
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.LoginForm.resources
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Properties.Resources.resources
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.RegisterForm.resources
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.GenerateResource.cache
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.CoreCompileInputs.cache
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.TrustInfo.xml
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe.manifest
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.application
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamac.F9ABD5A1.Up2Date
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.pdb
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form3.resources
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.EF6.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.Linq.dll
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.xml
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\Marcin\source\repos\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.AssemblyReference.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form1.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.AddEntryForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form2.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form3.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.LoginForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Properties.Resources.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.RegisterForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.GenerateResource.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.CoreCompileInputs.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-e2a6599c24f7.json
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-ed853b4e33f7.json
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.config
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.manifest
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.application
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.EF6.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.Linq.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.TrustInfo.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe.manifest
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.application
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamac.F9ABD5A1.Up2Date
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Interop.Outlook.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.ResolveComReference.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form4.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Interop.OLXLib.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\runtimes\win-x64\native\WebView2Loader.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form5.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\itextsharp.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\itextsharp.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form6.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormEmail.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form7.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form8.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form10.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form9.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form11.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form12.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\runtimes\win-x64\native\WebView2Loader.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-e2a6599c24f7.json
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-ed853b4e33f7.json
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.config
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.manifest
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.application
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\itextsharp.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.EF6.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.Linq.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\itextsharp.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.AssemblyReference.cache
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.ResolveComReference.cache
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form1.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.AddEntryForm.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form10.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form11.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form12.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form2.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form3.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form4.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form5.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form6.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form7.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form8.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form9.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormEmail.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.LoginForm.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Properties.Resources.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.RegisterForm.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.GenerateResource.cache
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.CoreCompileInputs.cache
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.TrustInfo.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe.manifest
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.application
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamac.F9ABD5A1.Up2Date
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\runtimes\win-x64\native\WebView2Loader.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-e2a6599c24f7.json
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-ed853b4e33f7.json
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.config
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.manifest
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.application
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.EF6.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.Linq.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.AssemblyReference.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Interop.OLXLib.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Interop.Outlook.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.ResolveComReference.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form1.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.AddEntryForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form10.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form11.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form12.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form2.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form4.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form5.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form6.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form7.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form8.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form9.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormEmail.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.LoginForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Properties.Resources.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.RegisterForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.GenerateResource.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.CoreCompileInputs.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.TrustInfo.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe.manifest
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.application
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamac.F9ABD5A1.Up2Date
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.Common.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.DataVisualization.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.Design.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.ProcessingObjectModel.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.WinForms.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EnvDTE.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\stdole.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form13.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\x86\SqlServerSpatial160.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\x64\SqlServerSpatial160.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.SqlServer.Types.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-Hans\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-Hant\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Crypto.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BitMiracle.LibTiff.NET.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Options.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Primitives.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PDFSharp.Extensions.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Snippets.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Buffers.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Diagnostics.DiagnosticSource.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Memory.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Numerics.Vectors.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Runtime.CompilerServices.Unsafe.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Threading.Tasks.Extensions.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.ValueTuple.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BitMiracle.LibTiff.NET.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Bcl.AsyncInterfaces.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.Abstractions.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.Abstractions.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Options.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Primitives.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Snippets.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Buffers.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Diagnostics.DiagnosticSource.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Memory.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Numerics.Vectors.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Runtime.CompilerServices.Unsafe.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Threading.Tasks.Extensions.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.ValueTuple.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\PdfSharp.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\PdfSharp.Charting.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.KWZForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.WRLForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FakturaForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form14.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form3.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form15.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form16.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form17.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form18.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\x86\SqlServerSpatial160.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\x64\SqlServerSpatial160.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\runtimes\win-x64\native\WebView2Loader.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-e2a6599c24f7.json
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-ed853b4e33f7.json
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.config
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.manifest
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.application
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BitMiracle.LibTiff.NET.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Crypto.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Options.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Primitives.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.Common.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.DataVisualization.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.Design.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.ProcessingObjectModel.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.WinForms.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.SqlServer.Types.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PDFSharp.Extensions.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Snippets.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Buffers.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.EF6.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.Linq.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Diagnostics.DiagnosticSource.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Memory.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Numerics.Vectors.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Runtime.CompilerServices.Unsafe.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Threading.Tasks.Extensions.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.ValueTuple.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EnvDTE.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\stdole.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BitMiracle.LibTiff.NET.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Bcl.AsyncInterfaces.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.Abstractions.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.Abstractions.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Options.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Primitives.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Snippets.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Buffers.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Diagnostics.DiagnosticSource.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Memory.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Numerics.Vectors.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Runtime.CompilerServices.Unsafe.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Threading.Tasks.Extensions.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.ValueTuple.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.SqlServer.Types.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.SqlServer.Types.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.SqlServer.Types.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.SqlServer.Types.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.SqlServer.Types.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.SqlServer.Types.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.SqlServer.Types.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.SqlServer.Types.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-Hans\Microsoft.SqlServer.Types.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-Hant\Microsoft.SqlServer.Types.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\PdfSharp.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\PdfSharp.Charting.resources.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.AssemblyReference.cache
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.ResolveComReference.cache
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form1.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.AddEntryForm.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form10.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form11.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form12.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form14.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form15.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form16.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form17.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form18.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form2.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form3.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form4.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form5.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form6.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form7.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form8.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form9.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormEmail.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.KWZForm.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FakturaForm.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.WRLForm.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.LoginForm.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Properties.Resources.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.RegisterForm.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.GenerateResource.cache
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.CoreCompileInputs.cache
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.TrustInfo.xml
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe.manifest
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.application
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamac.F9ABD5A1.Up2Date
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.pdb
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form20.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form13.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\bin\Debug\DevExpress.WinterJoySkin.dll
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form19.resources
+C:\Users\Marcin\Desktop\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.UserControl1.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\x86\SqlServerSpatial160.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\x64\SqlServerSpatial160.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\runtimes\win-x64\native\WebView2Loader.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-e2a6599c24f7.json
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-ed853b4e33f7.json
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.config
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.manifest
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.application
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\BitMiracle.LibTiff.NET.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Crypto.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\DevExpress.WinterJoySkin.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Bcl.AsyncInterfaces.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.Abstractions.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Options.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Primitives.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.Common.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.DataVisualization.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.Design.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.ProcessingObjectModel.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.WinForms.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.SqlServer.Types.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PDFSharp.Extensions.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Snippets.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Buffers.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.EF6.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.Linq.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Diagnostics.DiagnosticSource.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Memory.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Numerics.Vectors.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Runtime.CompilerServices.Unsafe.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Threading.Tasks.Extensions.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.ValueTuple.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\EnvDTE.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\stdole.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\BitMiracle.LibTiff.NET.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Bcl.AsyncInterfaces.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.Abstractions.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.Abstractions.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Options.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Primitives.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Snippets.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Buffers.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Diagnostics.DiagnosticSource.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Memory.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Numerics.Vectors.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Runtime.CompilerServices.Unsafe.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Threading.Tasks.Extensions.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.ValueTuple.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.Common.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.Common.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.Common.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.Common.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.Common.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.Common.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.Common.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.Common.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.Common.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.Common.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.DataVisualization.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.DataVisualization.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.DataVisualization.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.DataVisualization.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.DataVisualization.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.DataVisualization.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.DataVisualization.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.DataVisualization.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.DataVisualization.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.DataVisualization.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.Design.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.Design.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.Design.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.Design.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.Design.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.Design.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.Design.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.Design.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.Design.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.Design.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.WinForms.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.WinForms.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.WinForms.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.WinForms.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.WinForms.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.WinForms.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.WinForms.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.WinForms.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.WinForms.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.WinForms.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.SqlServer.Types.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.SqlServer.Types.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.SqlServer.Types.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.SqlServer.Types.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.SqlServer.Types.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.SqlServer.Types.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.SqlServer.Types.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.SqlServer.Types.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-Hans\Microsoft.SqlServer.Types.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-Hant\Microsoft.SqlServer.Types.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\PdfSharp.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\PdfSharp.Charting.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.AssemblyReference.cache
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Interop.Outlook.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.ResolveComReference.cache
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form1.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.AddEntryForm.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form10.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form11.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form12.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form13.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form19.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form20.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form14.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form15.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form16.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form17.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form18.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form2.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form3.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form4.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form5.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form6.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form7.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form8.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form9.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormEmail.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.KWZForm.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FakturaForm.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.UserControl1.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.WRLForm.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.LoginForm.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Properties.Resources.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.RegisterForm.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.GenerateResource.cache
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.CoreCompileInputs.cache
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.TrustInfo.xml
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe.manifest
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.application
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamac.F9ABD5A1.Up2Date
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.pdb
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\bin\Debug\pl\Reklamacje Dane.resources.dll
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form2.pl.resources
+Z:\Reklamacje\Reklamacje Dane\Reklamacje Dane\obj\Debug\pl\Reklamacje Dane.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.AssemblyReference.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Interop.Outlook.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.ResolveComReference.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form1.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.AddEntryForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form10.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form11.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form12.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form19.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form20.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form15.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form16.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form17.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form18.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form2.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form3.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form4.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form5.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form6.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form7.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form8.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form9.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormEmail.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.KWZForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FakturaForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.UserControl1.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.WRLForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.LoginForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Properties.Resources.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.RegisterForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form2.pl.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.GenerateResource.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.csproj.CoreCompileInputs.cache
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\x86\SqlServerSpatial160.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\x64\SqlServerSpatial160.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\runtimes\win-x64\native\WebView2Loader.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-e2a6599c24f7.json
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\reklamacje-baza-ed853b4e33f7.json
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.config
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe.manifest
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.application
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.exe
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Reklamacje Dane.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\pl\Reklamacje Dane.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\BitMiracle.LibTiff.NET.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Crypto.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\DevExpress.WinterJoySkin.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Options.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Primitives.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.Common.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.DataVisualization.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.Design.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.ProcessingObjectModel.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.ReportViewer.WinForms.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.SqlServer.Types.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Buffers.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.EF6.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.Linq.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Diagnostics.DiagnosticSource.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Memory.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Numerics.Vectors.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Runtime.CompilerServices.Unsafe.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Threading.Tasks.Extensions.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.ValueTuple.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\EnvDTE.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\stdole.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\BitMiracle.LibTiff.NET.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\BouncyCastle.Cryptography.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Auth.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Core.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Drive.v3.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Google.Apis.Sheets.v4.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Bcl.AsyncInterfaces.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.DependencyInjection.Abstractions.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Logging.Abstractions.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Options.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Primitives.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Core.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.WinForms.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Web.WebView2.Wpf.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Newtonsoft.Json.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.System.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.WPFonts.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Buffers.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.CodeDom.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Data.SQLite.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Diagnostics.DiagnosticSource.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Memory.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Numerics.Vectors.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Runtime.CompilerServices.Unsafe.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Threading.Tasks.Extensions.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.ValueTuple.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.Common.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.DataVisualization.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.Design.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHS\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-CHT\Microsoft.ReportViewer.WinForms.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\de\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\es\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\fr\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\it\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ja\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ko\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\pt\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ru\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-Hans\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\zh-Hant\Microsoft.SqlServer.Types.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\pl\Reklamacje Dane.resources.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.TrustInfo.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.exe.manifest
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje Dane.application
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamac.F9ABD5A1.Up2Date
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormUstawienia.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormAllegroIssue.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.ChatMessageBubble.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.StandardReminderCard.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.ClientInfoControl.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.ProductInfoControl.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.AddActionControl.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormSzablonyEmail.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\DeepL.net.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Http.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Http.Polly.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Polly.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Polly.Extensions.Http.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Text.Encodings.Web.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Text.Json.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Http.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Microsoft.Extensions.Http.Polly.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Polly.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Polly.Extensions.Http.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Text.Encodings.Web.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Text.Json.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ICSharpCode.SharpZipLib.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Shared.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\SixLabors.Fonts.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\SixLabors.ImageSharp.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Security.Cryptography.Pkcs.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ICSharpCode.SharpZipLib.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\ICSharpCode.SharpZipLib.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Shared.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Shared.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\SixLabors.Fonts.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\SixLabors.ImageSharp.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Security.Cryptography.Pkcs.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp-gdi.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.BarCodes-gdi.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting-gdi.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality-gdi.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Snippets-gdi.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp-gdi.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp-gdi.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.BarCodes-gdi.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.BarCodes-gdi.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting-gdi.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Charting-gdi.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality-gdi.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Quality-gdi.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\PdfSharp.Snippets-gdi.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.WyszukiwarkaZgloszenForm.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Hunspellx64.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\Hunspellx86.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\NHunspell.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\NHunspell.pdb
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\NetSpell.SpellChecker.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\NetSpell.SpellChecker.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Resources.Extensions.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.Resources.Extensions.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\pl_PL.dic
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\pl_PL.aff
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.IO.Pipelines.dll
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\bin\Debug\System.IO.Pipelines.xml
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.Form22.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormAllegroManager.resources
+C:\Users\mpaprocki\Desktop\Reklamacje Dane\Reklamacje Dane\obj\Debug\Reklamacje_Dane.FormDpdTracking.resources
