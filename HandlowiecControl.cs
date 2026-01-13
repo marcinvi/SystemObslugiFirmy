@@ -56,7 +56,7 @@ namespace Reklamacje_Dane
             try
             {
                 var userIdObj = await _dbServiceBaza.ExecuteScalarAsync(
-                    "SELECT Id FROM Uzytkownicy WHERE \"Nazwa Wyświetlana\" = @fullName",
+                    "SELECT Id FROM Uzytkownicy WHERE `Nazwa Wyświetlana` = @fullName",
                     new MySqlParameter("@fullName", _fullName)
                 );
 
@@ -119,12 +119,13 @@ namespace Reklamacje_Dane
 
         private async Task LoadReturnsFromDbAsync()
         {
-            var queryBuilder = new System.Text.StringBuilder(@"
+            var buyerExpression = "COALESCE(acr.BuyerFullName, acr.BuyerLogin, 'Nieznany klient')";
+            var queryBuilder = new System.Text.StringBuilder($@"
         SELECT
             acr.Id,
             acr.ReferenceNumber,
             acr.Waybill,
-            COALESCE(acr.BuyerFullName, acr.BuyerLogin, 'Nieznany klient') AS Kupujacy,
+            {buyerExpression} AS Kupujacy,
             acr.ProductName,
             acr.CreatedAt,
             IFNULL(s1.Nazwa, 'Nieprzypisany') AS StanProduktu,
@@ -157,10 +158,10 @@ namespace Reklamacje_Dane
 
             if (!string.IsNullOrWhiteSpace(txtSearch.Text))
             {
-                conditions.Add(@"(
+                conditions.Add($@"(
             acr.ReferenceNumber LIKE @search OR
             acr.Waybill LIKE @search OR
-            Kupujacy LIKE @search OR
+            {buyerExpression} LIKE @search OR
             acr.ProductName LIKE @search
         )");
                 parameters.Add(new MySqlParameter("@search", $"%{txtSearch.Text}%"));
@@ -254,7 +255,7 @@ namespace Reklamacje_Dane
                 { "Id", ("ID", false, DataGridViewAutoSizeColumnMode.None) },
                 { "ReferenceNumber", ("Numer Sprawy", true, DataGridViewAutoSizeColumnMode.AllCells) },
                 { "Waybill", ("Numer Listu", true, DataGridViewAutoSizeColumnMode.AllCells) },
-                { "BuyerFullName", ("Klient", true, DataGridViewAutoSizeColumnMode.Fill) },
+                { "Kupujacy", ("Klient", true, DataGridViewAutoSizeColumnMode.Fill) },
                 { "ProductName", ("Zwracany produkt", true, DataGridViewAutoSizeColumnMode.Fill) },
                 { "CreatedAt", ("Data utworzenia", true, DataGridViewAutoSizeColumnMode.AllCells) },
                 { "StanProduktu", ("Stan produktu (Magazyn)", true, DataGridViewAutoSizeColumnMode.AllCells) },

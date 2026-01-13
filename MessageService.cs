@@ -26,7 +26,7 @@ namespace Reklamacje_Dane
 
         public async Task<List<User>> GetUsersAsync()
         {
-            const string query = "SELECT Id, \"Nazwa Wyświetlana\" FROM Uzytkownicy ORDER BY \"Nazwa Wyświetlana\"";
+            const string query = "SELECT Id, `Nazwa Wyświetlana` FROM Uzytkownicy ORDER BY `Nazwa Wyświetlana`";
             var dt = await _bazaService.GetDataTableAsync(query);
             var users = new List<User>();
             foreach (DataRow row in dt.Rows)

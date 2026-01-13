@@ -51,7 +51,7 @@ namespace Reklamacje_Dane
                 // KROK 1: Pobierz wszystkich użytkowników z Baza.db do słownika w pamięci.
                 // Używamy Id jako klucza, bo tak jest w tabeli Wiadomosci (kolumna NadawcaId).
                 var usersDict = new Dictionary<long, string>();
-                var usersDt = await _dbServiceBaza.GetDataTableAsync("SELECT Id, \"Nazwa Wyświetlana\" FROM Uzytkownicy");
+                var usersDt = await _dbServiceBaza.GetDataTableAsync("SELECT Id, `Nazwa Wyświetlana` FROM Uzytkownicy");
                 foreach (DataRow row in usersDt.Rows)
                 {
                     usersDict[Convert.ToInt64(row["Id"])] = row["Nazwa Wyświetlana"].ToString();
@@ -60,7 +60,7 @@ namespace Reklamacje_Dane
                 // KROK 2: Pobierz wiadomości z bazy Magazyn.db (tabela Wiadomosci).
                 string query = @"
                     SELECT Id, Tytul, Tresc, DataWyslania, NadawcaId,
-                           CzyOdczytana, CzyOdpowiedziano, DotyczyZwrotuId
+                           CzyPrzeczytana, CzyOdpowiedziano, DotyczyZwrotuId
                     FROM Wiadomosci
                     WHERE OdbiorcaId = @currentUserId
                     ORDER BY DataWyslania DESC
@@ -88,7 +88,7 @@ namespace Reklamacje_Dane
                         senderName,
                         row["Tresc"].ToString(),
                         Convert.ToDateTime(row["DataWyslania"]),
-                        Convert.ToInt32(row["CzyOdczytana"]) == 1,
+                        Convert.ToInt32(row["CzyPrzeczytana"]) == 1,
                         Convert.ToInt32(row["CzyOdpowiedziano"]) == 1
                     );
 
@@ -149,7 +149,7 @@ namespace Reklamacje_Dane
 
         private async Task MarkAsRead(int messageId)
         {
-            await _dbServiceMagazyn.ExecuteNonQueryAsync("UPDATE Wiadomosci SET CzyOdczytana = 1 WHERE Id = @id", new MySqlParameter("@id", messageId));
+            await _dbServiceMagazyn.ExecuteNonQueryAsync("UPDATE Wiadomosci SET CzyPrzeczytana = 1 WHERE Id = @id", new MySqlParameter("@id", messageId));
         }
 
         private async void btnNowaWiadomosc_Click(object sender, EventArgs e)

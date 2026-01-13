@@ -362,7 +362,7 @@ namespace Reklamacje_Dane
                 using (var cmd = new MySqlCommand(@"
 INSERT INTO Ustawienia (Klucz, WartoscZaszyfrowana)
       VALUES (@k, @v)
-ON CONFLICT(Klucz) DO UPDATE SET WartoscZaszyfrowana=excluded.WartoscZaszyfrowana;", con))
+	ON DUPLICATE KEY UPDATE WartoscZaszyfrowana=VALUES(WartoscZaszyfrowana);", con))
                 {
                     cmd.Parameters.AddWithValue("@k", key);
                     cmd.Parameters.AddWithValue("@v", value ?? "");
@@ -380,26 +380,27 @@ ON CONFLICT(Klucz) DO UPDATE SET WartoscZaszyfrowana=excluded.WartoscZaszyfrowan
             if (statusDecyzjaId == 0) return result;
 
             var items = new List<PendingReturnItem>();
+            string uwagiColumn = await ResolveUwagiMagazynuColumnAsync();
 
             using (var conMag = MagazynDatabaseHelper.GetConnection())
             {
                 await conMag.OpenAsync();
-                string q = @"
-SELECT acr.Id,
-       acr.ReferenceNumber,
-       acr.BuyerLogin,
-       acr.ProductName,
-       acr.Quantity,
-       acr.StanProduktuId,
-       acr.UwagiMagazynu,
-       acr.PrzyjetyPrzezId,
-       acr.DataPrzyjecia,
-       acr.IsManual,
-       acr.BuyerFullName,
-       acr.AllegroAccountId
-FROM AllegroCustomerReturns acr
-WHERE IFNULL(acr.StatusWewnetrznyId,0)=@st;
-";
+                string q = $@"
+	SELECT acr.Id,
+	       acr.ReferenceNumber,
+	       acr.BuyerLogin,
+	       acr.ProductName,
+	       acr.Quantity,
+	       acr.StanProduktuId,
+	       acr.{uwagiColumn} AS UwagiMagazynu,
+	       acr.PrzyjetyPrzezId,
+	       acr.DataPrzyjecia,
+	       acr.IsManual,
+	       acr.BuyerFullName,
+	       acr.AllegroAccountId
+	FROM AllegroCustomerReturns acr
+	WHERE IFNULL(acr.StatusWewnetrznyId,0)=@st;
+	";
                 using (var cmd = new MySqlCommand(q, conMag))
                 {
                     cmd.Parameters.AddWithValue("@st", statusDecyzjaId);
@@ -472,6 +473,19 @@ WHERE IFNULL(acr.StatusWewnetrznyId,0)=@st;
             }
 
             return result;
+        }
+
+        private async Task<string> ResolveUwagiMagazynuColumnAsync()
+        {
+            const string query = @"
+                SELECT COLUMN_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'AllegroCustomerReturns'
+                  AND COLUMN_NAME IN ('UwagiMagazynu', 'UwagiMagazyn')
+                LIMIT 1";
+            var result = await _dbServiceMagazyn.ExecuteScalarAsync(query);
+            return result?.ToString() ?? "UwagiMagazynu";
         }
 
         private async Task<List<int>> GetRecipientsForManualReturnAsync(int returnId)
