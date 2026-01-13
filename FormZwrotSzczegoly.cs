@@ -25,6 +25,7 @@ namespace Reklamacje_Dane
         private readonly DatabaseService _dbServiceMagazyn;
         private readonly DatabaseService _dbServiceBaza;
         private DataRow _dbDataRow;
+        private string _uwagiMagazynuColumnName = "UwagiMagazynu";
 
         private class StatusItem
         {
@@ -66,6 +67,7 @@ namespace Reklamacje_Dane
         {
             try
             {
+                _uwagiMagazynuColumnName = await ResolveUwagiMagazynuColumnAsync();
                 var dt = await _dbServiceMagazyn.GetDataTableAsync("SELECT * FROM AllegroCustomerReturns WHERE Id = @id", new MySqlParameter("@id", _returnDbId));
                 if (dt.Rows.Count > 0)
                 {
@@ -186,7 +188,7 @@ namespace Reklamacje_Dane
 
 
             // Karta: Panel Magazynu
-            txtUwagiMagazynu.Text = _dbDataRow["UwagiMagazynu"]?.ToString();
+            txtUwagiMagazynu.Text = GetUwagiMagazynuValue();
         }
 
         private void btnShowOtherAddresses_Click(object sender, EventArgs e)
@@ -223,9 +225,9 @@ namespace Reklamacje_Dane
 
             try
             {
-                string query = @"UPDATE AllegroCustomerReturns SET
+                string query = $@"UPDATE AllegroCustomerReturns SET
                                     StanProduktuId = @stanId,
-                                    UwagiMagazynu = @uwagi,
+                                    {_uwagiMagazynuColumnName} = @uwagi,
                                     DataPrzyjecia = @data,
                                     PrzyjetyPrzezId = @pracownikId
                                  WHERE Id = @id";
@@ -341,10 +343,10 @@ namespace Reklamacje_Dane
                     using (var transaction = con.BeginTransaction())
                     {
                         // 3a) Aktualizacja zwrotu
-                        var cmdUpdate = new MySqlCommand(@"
+                        var cmdUpdate = new MySqlCommand($@"
                     UPDATE AllegroCustomerReturns SET
                         StanProduktuId = @stanId,
-                        UwagiMagazynu = @uwagi,
+                        {_uwagiMagazynuColumnName} = @uwagi,
                         DataPrzyjecia = @data,
                         PrzyjetyPrzezId = @pracownikId,
                         StatusWewnetrznyId = @statusId
@@ -466,6 +468,32 @@ namespace Reklamacje_Dane
                     }
                 }
             }
+        }
+
+        private async Task<string> ResolveUwagiMagazynuColumnAsync()
+        {
+            const string query = @"
+                SELECT COLUMN_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'AllegroCustomerReturns'
+                  AND COLUMN_NAME IN ('UwagiMagazynu', 'UwagiMagazyn')
+                LIMIT 1";
+            var result = await _dbServiceMagazyn.ExecuteScalarAsync(query);
+            return result?.ToString() ?? "UwagiMagazynu";
+        }
+
+        private string GetUwagiMagazynuValue()
+        {
+            if (_dbDataRow?.Table?.Columns.Contains("UwagiMagazynu") == true)
+            {
+                return _dbDataRow["UwagiMagazynu"]?.ToString();
+            }
+            if (_dbDataRow?.Table?.Columns.Contains("UwagiMagazyn") == true)
+            {
+                return _dbDataRow["UwagiMagazyn"]?.ToString();
+            }
+            return string.Empty;
         }
 }
 }
