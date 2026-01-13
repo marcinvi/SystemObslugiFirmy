@@ -47,11 +47,10 @@ namespace Reklamacje_Dane
             new ColumnDefinition("Producent", "Producent", 120),
             new ColumnDefinition("DataZakupu", "Data Zakupu", 120, false),
          
-            new ColumnDefinition("DataZamkniecia", "Data Zamknięcia", 120, false),
-            new ColumnDefinition("Usterka", "Usterka", 180, false),
+          
             new ColumnDefinition("OpisUsterki", "Opis Usterki", 200, false),
-            new ColumnDefinition("Uwagi", "Uwagi", 200, false),
-            new ColumnDefinition("Opiekun", "Opiekun", 140, false),
+          
+           
             new ColumnDefinition("KlientNip", "NIP", 120, false),
             new ColumnDefinition("AllegroBuyerLogin", "Allegro Login", 140, false),
             new ColumnDefinition("AllegroOrderId", "Allegro Order", 140, false),
@@ -68,7 +67,7 @@ namespace Reklamacje_Dane
             new ColumnDefinition("CzyNotaRozliczona", "Czy Nota Rozliczona", 160, false),
             new ColumnDefinition("KwotaZwrotu", "Kwota Zwrotu", 120, false),
             new ColumnDefinition("Dzialania", "Działania", 200, false),
-            new ColumnDefinition("KlientOpis", "Klient (opis)", 200, false),
+          
             new ColumnDefinition("ProduktOpis", "Produkt (opis)", 200, false)
         };
 

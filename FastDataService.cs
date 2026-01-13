@@ -32,17 +32,17 @@ namespace Reklamacje_Dane
                     COALESCE(p.KodEnova, '') AS KodEnova,
                     COALESCE(p.KodProducenta, '') AS KodProducenta,
                     COALESCE(p.Kategoria, '') AS Kategoria,
-                    COALESCE(p.Wymagania, '') AS Wymagania,
+                  
                     COALESCE(z.NrSeryjny, '') AS SN,
                     COALESCE(z.NrFaktury, '') AS FV,
                     COALESCE(z.Skad, '') AS Skad,
                     COALESCE(pr.NazwaProducenta, '') AS Producent,
                     z.DataZakupu,
                     
-                    z.DataZamkniecia,
-                    COALESCE(z.Usterka, '') AS Usterka,
+                  
+                  
                     COALESCE(z.OpisUsterki, '') AS OpisUsterki,
-                    COALESCE(z.Uwagi, '') AS Uwagi,
+                
                     COALESCE(z.GwarancjaPlatna, '') AS GwarancjaPlatna,
                     COALESCE(z.StatusKlient, '') AS StatusKlient,
                     COALESCE(z.StatusProducent, '') AS StatusProducent,
@@ -57,18 +57,15 @@ namespace Reklamacje_Dane
                     COALESCE(z.KwotaFakturyPrzychoduNetto, 0) AS KwotaFakturyPrzychoduNetto,
                     COALESCE(z.NrFakturyKosztowej, '') AS NrFakturyKosztowej,
                     COALESCE(z.Dzialania, '') AS Dzialania,
-                    COALESCE(z.Klient, '') AS KlientOpis,
-                    COALESCE(z.Produkt, '') AS ProduktOpis,
-                    COALESCE(z.allegroBuyerLogin, '') AS AllegroBuyerLogin,
-                    COALESCE(z.allegroOrderId, '') AS AllegroOrderId,
-                    COALESCE(z.allegroDisputeId, '') AS AllegroDisputeId,
-                    COALESCE(CAST(z.allegroAccountId AS CHAR), '') AS AllegroAccountId,
-                    COALESCE(u.`Nazwa Wyświetlana`, u.Login, '') AS Opiekun
+                   
+                  
+                 
+                  
                 FROM Zgloszenia z
                 LEFT JOIN klienci k ON k.Id = z.KlientID
                 LEFT JOIN Produkty p ON p.Id = z.ProduktID
                 LEFT JOIN Producenci pr ON pr.NazwaProducenta = p.Producent
-                LEFT JOIN Uzytkownicy u ON u.Id = z.PrzypisanyDo
+           
                 ORDER BY z.DataZgloszenia DESC LIMIT 10000"; // Pobieramy dużo
 
             using (var conn = GetConn())
