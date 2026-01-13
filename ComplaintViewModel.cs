@@ -24,6 +24,12 @@ namespace Reklamacje_Dane
         [DisplayName("Status Producent")]
         public string StatusProducent { get; set; }
 
+        [DisplayName("Czekamy na Dostawę")]
+        public string CzekamyNaDostawe { get; set; }
+
+        [DisplayName("Czy Nota Rozliczona")]
+        public int? CzyNotaRozliczona { get; set; }
+
         [DisplayName("Klient")]
         public string Klient { get; set; }
 
@@ -135,9 +141,6 @@ namespace Reklamacje_Dane
         [DisplayName("Gwarancja Płatna")]
         public string GwarancjaPlatna { get; set; }
 
-        [DisplayName("Czekamy na Dostawę")]
-        public string CzekamyNaDostawe { get; set; }
-
         [DisplayName("Nr WRL")]
         public string NrWRL { get; set; }
 
@@ -149,9 +152,6 @@ namespace Reklamacje_Dane
 
         [DisplayName("Nr KPZN")]
         public string NrKPZN { get; set; }
-
-        [DisplayName("Czy Nota Rozliczona")]
-        public int? CzyNotaRozliczona { get; set; }
 
         [DisplayName("Kwota Zwrotu")]
         public string KwotaZwrotu { get; set; }
@@ -171,6 +171,8 @@ namespace Reklamacje_Dane
                 Status,
                 StatusKlient,
                 StatusProducent,
+                CzekamyNaDostawe,
+                CzyNotaRozliczona?.ToString(),
                 Klient,
                 KlientImieNazwisko,
                 KlientNazwaFirmy,
@@ -208,12 +210,10 @@ namespace Reklamacje_Dane
                 AllegroDisputeId,
                 AllegroAccountId,
                 GwarancjaPlatna,
-                CzekamyNaDostawe,
                 NrWRL,
                 NrKWZ2,
                 NrRMA,
                 NrKPZN,
-                CzyNotaRozliczona?.ToString(),
                 KwotaZwrotu,
                 Dzialania
             }.Where(value => !string.IsNullOrWhiteSpace(value))).ToLowerInvariant();
