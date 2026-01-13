@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel; // Ważne dla ładnych nazw kolumn
+using System.Linq;
 
 namespace Reklamacje_Dane
 {
@@ -241,9 +242,57 @@ namespace Reklamacje_Dane
         [DisplayName("Producent - Wymagania")]
         public string ProducentWymagania { get; set; }
 
+        [DisplayName("Klient - Imię Nazwisko")]
+        public string KlientImieNazwisko { get; set; }
+
+        [DisplayName("Klient - Nazwa Firmy")]
+        public string KlientNazwaFirmy { get; set; }
+
+        [DisplayName("Klient - Email")]
+        public string KlientEmail { get; set; }
+
+        [DisplayName("Klient - Telefon")]
+        public string KlientTelefon { get; set; }
+
+        [DisplayName("Klient - Ulica")]
+        public string KlientUlica { get; set; }
+
+        [DisplayName("Klient - Kod Pocztowy")]
+        public string KlientKodPocztowy { get; set; }
+
+        [DisplayName("Klient - Miejscowość")]
+        public string KlientMiejscowosc { get; set; }
+
+        [DisplayName("Wymagania Produktu")]
+        public string ProduktWymagania { get; set; }
+
+        [DisplayName("Producent - Kontakt Mail")]
+        public string ProducentKontaktMail { get; set; }
+
+        [DisplayName("Producent - Adres")]
+        public string ProducentAdres { get; set; }
+
+        [DisplayName("Producent - PL/ENG")]
+        public string ProducentPlEng { get; set; }
+
+        [DisplayName("Producent - Język")]
+        public string ProducentJezyk { get; set; }
+
+        [DisplayName("Producent - Formularz")]
+        public string ProducentFormularz { get; set; }
+
+        [DisplayName("Producent - Wymagania")]
+        public string ProducentWymagania { get; set; }
+
         // To pole jest ukryte (nie ma DisplayName lub ignorowane w logice)
         [Browsable(false)]
         public string SearchVector { get; private set; }
+
+        private static readonly System.Reflection.PropertyInfo[] SearchableProperties =
+            typeof(ComplaintViewModel)
+                .GetProperties()
+                .Where(prop => prop.CanRead && prop.Name != nameof(SearchVector))
+                .ToArray();
 
         public void BuildSearchVector()
         {
