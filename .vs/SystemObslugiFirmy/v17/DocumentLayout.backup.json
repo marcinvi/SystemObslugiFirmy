@@ -42,7 +42,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
@@ -57,14 +57,6 @@
               "Name": "ST:129:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
             },
             {
-              "$type": "Bookmark",
-              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
-            },
-            {
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "WyszukiwarkaZgloszenForm.cs",
@@ -72,7 +64,7 @@
               "RelativeDocumentMoniker": "WyszukiwarkaZgloszenForm.cs",
               "ToolTip": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\WyszukiwarkaZgloszenForm.cs",
               "RelativeToolTip": "WyszukiwarkaZgloszenForm.cs",
-              "ViewState": "AgIAAFkAAAAAAAAAAAAqwCYAAAAyAAAAAAAAAA==",
+              "ViewState": "AgIAAEoAAAAAAAAAAAAqwCYAAAAyAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-01-12T14:58:02.9Z",
               "EditorCaption": ""
@@ -87,8 +79,7 @@
               "RelativeToolTip": "App.config",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAxAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000601|",
-              "WhenOpened": "2026-01-12T14:46:28.243Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-01-12T14:46:28.243Z"
             },
             {
               "$type": "Document",
@@ -100,8 +91,7 @@
               "RelativeToolTip": "MagazynControl.cs",
               "ViewState": "AgIAADsCAAAAAAAAAAAqwE0CAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-12T14:15:16.486Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-01-12T14:15:16.486Z"
             },
             {
               "$type": "Document",
@@ -113,8 +103,7 @@
               "RelativeToolTip": "BaseForm.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAvAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-12T13:59:58.839Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-01-12T13:59:58.839Z"
             },
             {
               "$type": "Document",
@@ -126,8 +115,7 @@
               "RelativeToolTip": "Program.cs",
               "ViewState": "AgIAAA4AAAAAAAAAAAAMwCoAAAAUAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-12T13:59:56.09Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-01-12T13:59:56.09Z"
             },
             {
               "$type": "Document",
