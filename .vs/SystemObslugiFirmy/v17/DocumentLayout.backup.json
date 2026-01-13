@@ -65,7 +65,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 8,
+          "SelectedChildIndex": 9,
           "Children": [
             {
               "$type": "Bookmark",
@@ -82,6 +82,10 @@
             {
               "$type": "Bookmark",
               "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
             },
             {
               "$type": "Document",
@@ -130,7 +134,7 @@
               "RelativeDocumentMoniker": "DOKUMENTACJA_BAZY.md",
               "ToolTip": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\DOKUMENTACJA_BAZY.md",
               "RelativeToolTip": "DOKUMENTACJA_BAZY.md",
-              "ViewState": "AgIAAG0BAAAAAAAAAAAAAIgBAAAwAAAAAAAAAA==",
+              "ViewState": "AgIAAGwBAAAAAAAAAAAAAIgBAAAwAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
               "WhenOpened": "2026-01-13T07:40:25.423Z",
               "EditorCaption": ""
@@ -143,7 +147,7 @@
               "RelativeDocumentMoniker": "FastDataService.cs",
               "ToolTip": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\FastDataService.cs",
               "RelativeToolTip": "FastDataService.cs",
-              "ViewState": "AgIAAB8AAAAAAAAAAAAAADwAAAASAAAAAAAAAA==",
+              "ViewState": "AgIAAB8AAAAAAAAAAAAAADUAAABLAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-01-13T07:33:24.122Z",
               "EditorCaption": ""
@@ -156,7 +160,7 @@
               "RelativeDocumentMoniker": "ComplaintViewModel.cs",
               "ToolTip": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\ComplaintViewModel.cs",
               "RelativeToolTip": "ComplaintViewModel.cs",
-              "ViewState": "AgIAAHUAAAAAAAAAAAAEwJUAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAGkAAAAAAAAAAAAEwPMAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-01-13T07:32:01.933Z",
               "EditorCaption": ""
@@ -169,7 +173,7 @@
               "RelativeDocumentMoniker": "WyszukiwarkaZgloszenForm.cs",
               "ToolTip": "C:\\Users\\mpaprocki\\Documents\\GitHub\\SystemObslugiFirmy\\WyszukiwarkaZgloszenForm.cs",
               "RelativeToolTip": "WyszukiwarkaZgloszenForm.cs",
-              "ViewState": "AgIAABsAAAAAAAAAAAAAADAAAAAJAAAAAAAAAA==",
+              "ViewState": "AgIAABsAAAAAAAAAAAAAAD8AAAAKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-01-12T14:58:02.9Z",
               "EditorCaption": ""
