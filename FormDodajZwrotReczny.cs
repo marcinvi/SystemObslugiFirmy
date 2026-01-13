@@ -172,7 +172,7 @@ namespace Reklamacje_Dane
                 try
                 {
                     string[] parts = lastNumberStr.Split('/');
-                    if (parts.Length == 3)
+                    if (parts.Length >= 2)
                     {
                         nextId = int.Parse(parts[1]) + 1;
                     }
@@ -267,7 +267,7 @@ namespace Reklamacje_Dane
                         {
                             string trescWiadomosci = $"Nowy zwrot ręczny ({refNumber}) oczekuje na Twoją decyzję.";
                             var cmdWiadomosc = new MySqlCommand(
-                                "INSERT INTO Wiadomosci (NadawcaId, OdbiorcaId, Tresc, DataWyslania, DotyczyZwrotuId, CzyOdczytana) " +
+                                "INSERT INTO Wiadomosci (NadawcaId, OdbiorcaId, Tresc, DataWyslania, DotyczyZwrotuId, CzyPrzeczytana) " +
                                 "VALUES (@nadawcaId, @odbiorcaId, @tresc, @data, @zwrotId, 0)", con, transaction);
                             cmdWiadomosc.Parameters.AddWithValue("@nadawcaId", SessionManager.CurrentUserId);
                             cmdWiadomosc.Parameters.AddWithValue("@odbiorcaId", selectedUser.Id);
@@ -318,7 +318,7 @@ namespace Reklamacje_Dane
 
         private void chkWszyscyHandlowcy_CheckedChanged(object sender, EventArgs e)
         {
-            if (checkedListBoxHandlowcy.DataSource != null)
+            if (checkedListBoxHandlowcy.Items.Count > 0)
             {
                 for (int i = 0; i < checkedListBoxHandlowcy.Items.Count; i++)
                 {
