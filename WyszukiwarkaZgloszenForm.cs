@@ -37,8 +37,6 @@ namespace Reklamacje_Dane
             new ColumnDefinition("NrZgloszenia", "Nr Zgłoszenia", 120),
             new ColumnDefinition("DataZgloszenia", "Data", 100),
             new ColumnDefinition("Status", "Status", 120),
-            new ColumnDefinition("StatusKlient", "Status Klient", 120, false),
-            new ColumnDefinition("StatusProducent", "Status Producent", 130, false),
             new ColumnDefinition("Klient", "Klient", 150),
             new ColumnDefinition("KlientImieNazwisko", "Klient - Imię Nazwisko", 160, false),
             new ColumnDefinition("KlientNazwaFirmy", "Klient - Nazwa Firmy", 160, false),
@@ -55,22 +53,24 @@ namespace Reklamacje_Dane
             new ColumnDefinition("KodProducenta", "Kod Prod.", 120, false),
             new ColumnDefinition("Kategoria", "Kategoria", 140, false),
             new ColumnDefinition("ProduktWymagania", "Wymagania Produktu", 180, false),
+            new ColumnDefinition("Producent", "Producent", 120),
+            new ColumnDefinition("ProducentKontaktMail", "Producent - Kontakt Mail", 180, false),
+            new ColumnDefinition("ProducentAdres", "Producent - Adres", 180, false),
+            new ColumnDefinition("ProducentPlEng", "Producent - PL/ENG", 140, false),
+            new ColumnDefinition("ProducentJezyk", "Producent - Język", 140, false),
+            new ColumnDefinition("ProducentFormularz", "Producent - Formularz", 160, false),
+            new ColumnDefinition("ProducentWymagania", "Producent - Wymagania", 180, false),
             new ColumnDefinition("SN", "S/N", 100),
             new ColumnDefinition("FV", "Faktura", 100),
             new ColumnDefinition("Skad", "Źródło", 100),
-            new ColumnDefinition("Producent", "Producent", 120),
             new ColumnDefinition("DataZakupu", "Data Zakupu", 120, false),
-         
-          
             new ColumnDefinition("OpisUsterki", "Opis Usterki", 200, false),
-          
-           
-            new ColumnDefinition("KlientNip", "NIP", 120, false),
+            new ColumnDefinition("ProduktOpis", "Produkt (opis)", 200, false),
             new ColumnDefinition("AllegroBuyerLogin", "Allegro Login", 140, false),
             new ColumnDefinition("AllegroOrderId", "Allegro Order", 140, false),
             new ColumnDefinition("AllegroDisputeId", "Allegro Dispute", 140, false),
             new ColumnDefinition("AllegroAccountId", "Allegro Konto", 120, false),
-             new ColumnDefinition("GwarancjaPlatna", "Gwarancja Płatna", 140, false),
+            new ColumnDefinition("GwarancjaPlatna", "Gwarancja Płatna", 140, false),
             new ColumnDefinition("StatusKlient", "Status Klient", 140, false),
             new ColumnDefinition("StatusProducent", "Status Producent", 160, false),
             new ColumnDefinition("CzekamyNaDostawe", "Czekamy na Dostawę", 160, false),
@@ -80,9 +80,10 @@ namespace Reklamacje_Dane
             new ColumnDefinition("NrKPZN", "Nr KPZN", 120, false),
             new ColumnDefinition("CzyNotaRozliczona", "Czy Nota Rozliczona", 160, false),
             new ColumnDefinition("KwotaZwrotu", "Kwota Zwrotu", 120, false),
-            new ColumnDefinition("Dzialania", "Działania", 200, false),
-          
-            new ColumnDefinition("ProduktOpis", "Produkt (opis)", 200, false)
+            new ColumnDefinition("NrFakturyPrzychodu", "Nr Faktury Przychodu", 160, false),
+            new ColumnDefinition("KwotaFakturyPrzychoduNetto", "Kwota Faktury Przychodu Netto", 190, false),
+            new ColumnDefinition("NrFakturyKosztowej", "Nr Faktury Kosztowej", 160, false),
+            new ColumnDefinition("Dzialania", "Działania", 200, false)
         };
 
         public WyszukiwarkaZgloszenForm()
@@ -190,7 +191,8 @@ namespace Reklamacje_Dane
                
                 AutoSize = true 
             };
-                var searchLeft = lblTitle.Right + 12;
+                var labelWidth = TextRenderer.MeasureText(lblTitle.Text, lblTitle.Font).Width;
+                var searchLeft = lblTitle.Left + labelWidth + 12;
                 _txtSearch.Location = new Point(searchLeft, 15);
                 btnRefresh.Location = new Point(_txtSearch.Right + 10, 14);
                 btnColumns.Location = new Point(btnRefresh.Right + 10, 14);
