@@ -46,7 +46,7 @@ namespace Reklamacje_Dane
             new ColumnDefinition("Skad", "Źródło", 100),
             new ColumnDefinition("Producent", "Producent", 120),
             new ColumnDefinition("DataZakupu", "Data Zakupu", 120, false),
-            new ColumnDefinition("StatusDpd", "Status DPD", 120, false),
+         
             new ColumnDefinition("DataZamkniecia", "Data Zamknięcia", 120, false),
             new ColumnDefinition("Usterka", "Usterka", 180, false),
             new ColumnDefinition("OpisUsterki", "Opis Usterki", 200, false),
@@ -388,14 +388,21 @@ namespace Reklamacje_Dane
             if (prop == null) return false;
 
             var value = prop.GetValue(item);
-            var text = value switch
-            {
-                DateTime dateTime => dateTime.ToString("yyyy-MM-dd HH:mm"),
-                DateTime? dateTime => dateTime.HasValue ? dateTime.Value.ToString("yyyy-MM-dd HH:mm") : string.Empty,
-                _ => value?.ToString() ?? string.Empty
-            };
+            string text = string.Empty;
 
-            return text.ToLower().Contains(term);
+            // C# 7.3 nie obsługuje wyrażeń switch (value switch { ... }), 
+            // dlatego używamy dopasowania wzorca (pattern matching) w instrukcjach if.
+            if (value is DateTime dt)
+            {
+                text = dt.ToString("yyyy-MM-dd HH:mm");
+            }
+            else if (value != null)
+            {
+                text = value.ToString();
+            }
+
+            // Dobrą praktyką jest zamiana obu ciągów na małe litery przed porównaniem
+            return text.ToLower().Contains(term.ToLower());
         }
 
         private void ShowColumnSelector(object sender, EventArgs e)
