@@ -1,10 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Data;
 using MySql.Data.MySqlClient;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Collections.Generic;
+using System.Globalization;
 namespace Reklamacje_Dane
 {
     public partial class FormPodsumowanieZwrotu : Form
@@ -69,7 +68,7 @@ namespace Reklamacje_Dane
                 lblAllegroAccount.Text = (await _dbServiceBaza.ExecuteScalarAsync("SELECT AccountName FROM AllegroAccounts WHERE Id = @id", new MySqlParameter("@id", _dbDataRow["AllegroAccountId"])))?.ToString() ?? "Nieznane";
             }
             lblBuyerLogin.Text = _dbDataRow["BuyerLogin"]?.ToString();
-            lblOrderDate.Text = _dbDataRow["CreatedAt"] != DBNull.Value ? Convert.ToDateTime(_dbDataRow["CreatedAt"]).ToString("dd.MM.yyyy HH:mm") : "Brak";
+            lblOrderDate.Text = FormatDateTime(_dbDataRow["CreatedAt"]);
             lblInvoice.Text = _dbDataRow["InvoiceNumber"]?.ToString() ?? "Brak";
 
             // Ocena magazynu
@@ -81,8 +80,8 @@ namespace Reklamacje_Dane
             {
                 lblPrzyjetyPrzez.Text = (await _dbServiceBaza.ExecuteScalarAsync("SELECT \"Nazwa Wyświetlana\" FROM Uzytkownicy WHERE Id = @id", new MySqlParameter("@id", _dbDataRow["PrzyjetyPrzezId"])))?.ToString() ?? "Brak";
             }
-            lblUwagiMagazynu.Text = _dbDataRow["UwagiMagazynu"]?.ToString();
-            lblDataPrzyjecia.Text = _dbDataRow["DataPrzyjecia"] != DBNull.Value ? Convert.ToDateTime(_dbDataRow["DataPrzyjecia"]).ToString("dd.MM.yyyy HH:mm") : "Brak";
+            lblUwagiMagazynu.Text = GetUwagiMagazynuValue();
+            lblDataPrzyjecia.Text = FormatDateTime(_dbDataRow["DataPrzyjecia"]);
 
             // Decyzja handlowca
             string decyzja = "Brak";
@@ -135,6 +134,40 @@ namespace Reklamacje_Dane
                     MessageBox.Show("Błąd podczas archiwizacji: " + ex.Message, "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        private static string FormatDateTime(object value)
+        {
+            if (value == null || value == DBNull.Value) return "Brak";
+            if (value is DateTime dateTime)
+            {
+                return dateTime.ToString("dd.MM.yyyy HH:mm");
+            }
+
+            var stringValue = value.ToString();
+            if (DateTime.TryParse(stringValue, CultureInfo.CurrentCulture, DateTimeStyles.None, out var parsed))
+            {
+                return parsed.ToString("dd.MM.yyyy HH:mm");
+            }
+            if (DateTime.TryParse(stringValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
+            {
+                return parsed.ToString("dd.MM.yyyy HH:mm");
+            }
+
+            return "Brak";
+        }
+
+        private string GetUwagiMagazynuValue()
+        {
+            if (_dbDataRow?.Table?.Columns.Contains("UwagiMagazynu") == true)
+            {
+                return _dbDataRow["UwagiMagazynu"]?.ToString();
+            }
+            if (_dbDataRow?.Table?.Columns.Contains("UwagiMagazyn") == true)
+            {
+                return _dbDataRow["UwagiMagazyn"]?.ToString();
+            }
+            return "Brak";
         }
     
         /// <summary>
