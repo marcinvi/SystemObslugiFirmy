@@ -392,6 +392,7 @@ namespace Reklamacje_Dane
                     var cmd = new MySqlCommand("UPDATE AllegroDisputes SET HasNewMessages = 0 WHERE DisputeId = @id", con);
                     cmd.Parameters.AddWithValue("@id", disputeId);
                     cmd.ExecuteNonQuery();
+                    MarkMessageReadStatus(con, new[] { disputeId }, SessionManager.CurrentUserId);
                 }
             }
             catch { }
@@ -453,6 +454,7 @@ namespace Reklamacje_Dane
                     var ids = string.Join(",", unreadIds.Select(id => $"'{id}'"));
                     var cmd = new MySqlCommand($"UPDATE AllegroDisputes SET HasNewMessages = 0 WHERE DisputeId IN ({ids})", con);
                     cmd.ExecuteNonQuery();
+                    MarkMessageReadStatus(con, unreadIds, SessionManager.CurrentUserId);
                 }
             });
 
@@ -505,6 +507,30 @@ namespace Reklamacje_Dane
                         thread.ComplaintNumber, thread.LastMessageDate, thread.LastMessageText, false);
                 }
             }
+        }
+
+        private void MarkMessageReadStatus(MySqlConnection connection, IEnumerable<string> disputeIds, int userId)
+        {
+            if (connection == null || disputeIds == null || userId <= 0)
+            {
+                return;
+            }
+
+            var ids = disputeIds.Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return;
+            }
+
+            var idsList = string.Join(",", ids.Select(id => $"'{id}'"));
+            var cmd = new MySqlCommand($@"
+                INSERT IGNORE INTO MessageReadStatus (MessageId, UserId, ReadAt)
+                SELECT MessageId, @userId, @readAt
+                FROM AllegroChatMessages
+                WHERE DisputeId IN ({idsList})", connection);
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@readAt", DateTime.Now.ToString("o"));
+            cmd.ExecuteNonQuery();
         }
     
         /// <summary>
