@@ -51,7 +51,7 @@ namespace Reklamacje_Dane
                 // KROK 1: Pobierz wszystkich użytkowników z Baza.db do słownika w pamięci.
                 // Używamy Id jako klucza, bo tak jest w tabeli Wiadomosci (kolumna NadawcaId).
                 var usersDict = new Dictionary<long, string>();
-                var usersDt = await _dbServiceBaza.GetDataTableAsync("SELECT Id, \"Nazwa Wyświetlana\" FROM Uzytkownicy");
+                var usersDt = await _dbServiceBaza.GetDataTableAsync("SELECT Id, `Nazwa Wyświetlana` FROM Uzytkownicy");
                 foreach (DataRow row in usersDt.Rows)
                 {
                     usersDict[Convert.ToInt64(row["Id"])] = row["Nazwa Wyświetlana"].ToString();
