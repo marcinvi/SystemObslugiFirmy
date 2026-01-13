@@ -13,6 +13,9 @@ namespace Reklamacje_Dane
 
         public async Task<List<ComplaintViewModel>> LoadAllComplaintsAsync()
         {
+            // KLUCZ: rejestrujemy handler MySqlDateTime -> DateTime?
+            DapperTypeHandlerBootstrap.EnsureRegistered();
+
             var sql = @"
                 SELECT 
                     z.Id,
@@ -56,14 +59,17 @@ namespace Reklamacje_Dane
                     COALESCE(z.KwotaFakturyPrzychoduNetto, 0) AS KwotaFakturyPrzychoduNetto,
                     COALESCE(z.NrFakturyKosztowej, '') AS NrFakturyKosztowej,
 
-                   COALESCE(z.Skad, '') AS Skad,
-CASE
-  WHEN z.DataZakupu IS NULL OR z.DataZakupu IN ('', '-') THEN NULL
-  WHEN z.DataZakupu LIKE '__.__.____' THEN STR_TO_DATE(z.DataZakupu, '%d.%m.%Y')
-  WHEN z.DataZakupu LIKE '____-__-__' THEN STR_TO_DATE(z.DataZakupu, '%Y-%m-%d')
-  ELSE NULL
-END AS DataZakupu,
-COALESCE(z.OpisUsterki, '') AS OpisUsterki,
+                    COALESCE(z.Skad, '') AS Skad,
+
+                    /* DataZakupu bywa u Ciebie stringiem 'dd.MM.yyyy' albo 'yyyy-MM-dd' albo NULL/'-' */
+                    CASE
+                      WHEN z.DataZakupu IS NULL OR z.DataZakupu IN ('', '-') THEN NULL
+                      WHEN z.DataZakupu LIKE '__.__.____' THEN STR_TO_DATE(z.DataZakupu, '%d.%m.%Y')
+                      WHEN z.DataZakupu LIKE '____-__-__' THEN STR_TO_DATE(z.DataZakupu, '%Y-%m-%d')
+                      ELSE NULL
+                    END AS DataZakupu,
+
+                    COALESCE(z.OpisUsterki, '') AS OpisUsterki,
                     COALESCE(z.Produkt, '') AS ProduktOpis,
 
                     COALESCE(z.allegroBuyerLogin, '') AS AllegroBuyerLogin,
@@ -79,9 +85,7 @@ COALESCE(z.OpisUsterki, '') AS OpisUsterki,
                     COALESCE(z.NrRMA, '') AS NrRMA,
                     COALESCE(z.NrKPZN, '') AS NrKPZN,
 
-                    /* KLUCZOWA POPRAWKA:
-                       int? w C# musi dostać NULL albo liczbę, nie '' ani '-'
-                    */
+                    /* CzyNotaRozliczona: int? musi dostać NULL/liczbę */
                     CAST(NULLIF(NULLIF(z.CzyNotaRozliczona, ''), '-') AS SIGNED) AS CzyNotaRozliczona,
 
                     COALESCE(z.KwotaZwrotu, '') AS KwotaZwrotu,
@@ -98,13 +102,10 @@ COALESCE(z.OpisUsterki, '') AS OpisUsterki,
             {
                 await conn.OpenAsync();
 
-                // Dapper mapuje po nazwach kolumn/aliasów do właściwości
                 var result = await conn.QueryAsync<ComplaintViewModel>(sql);
                 var list = result.ToList();
 
-                // Budujemy wektor wyszukiwania równolegle
                 Parallel.ForEach(list, item => item.BuildSearchVector());
-
                 return list;
             }
         }

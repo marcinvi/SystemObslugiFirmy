@@ -345,6 +345,9 @@
       <HintPath>packages\ZstdSharp.Port.0.8.6\lib\net462\ZstdSharp.dll</HintPath>
     </Reference>
   </ItemGroup>
+	<ItemGroup>
+		<Compile Include="DapperMySqlDateTimeHandler.cs" />
+	</ItemGroup>
   <ItemGroup>
     <Compile Include="AddActionControl.cs">
       <SubType>UserControl</SubType>
