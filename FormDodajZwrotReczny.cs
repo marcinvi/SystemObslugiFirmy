@@ -16,6 +16,7 @@ namespace Reklamacje_Dane
         private readonly DatabaseService _dbServiceMagazyn;
         private readonly DatabaseService _dbServiceBaza;
         private readonly string _fullName;
+        private string _uwagiMagazynuColumnName = "UwagiMagazynu";
 
         private class UserItem
         {
@@ -48,6 +49,7 @@ namespace Reklamacje_Dane
 
         private async void FormDodajZwrotReczny_Load(object sender, EventArgs e)
         {
+            _uwagiMagazynuColumnName = await ResolveUwagiMagazynuColumnAsync();
             await LoadHandlowcyAsync();
             await LoadProductSuggestionsAsync();
             await LoadCarrierSuggestionsAsync();
@@ -219,12 +221,12 @@ namespace Reklamacje_Dane
                             throw new Exception("Krytyczny błąd: W bazie danych brakuje statusu 'Oczekuje na decyzję handlowca'.");
                         }
 
-                        var cmd = new MySqlCommand(@"
+                        var cmd = new MySqlCommand($@"
                             INSERT INTO AllegroCustomerReturns (
                                 ReferenceNumber, Waybill, CreatedAt, DataPrzyjecia, PrzyjetyPrzezId, StatusAllegro, StatusWewnetrznyId, 
                                 StanProduktuId, IsManual, ManualSenderDetails, CarrierName, ProductName, 
                                 Delivery_FirstName, Delivery_LastName, Delivery_Street, Delivery_ZipCode, Delivery_City, Delivery_PhoneNumber, 
-                                UwagiMagazynu, BuyerFullName
+                                {_uwagiMagazynuColumnName}, BuyerFullName
                             ) VALUES (
                                 @ReferenceNumber, @Waybill, @CreatedAt, @DataPrzyjecia, @PrzyjetyPrzezId, @StatusAllegro, @StatusWewnetrznyId,
                                 @StanProduktuId, @IsManual, @ManualSenderDetails, @CarrierName, @ProductName,
@@ -371,6 +373,19 @@ namespace Reklamacje_Dane
                     }
                 }
             }
+        }
+
+        private async Task<string> ResolveUwagiMagazynuColumnAsync()
+        {
+            const string query = @"
+                SELECT COLUMN_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'AllegroCustomerReturns'
+                  AND COLUMN_NAME IN ('UwagiMagazynu', 'UwagiMagazyn')
+                LIMIT 1";
+            var result = await _dbServiceMagazyn.ExecuteScalarAsync(query);
+            return result?.ToString() ?? "UwagiMagazynu";
         }
 }
 }
