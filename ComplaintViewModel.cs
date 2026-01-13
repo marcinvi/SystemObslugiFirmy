@@ -45,23 +45,16 @@ namespace Reklamacje_Dane
         [DisplayName("Data Zakupu")]
         public DateTime? DataZakupu { get; set; }
 
-        [DisplayName("Status DPD")]
-        public string StatusDpd { get; set; }
+       
 
-        [DisplayName("Data Zamknięcia")]
-        public DateTime? DataZamkniecia { get; set; }
-
-        [DisplayName("Usterka")]
-        public string Usterka { get; set; }
+     
 
         [DisplayName("Opis Usterki")]
         public string OpisUsterki { get; set; }
 
-        [DisplayName("Uwagi")]
-        public string Uwagi { get; set; }
+     
 
-        [DisplayName("Opiekun")]
-        public string Opiekun { get; set; }
+  
 
         [DisplayName("NIP")]
         public string KlientNip { get; set; }
@@ -77,6 +70,83 @@ namespace Reklamacje_Dane
 
         [DisplayName("Allegro Konto")]
         public string AllegroAccountId { get; set; }
+        [DisplayName("Gwarancja Płatna")]
+        public string GwarancjaPlatna { get; set; }
+
+        [DisplayName("Status Klient")]
+        public string StatusKlient { get; set; }
+
+        [DisplayName("Status Producent")]
+        public string StatusProducent { get; set; }
+
+        [DisplayName("Czekamy na Dostawę")]
+        public string CzekamyNaDostawe { get; set; }
+
+        [DisplayName("Nr WRL")]
+        public string NrWRL { get; set; }
+
+        [DisplayName("Nr KWZ2")]
+        public string NrKWZ2 { get; set; }
+
+        [DisplayName("Nr RMA")]
+        public string NrRMA { get; set; }
+
+        [DisplayName("Nr KPZN")]
+        public string NrKPZN { get; set; }
+
+        [DisplayName("Czy Nota Rozliczona")]
+        public string CzyNotaRozliczona { get; set; }
+
+        [DisplayName("Kwota Zwrotu")]
+        public string KwotaZwrotu { get; set; }
+
+        [DisplayName("Nr Faktury Przychodu")]
+        public string NrFakturyPrzychodu { get; set; }
+
+        [DisplayName("Kwota Przychodu Netto")]
+        public double? KwotaFakturyPrzychoduNetto { get; set; }
+
+        [DisplayName("Nr Faktury Kosztowej")]
+        public string NrFakturyKosztowej { get; set; }
+
+        [DisplayName("Działania")]
+        public string Dzialania { get; set; }
+
+      
+
+      
+
+        [DisplayName("Nazwa Systemowa")]
+        public string NazwaSystemowa { get; set; }
+
+        [DisplayName("Kod Enova")]
+        public string KodEnova { get; set; }
+
+        [DisplayName("Kategoria")]
+        public string Kategoria { get; set; }
+
+
+
+        [DisplayName("Imię i Nazwisko")]
+        public string ImieNazwisko { get; set; }
+
+        [DisplayName("Nazwa Firmy")]
+        public string NazwaFirmy { get; set; }
+
+        [DisplayName("Ulica")]
+        public string Ulica { get; set; }
+
+        [DisplayName("Kod Pocztowy")]
+        public string KodPocztowy { get; set; }
+
+        [DisplayName("Miejscowość")]
+        public string Miejscowosc { get; set; }
+
+        [DisplayName("Email")]
+        public string Email { get; set; }
+
+        [DisplayName("Telefon")]
+        public string Telefon { get; set; }
 
         [DisplayName("Status Klient")]
         public string StatusKlient { get; set; }
@@ -178,7 +248,7 @@ namespace Reklamacje_Dane
         public void BuildSearchVector()
         {
             // Łączymy wszystko w jeden ciąg dla szybkości
-            SearchVector = $"{NrZgloszenia} {Klient} {Produkt} {SN} {FV} {Skad} {Producent} {Status} {NazwaKrotka} {KodProducenta} {Usterka} {OpisUsterki} {Uwagi} {Opiekun} {StatusDpd} {AllegroBuyerLogin} {AllegroOrderId} {AllegroDisputeId} {AllegroAccountId} {KlientNip} {StatusKlient} {StatusProducent} {GwarancjaPlatna} {CzekamyNaDostawe} {NrWRL} {NrKWZ2} {NrRMA} {NrKPZN} {CzyNotaRozliczona} {KwotaZwrotu} {NrFakturyPrzychodu} {KwotaFakturyPrzychoduNetto} {NrFakturyKosztowej} {Dzialania} {KlientImieNazwisko} {KlientNazwaFirmy} {KlientEmail} {KlientTelefon} {KlientUlica} {KlientKodPocztowy} {KlientMiejscowosc} {NazwaSystemowa} {KodEnova} {Kategoria} {ProduktWymagania} {ProducentKontaktMail} {ProducentAdres} {ProducentPlEng} {ProducentJezyk} {ProducentFormularz} {ProducentWymagania}".ToLower();
+            SearchVector = $"{NrZgloszenia} {Klient} {Produkt} {SN} {FV} {Skad} {Producent} {Status} {NazwaKrotka} {KodProducenta} {OpisUsterki}   {AllegroBuyerLogin} {AllegroOrderId} {AllegroDisputeId} {AllegroAccountId} {KlientNip} {GwarancjaPlatna} {StatusKlient} {StatusProducent} {CzekamyNaDostawe} {NrWRL} {NrKWZ2} {NrRMA} {NrKPZN} {CzyNotaRozliczona} {KwotaZwrotu} {NrFakturyPrzychodu} {KwotaFakturyPrzychoduNetto} {NrFakturyKosztowej} {Dzialania}  {NazwaSystemowa} {KodEnova} {Kategoria}  {ImieNazwisko} {NazwaFirmy} {Ulica} {KodPocztowy} {Miejscowosc} {Email} {Telefon}".ToLower();
         }
     }
 }
