@@ -128,7 +128,11 @@ namespace Reklamacje_Dane
 
         [DisplayName("Allegro Dispute")]
         public string AllegroDisputeId { get; set; }
+        [DisplayName("Czekamy na Dostawę")]
+        public string CzekamyNaDostawe { get; set; }
 
+        [DisplayName("Czy Nota Rozliczona")]
+        public int? CzyNotaRozliczona { get; set; }
         [DisplayName("Allegro Konto")]
         public string AllegroAccountId { get; set; }
 
