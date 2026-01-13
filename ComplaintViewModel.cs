@@ -78,6 +78,99 @@ namespace Reklamacje_Dane
         [DisplayName("Allegro Konto")]
         public string AllegroAccountId { get; set; }
 
+        [DisplayName("Status Klient")]
+        public string StatusKlient { get; set; }
+
+        [DisplayName("Status Producent")]
+        public string StatusProducent { get; set; }
+
+        [DisplayName("Gwarancja Płatna")]
+        public string GwarancjaPlatna { get; set; }
+
+        [DisplayName("Czekamy na Dostawę")]
+        public string CzekamyNaDostawe { get; set; }
+
+        [DisplayName("Nr WRL")]
+        public string NrWRL { get; set; }
+
+        [DisplayName("Nr KWZ2")]
+        public string NrKWZ2 { get; set; }
+
+        [DisplayName("Nr RMA")]
+        public string NrRMA { get; set; }
+
+        [DisplayName("Nr KPZN")]
+        public string NrKPZN { get; set; }
+
+        [DisplayName("Czy Nota Rozliczona")]
+        public string CzyNotaRozliczona { get; set; }
+
+        [DisplayName("Kwota Zwrotu")]
+        public string KwotaZwrotu { get; set; }
+
+        [DisplayName("Nr Faktury Przychodu")]
+        public string NrFakturyPrzychodu { get; set; }
+
+        [DisplayName("Kwota Faktury Przychodu Netto")]
+        public string KwotaFakturyPrzychoduNetto { get; set; }
+
+        [DisplayName("Nr Faktury Kosztowej")]
+        public string NrFakturyKosztowej { get; set; }
+
+        [DisplayName("Działania")]
+        public string Dzialania { get; set; }
+
+        [DisplayName("Klient - Imię Nazwisko")]
+        public string KlientImieNazwisko { get; set; }
+
+        [DisplayName("Klient - Nazwa Firmy")]
+        public string KlientNazwaFirmy { get; set; }
+
+        [DisplayName("Klient - Email")]
+        public string KlientEmail { get; set; }
+
+        [DisplayName("Klient - Telefon")]
+        public string KlientTelefon { get; set; }
+
+        [DisplayName("Klient - Ulica")]
+        public string KlientUlica { get; set; }
+
+        [DisplayName("Klient - Kod Pocztowy")]
+        public string KlientKodPocztowy { get; set; }
+
+        [DisplayName("Klient - Miejscowość")]
+        public string KlientMiejscowosc { get; set; }
+
+        [DisplayName("Nazwa Systemowa")]
+        public string NazwaSystemowa { get; set; }
+
+        [DisplayName("Kod Enova")]
+        public string KodEnova { get; set; }
+
+        [DisplayName("Kategoria")]
+        public string Kategoria { get; set; }
+
+        [DisplayName("Wymagania Produktu")]
+        public string ProduktWymagania { get; set; }
+
+        [DisplayName("Producent - Kontakt Mail")]
+        public string ProducentKontaktMail { get; set; }
+
+        [DisplayName("Producent - Adres")]
+        public string ProducentAdres { get; set; }
+
+        [DisplayName("Producent - PL/ENG")]
+        public string ProducentPlEng { get; set; }
+
+        [DisplayName("Producent - Język")]
+        public string ProducentJezyk { get; set; }
+
+        [DisplayName("Producent - Formularz")]
+        public string ProducentFormularz { get; set; }
+
+        [DisplayName("Producent - Wymagania")]
+        public string ProducentWymagania { get; set; }
+
         // To pole jest ukryte (nie ma DisplayName lub ignorowane w logice)
         [Browsable(false)]
         public string SearchVector { get; private set; }
@@ -85,7 +178,7 @@ namespace Reklamacje_Dane
         public void BuildSearchVector()
         {
             // Łączymy wszystko w jeden ciąg dla szybkości
-            SearchVector = $"{NrZgloszenia} {Klient} {Produkt} {SN} {FV} {Skad} {Producent} {Status} {NazwaKrotka} {KodProducenta} {Usterka} {OpisUsterki} {Uwagi} {Opiekun} {StatusDpd} {AllegroBuyerLogin} {AllegroOrderId} {AllegroDisputeId} {AllegroAccountId} {KlientNip}".ToLower();
+            SearchVector = $"{NrZgloszenia} {Klient} {Produkt} {SN} {FV} {Skad} {Producent} {Status} {NazwaKrotka} {KodProducenta} {Usterka} {OpisUsterki} {Uwagi} {Opiekun} {StatusDpd} {AllegroBuyerLogin} {AllegroOrderId} {AllegroDisputeId} {AllegroAccountId} {KlientNip} {StatusKlient} {StatusProducent} {GwarancjaPlatna} {CzekamyNaDostawe} {NrWRL} {NrKWZ2} {NrRMA} {NrKPZN} {CzyNotaRozliczona} {KwotaZwrotu} {NrFakturyPrzychodu} {KwotaFakturyPrzychoduNetto} {NrFakturyKosztowej} {Dzialania} {KlientImieNazwisko} {KlientNazwaFirmy} {KlientEmail} {KlientTelefon} {KlientUlica} {KlientKodPocztowy} {KlientMiejscowosc} {NazwaSystemowa} {KodEnova} {Kategoria} {ProduktWymagania} {ProducentKontaktMail} {ProducentAdres} {ProducentPlEng} {ProducentJezyk} {ProducentFormularz} {ProducentWymagania}".ToLower();
         }
     }
 }
