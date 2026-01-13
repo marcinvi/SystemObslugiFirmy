@@ -56,7 +56,20 @@ namespace Reklamacje_Dane
             new ColumnDefinition("AllegroBuyerLogin", "Allegro Login", 140, false),
             new ColumnDefinition("AllegroOrderId", "Allegro Order", 140, false),
             new ColumnDefinition("AllegroDisputeId", "Allegro Dispute", 140, false),
-            new ColumnDefinition("AllegroAccountId", "Allegro Konto", 120, false)
+            new ColumnDefinition("AllegroAccountId", "Allegro Konto", 120, false),
+             new ColumnDefinition("GwarancjaPlatna", "Gwarancja Płatna", 140, false),
+            new ColumnDefinition("StatusKlient", "Status Klient", 140, false),
+            new ColumnDefinition("StatusProducent", "Status Producent", 160, false),
+            new ColumnDefinition("CzekamyNaDostawe", "Czekamy na Dostawę", 160, false),
+            new ColumnDefinition("NrWRL", "Nr WRL", 120, false),
+            new ColumnDefinition("NrKWZ2", "Nr KWZ2", 120, false),
+            new ColumnDefinition("NrRMA", "Nr RMA", 120, false),
+            new ColumnDefinition("NrKPZN", "Nr KPZN", 120, false),
+            new ColumnDefinition("CzyNotaRozliczona", "Czy Nota Rozliczona", 160, false),
+            new ColumnDefinition("KwotaZwrotu", "Kwota Zwrotu", 120, false),
+            new ColumnDefinition("Dzialania", "Działania", 200, false),
+            new ColumnDefinition("KlientOpis", "Klient (opis)", 200, false),
+            new ColumnDefinition("ProduktOpis", "Produkt (opis)", 200, false)
         };
 
         public WyszukiwarkaZgloszenForm()
@@ -109,10 +122,11 @@ namespace Reklamacje_Dane
             
             var lblTitle = new Label { Text = "🔍 Wyszukaj:", Font = new Font("Segoe UI Semibold", 11), AutoSize = true, Location = new Point(15, 18) };
             
-            _txtSearch = new TextBox 
-            { 
-                Location = new Point(110, 15), 
-                Width = 400, 
+         
+            
+                _txtSearch = new TextBox
+                {
+                    Width = 400, 
                 Font = new Font("Segoe UI", 11),
                 //PlaceholderText = "Wpisz nr zgłoszenia, klienta, produkt, SN..."
             };
@@ -121,7 +135,7 @@ namespace Reklamacje_Dane
             var btnRefresh = new Button 
             { 
                 Text = "🔄 Odśwież", 
-                Location = new Point(520, 14), 
+          
                 Size = new Size(100, 32),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(220, 220, 220),
@@ -133,7 +147,7 @@ namespace Reklamacje_Dane
             var btnColumns = new Button 
             { 
                 Text = "⚙ Kolumny", 
-                Location = new Point(630, 14), 
+               
                 Size = new Size(100, 32),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(0, 120, 215),
@@ -146,7 +160,7 @@ namespace Reklamacje_Dane
             var btnExport = new Button 
             { 
                 Text = "📊 Export", 
-                Location = new Point(740, 14), 
+            
                 Size = new Size(100, 32),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(16, 124, 16),
@@ -160,11 +174,18 @@ namespace Reklamacje_Dane
             { 
                 Text = "Gotowy", 
                 Font = new Font("Segoe UI Semibold", 10), 
-                Location = new Point(860, 20), 
+               
                 AutoSize = true 
             };
+                var searchLeft = lblTitle.Right + 12;
+                _txtSearch.Location = new Point(searchLeft, 15);
+                btnRefresh.Location = new Point(_txtSearch.Right + 10, 14);
+                btnColumns.Location = new Point(btnRefresh.Right + 10, 14);
+                btnExport.Location = new Point(btnColumns.Right + 10, 14);
+                _lblStats.Location = new Point(btnExport.Right + 20, 20);
 
-            topBar.Controls.AddRange(new Control[] { lblTitle, _txtSearch, btnRefresh, btnColumns, btnExport, _lblStats });
+
+                topBar.Controls.AddRange(new Control[] { lblTitle, _txtSearch, btnRefresh, btnColumns, btnExport, _lblStats });
 
             _filterPanelContainer = new Panel
             {
