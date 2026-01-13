@@ -130,6 +130,27 @@ namespace Reklamacje_Dane
             new Form2(nr).Show();
         }
 
+        private async void BtnPrzypisz_Click(object sender, EventArgs e)
+        {
+            if (cmbZgloszenia.SelectedIndex <= 0)
+            {
+                MessageBox.Show("Wybierz zgłoszenie do przypisania.");
+                return;
+            }
+
+            try
+            {
+                string nrZgloszenia = cmbZgloszenia.SelectedItem.ToString().Split('-')[0].Trim();
+                await _db.PrzypiszOstatniSmsDoZgloszeniaAsync(_numer, nrZgloszenia);
+                MessageBox.Show("SMS został przypisany do zgłoszenia.");
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Błąd podczas przypisywania: " + ex.Message);
+            }
+        }
+
         private async void BtnWyslij_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtOdpowiedz.Text)) return;
@@ -226,7 +247,10 @@ namespace Reklamacje_Dane
             Button btnSend = new Button { Text = "WYŚLIJ SMS", Location = new Point(20, 370), Width = 490, Height = 50, BackColor = Color.FromArgb(0, 122, 204), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnSend.Click += BtnWyslij_Click;
 
-            this.Controls.AddRange(new Control[] { l1, t1, l2, cmbSzablony, l3, txtOdpowiedz, l4, cmbZgloszenia, btnSearch, btnLook, btnSend });
+            Button btnAssign = new Button { Text = "Przypisz do zgłoszenia", Location = new Point(20, 340), Width = 490, Height = 25, BackColor = Color.WhiteSmoke };
+            btnAssign.Click += BtnPrzypisz_Click;
+
+            this.Controls.AddRange(new Control[] { l1, t1, l2, cmbSzablony, l3, txtOdpowiedz, l4, cmbZgloszenia, btnSearch, btnLook, btnAssign, btnSend });
         }
     
         /// <summary>
