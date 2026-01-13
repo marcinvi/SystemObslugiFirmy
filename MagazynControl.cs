@@ -252,8 +252,12 @@ namespace Reklamacje_Dane
                             ) VALUES (
                                 @AllegroReturnId, @AllegroAccountId, @ReferenceNumber, @OrderId, @BuyerLogin, @CreatedAt, @StatusAllegro, @Waybill, @JsonDetails, @StatusWewnetrznyId, @CarrierName, @InvoiceNumber, @ProductName, @OfferId, @Quantity, @PaymentType, @FulfillmentStatus, @Delivery_FirstName, @Delivery_LastName, @Delivery_Street, @Delivery_ZipCode, @Delivery_City, @Delivery_PhoneNumber, @Buyer_FirstName, @Buyer_LastName, @Buyer_Street, @Buyer_ZipCode, @Buyer_City, @Buyer_PhoneNumber, @Invoice_CompanyName, @Invoice_TaxId, @Invoice_Street, @Invoice_ZipCode, @Invoice_City
                             )
-                            ON CONFLICT(AllegroReturnId) DO UPDATE SET
-                                StatusAllegro = excluded.StatusAllegro, Waybill = excluded.Waybill, CarrierName = excluded.CarrierName, JsonDetails = excluded.JsonDetails, InvoiceNumber = excluded.InvoiceNumber;
+                            ON DUPLICATE KEY UPDATE
+                                StatusAllegro = VALUES(StatusAllegro),
+                                Waybill = VALUES(Waybill),
+                                CarrierName = VALUES(CarrierName),
+                                JsonDetails = VALUES(JsonDetails),
+                                InvoiceNumber = VALUES(InvoiceNumber);
                         ", con, transaction);
 
                         cmd.Parameters.AddWithValue("@AllegroReturnId", ret.Id);
