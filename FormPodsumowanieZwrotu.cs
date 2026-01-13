@@ -80,7 +80,7 @@ namespace Reklamacje_Dane
             {
                 lblPrzyjetyPrzez.Text = (await _dbServiceBaza.ExecuteScalarAsync("SELECT \"Nazwa Wyświetlana\" FROM Uzytkownicy WHERE Id = @id", new MySqlParameter("@id", _dbDataRow["PrzyjetyPrzezId"])))?.ToString() ?? "Brak";
             }
-            lblUwagiMagazynu.Text = GetUwagiMagazynuValue();
+            lblUwagiMagazynu.Text = _dbDataRow["UwagiMagazynu"]?.ToString();
             lblDataPrzyjecia.Text = FormatDateTime(_dbDataRow["DataPrzyjecia"]);
 
             // Decyzja handlowca
@@ -154,19 +154,6 @@ namespace Reklamacje_Dane
                 return parsed.ToString("dd.MM.yyyy HH:mm");
             }
 
-            return "Brak";
-        }
-
-        private string GetUwagiMagazynuValue()
-        {
-            if (_dbDataRow?.Table?.Columns.Contains("UwagiMagazynu") == true)
-            {
-                return _dbDataRow["UwagiMagazynu"]?.ToString();
-            }
-            if (_dbDataRow?.Table?.Columns.Contains("UwagiMagazyn") == true)
-            {
-                return _dbDataRow["UwagiMagazyn"]?.ToString();
-            }
             return "Brak";
         }
     
