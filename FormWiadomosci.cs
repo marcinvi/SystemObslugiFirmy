@@ -444,18 +444,20 @@ namespace Reklamacje_Dane
                 return;
             }
 
+            var unreadIds = new HashSet<string>(unread.Select(t => t.DisputeId));
             await Task.Run(() =>
             {
                 using (var con = DatabaseHelper.GetConnection())
                 {
                     con.Open();
-                    var ids = string.Join(",", unread.Select(t => $"'{t.DisputeId}'"));
+                    var ids = string.Join(",", unreadIds.Select(id => $"'{id}'"));
                     var cmd = new MySqlCommand($"UPDATE AllegroDisputes SET HasNewMessages = 0 WHERE DisputeId IN ({ids})", con);
                     cmd.ExecuteNonQuery();
                 }
             });
 
             foreach (var t in unread) t.HasNewMessages = false;
+            RefreshThreadReadIndicators(unreadIds);
             MessageBox.Show("Oznaczono jako przeczytane.");
             UpdateManager.NotifySubscribers();
         }
@@ -484,6 +486,24 @@ namespace Reklamacje_Dane
             if (!string.IsNullOrEmpty(_activeDisputeId))
             {
                 new FormAllegroIssue(_activeDisputeId).Show();
+            }
+        }
+
+        private void RefreshThreadReadIndicators(HashSet<string> updatedDisputeIds)
+        {
+            if (flpThreads == null || updatedDisputeIds == null || updatedDisputeIds.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var control in flpThreads.Controls.OfType<MessageListItem>())
+            {
+                if (control.Tag is AllegroChatService.ThreadInfo thread && updatedDisputeIds.Contains(thread.DisputeId))
+                {
+                    thread.HasNewMessages = false;
+                    control.SetData(thread.DisputeId, thread.BuyerLogin, thread.AccountName,
+                        thread.ComplaintNumber, thread.LastMessageDate, thread.LastMessageText, false);
+                }
             }
         }
     
