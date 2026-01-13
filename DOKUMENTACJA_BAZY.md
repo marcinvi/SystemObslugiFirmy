@@ -69,7 +69,7 @@ Główna tabela przechowująca wszystkie zgłoszenia reklamacyjne.
 | `NrSeryjny` | VARCHAR(100) | Numer seryjny produktu |
 | `Usterka` | TEXT | Opis usterki |
 | `StatusOgolny` | VARCHAR(100) | Status (np. "Nowe", "W naprawie") |
-| `StatusDpd` | VARCHAR(100) | Status przesyłki DPD |
+
 | `PrzypisanyDo` | INT (FK) | ID użytkownika obsługującego |
 | `allegroDisputeId` | VARCHAR(100) | ID zgłoszenia z Allegro |
 | `allegroAccountId` | INT | ID konta Allegro |
