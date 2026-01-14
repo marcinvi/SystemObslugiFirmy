@@ -477,6 +477,7 @@ namespace Reklamacje_Dane
         private void naprawioneToolStripMenuItem_Click(object sender, EventArgs e) { MessageBox.Show("Funkcja w przygotowaniu."); }
         private void skorygowaneFakturyToolStripMenuItem_Click(object sender, EventArgs e) { MessageBox.Show("Funkcja w przygotowaniu."); }
         private void zarejestrujNoweToolStripMenuItem_Click(object sender, EventArgs e) { MessageBox.Show("Funkcja w przygotowaniu."); }
+        private void autoMatchFvToolStripMenuItem_Click(object sender, EventArgs e) { using (var form = new FormAutoMatchFv()) { form.ShowDialog(); } }
         private void pictureBox1_Click(object sender, EventArgs e) => OpenFormUstawienia(sender, e);
         #endregion
     
