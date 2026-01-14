@@ -96,7 +96,7 @@ namespace Reklamacje_Dane
             SetUiBusy(true);
             ResetResults();
 
-            IProgress<ProgressInfo> progress = new Progress<ProgressInfo>(UpdateProgress);
+            var progress = new Progress<ProgressInfo>(UpdateProgress);
 
             try
             {
