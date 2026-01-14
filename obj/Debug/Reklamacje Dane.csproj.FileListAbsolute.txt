@@ -291,3 +291,4 @@ C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje Dane
 C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamac.F9ABD5A1.Up2Date
 C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje Dane.exe
 C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje Dane.pdb
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormAutoMatchFv.resources

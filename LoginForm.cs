@@ -246,7 +246,7 @@ namespace Reklamacje_Dane
 
         private void sprawdz_Click(object sender, EventArgs e)
         {
-            using (var pisownia = new FormSpellCheckTest())
+            using (var pisownia = new FormAutoMatchFv())
             {
                 pisownia.ShowDialog(this);
             }
