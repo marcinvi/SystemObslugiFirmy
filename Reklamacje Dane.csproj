@@ -347,6 +347,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DapperMySqlDateTimeHandler.cs" />
+    <Compile Include="AutoMatcher.cs" />
+    <Compile Include="CsvSaleLoader.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AddActionControl.cs">
@@ -674,6 +676,12 @@
     </Compile>
     <Compile Include="FormAllegroIssue.Designer.cs">
       <DependentUpon>FormAllegroIssue.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormAutoMatchFv.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormAutoMatchFv.Designer.cs">
+      <DependentUpon>FormAutoMatchFv.cs</DependentUpon>
     </Compile>
     <Compile Include="Form19.cs">
       <SubType>Form</SubType>
@@ -1122,6 +1130,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormAllegroIssue.resx">
       <DependentUpon>FormAllegroIssue.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormAutoMatchFv.resx">
+      <DependentUpon>FormAutoMatchFv.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Form19.resx">
       <DependentUpon>Form19.cs</DependentUpon>

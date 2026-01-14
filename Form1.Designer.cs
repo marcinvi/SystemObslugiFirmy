@@ -120,6 +120,7 @@ namespace Reklamacje_Dane
             this.zamówKureiraDPDToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.zobaczHistorięZamówieńToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.zestawieniaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.autoMatchFvToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.refreshIcon = new System.Windows.Forms.PictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.mainSplitContainer)).BeginInit();
             this.mainSplitContainer.Panel1.SuspendLayout();
@@ -1000,10 +1001,19 @@ namespace Reklamacje_Dane
             // 
             // zestawieniaToolStripMenuItem
             // 
+            this.zestawieniaToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.autoMatchFvToolStripMenuItem});
             this.zestawieniaToolStripMenuItem.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
             this.zestawieniaToolStripMenuItem.Name = "zestawieniaToolStripMenuItem";
             this.zestawieniaToolStripMenuItem.Size = new System.Drawing.Size(102, 26);
             this.zestawieniaToolStripMenuItem.Text = "Zestawienia";
+            // 
+            // autoMatchFvToolStripMenuItem
+            // 
+            this.autoMatchFvToolStripMenuItem.Name = "autoMatchFvToolStripMenuItem";
+            this.autoMatchFvToolStripMenuItem.Size = new System.Drawing.Size(315, 26);
+            this.autoMatchFvToolStripMenuItem.Text = "Auto-uzupełnianie FV (enova)";
+            this.autoMatchFvToolStripMenuItem.Click += new System.EventHandler(this.autoMatchFvToolStripMenuItem_Click);
             // 
             // refreshIcon
             // 
@@ -1115,6 +1125,7 @@ namespace Reklamacje_Dane
         private ToolStripMenuItem zamówKureiraDPDToolStripMenuItem;
         private ToolStripMenuItem zobaczHistorięZamówieńToolStripMenuItem;
         private ToolStripMenuItem zestawieniaToolStripMenuItem;
+        private ToolStripMenuItem autoMatchFvToolStripMenuItem;
         private ToolStripMenuItem nowyProduktToolStripMenuItem;
         private ToolStripMenuItem maZostaćWysłanyToolStripMenuItem;
         private ToolStripMenuItem dostarczonyToolStripMenuItem;
