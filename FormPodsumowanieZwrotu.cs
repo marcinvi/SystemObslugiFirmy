@@ -4,6 +4,7 @@ using MySql.Data.MySqlClient;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Globalization;
+using System.Linq;
 namespace Reklamacje_Dane
 {
     public partial class FormPodsumowanieZwrotu : Form
@@ -78,7 +79,7 @@ namespace Reklamacje_Dane
             }
             if (_dbDataRow["PrzyjetyPrzezId"] != DBNull.Value)
             {
-                lblPrzyjetyPrzez.Text = (await _dbServiceBaza.ExecuteScalarAsync("SELECT \"Nazwa Wyświetlana\" FROM Uzytkownicy WHERE Id = @id", new MySqlParameter("@id", _dbDataRow["PrzyjetyPrzezId"])))?.ToString() ?? "Brak";
+                lblPrzyjetyPrzez.Text = (await _dbServiceBaza.ExecuteScalarAsync("SELECT `Nazwa Wyświetlana` FROM Uzytkownicy WHERE Id = @id", new MySqlParameter("@id", _dbDataRow["PrzyjetyPrzezId"])))?.ToString() ?? "Brak";
             }
             lblUwagiMagazynu.Text = GetUwagiMagazynuValue();
             lblDataPrzyjecia.Text = FormatDateTime(_dbDataRow["DataPrzyjecia"]);
@@ -159,15 +160,30 @@ namespace Reklamacje_Dane
 
         private string GetUwagiMagazynuValue()
         {
-            if (_dbDataRow?.Table?.Columns.Contains("UwagiMagazynu") == true)
+            var value = GetColumnValue("UwagiMagazynu", "UwagiMagazyn");
+            return value ?? "Brak";
+        }
+
+        private string GetColumnValue(params string[] columnNames)
+        {
+            if (_dbDataRow?.Table?.Columns == null)
             {
-                return _dbDataRow["UwagiMagazynu"]?.ToString();
+                return null;
             }
-            if (_dbDataRow?.Table?.Columns.Contains("UwagiMagazyn") == true)
+
+            foreach (var columnName in columnNames)
             {
-                return _dbDataRow["UwagiMagazyn"]?.ToString();
+                var column = _dbDataRow.Table.Columns
+                    .Cast<DataColumn>()
+                    .FirstOrDefault(c => string.Equals(c.ColumnName, columnName, StringComparison.OrdinalIgnoreCase));
+                if (column != null)
+                {
+                    var value = _dbDataRow[column];
+                    return value == DBNull.Value ? null : value?.ToString();
+                }
             }
-            return "Brak";
+
+            return null;
         }
     
         /// <summary>
