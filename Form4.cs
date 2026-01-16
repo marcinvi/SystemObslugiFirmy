@@ -18,6 +18,7 @@ namespace Reklamacje_Dane
         // POLA PRYWATNE
         private string nrZgloszenia;
         private string _initialMessage;
+        private string _initialStatusKlient;
         private Dictionary<string, string> daneZgloszenia = new Dictionary<string, string>();
 
         // SERWISY
@@ -36,7 +37,7 @@ namespace Reklamacje_Dane
         private int rowIndexFromMouseDown;
 
         // KONSTRUKTOR
-        public Form4(string nrZgloszenia, string initialMessage = "")
+        public Form4(string nrZgloszenia, string initialMessage = "", string statusKlient = null)
         {
             this.StartPosition = FormStartPosition.CenterScreen;
             InitializeComponent();
@@ -44,6 +45,7 @@ namespace Reklamacje_Dane
 
             this.nrZgloszenia = nrZgloszenia;
             this._initialMessage = initialMessage;
+            this._initialStatusKlient = statusKlient;
 
             _dbService = new DatabaseService(DatabaseHelper.GetConnectionString());
             _emailTemplateService = new EmailTemplateService();
@@ -58,6 +60,13 @@ namespace Reklamacje_Dane
         private void KonfigurujKolumnyDgv()
         {
             dgvTemplates.Columns.Clear();
+
+            var idColumn = new DataGridViewTextBoxColumn
+            {
+                Name = "colId",
+                Visible = false
+            };
+            dgvTemplates.Columns.Add(idColumn);
 
             var chkColumn = new DataGridViewCheckBoxColumn
             {
@@ -98,6 +107,8 @@ namespace Reklamacje_Dane
             {
                 rtbPodgladWiadomosci.Text = _initialMessage;
             }
+
+            await ApplyStatusTemplateAsync();
 
             bool maAllegro = daneZgloszenia.ContainsKey("{{AllegroDisputeId}}") &&
                              !string.IsNullOrEmpty(daneZgloszenia["{{AllegroDisputeId}}"]);
@@ -284,12 +295,44 @@ namespace Reklamacje_Dane
                 foreach (var t in szablony)
                 {
                     // Mapujemy właściwości nowej klasy (Nazwa, TrescRtf) do kolumn GridView
-                    dgvTemplates.Rows.Add(false, t.Nazwa, t.TrescRtf);
+                    dgvTemplates.Rows.Add(t.Id, false, t.Nazwa, t.TrescRtf);
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Błąd ładowania szablonów: " + ex.Message);
+            }
+        }
+
+        private async Task ApplyStatusTemplateAsync()
+        {
+            var status = _initialStatusKlient;
+            if (string.IsNullOrWhiteSpace(status) && daneZgloszenia.TryGetValue("{{StatusKlient}}", out var statusFromData))
+            {
+                status = statusFromData;
+            }
+
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                return;
+            }
+
+            var templateId = await _emailTemplateService.GetTemplateIdForStatusAsync(status);
+            if (!templateId.HasValue)
+            {
+                return;
+            }
+
+            foreach (DataGridViewRow row in dgvTemplates.Rows)
+            {
+                if (row.Cells["colId"].Value == null) continue;
+                if (!int.TryParse(row.Cells["colId"].Value.ToString(), out int rowId)) continue;
+                if (rowId == templateId.Value)
+                {
+                    row.Cells["colWybor"].Value = true;
+                    GenerujPodglad();
+                    return;
+                }
             }
         }
 
@@ -511,7 +554,13 @@ namespace Reklamacje_Dane
         }
 
         // --- OBSŁUGA UI ---
-        private void dgvTemplates_CellValueChanged(object sender, DataGridViewCellEventArgs e) { if (e.ColumnIndex == 0 && e.RowIndex >= 0) GenerujPodglad(); }
+        private void dgvTemplates_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && dgvTemplates.Columns[e.ColumnIndex].Name == "colWybor")
+            {
+                GenerujPodglad();
+            }
+        }
         private void dgvTemplates_CurrentCellDirtyStateChanged(object sender, EventArgs e) { if (dgvTemplates.IsCurrentCellDirty) dgvTemplates.CommitEdit(DataGridViewDataErrorContexts.Commit); }
 
         private void btnToggleEmail_Click(object sender, EventArgs e) { _sendEmail = !_sendEmail; UpdateToggleButtonStates(); }

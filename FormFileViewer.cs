@@ -36,7 +36,7 @@ namespace Reklamacje_Dane
         {
             InitializeComponent();
             Text = $"Przeglądarka plików: {nrZgloszenia}";
-            _complaintFolderPath = Path.Combine(Application.StartupPath, "Dane", nrZgloszenia.Replace('/', '.'));
+            _complaintFolderPath = Path.Combine(AppPaths.GetDataRootPath(), nrZgloszenia.Replace('/', '.'));
 
             InitializeWpfControls();
             InitializeWebView2Async();

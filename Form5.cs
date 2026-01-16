@@ -872,73 +872,52 @@ namespace Reklamacje_Dane
             var result = MessageBox.Show(this, "Czy chcesz wysłać powiadomienie do klienta o zamówieniu kuriera?", "Powiadomienie", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.No) return;
 
-            using (var notificationForm = CreateNotificationForm(isEmailAvailable, isSmsAvailable, isAllegroAvailable))
+            string trackingLink = $"https://tracktrace.dpd.com.pl/parcelDetails?typ=1&p1={trackingNumber}";
+            var messageBuilder = new StringBuilder();
+
+            if (zlecenie.Checked)
             {
-                if (notificationForm.ShowDialog(this) == DialogResult.OK)
+                messageBuilder.AppendLine($"Informujemy, że w zgłoszeniu nr {nrZgloszenia} została zamówiona przesyłka do odbioru od Ciebie.");
+                messageBuilder.AppendLine($"Numer listu przewozowego: {trackingNumber}");
+                messageBuilder.AppendLine($"\nMożesz ją śledzić pod adresem:\n{trackingLink}");
+                messageBuilder.AppendLine("\nKurier będzie miał przy sobie list przewozowy (etykietę) i podjedzie po odbiór następnego dnia roboczego.");
+                messageBuilder.AppendLine();
+
+                if (_kategoriaProduktu != null && _kategoriaProduktu.ToLower().Contains("lodówka"))
                 {
-                    bool notifyEmail = (notificationForm.Controls.Find("chkEmail", true).FirstOrDefault() as CheckBox)?.Checked ?? false;
-                    bool notifySms = (notificationForm.Controls.Find("chkSms", true).FirstOrDefault() as CheckBox)?.Checked ?? false;
-                    bool notifyAllegro = (notificationForm.Controls.Find("chkAllegro", true).FirstOrDefault() as CheckBox)?.Checked ?? false;
-
-                    if (!notifyEmail && !notifySms && !notifyAllegro) return;
-
-                    string trackingLink = $"https://tracktrace.dpd.com.pl/parcelDetails?typ=1&p1={trackingNumber}";
-                    var messageBuilder = new StringBuilder();
-
-                    if (zlecenie.Checked)
-                    {
-                        messageBuilder.AppendLine($"Informujemy, że w zgłoszeniu nr {nrZgloszenia} została zamówiona przesyłka do odbioru od Ciebie.");
-                        messageBuilder.AppendLine($"Numer listu przewozowego: {trackingNumber}");
-                        messageBuilder.AppendLine($"\nMożesz ją śledzić pod adresem:\n{trackingLink}");
-                        messageBuilder.AppendLine("\nKurier będzie miał przy sobie list przewozowy (etykietę) i podjedzie po odbiór następnego dnia roboczego.");
-                        messageBuilder.AppendLine();
-
-                        if (_kategoriaProduktu != null && _kategoriaProduktu.ToLower().Contains("lodówka"))
-                        {
-                            messageBuilder.AppendLine("Proszę o przygotowanie lodówki do odbioru przez kuriera oraz odpowiednie oznaczenie góry i dołu paczki.");
-                            messageBuilder.AppendLine("Jest to niezwykle ważne, ponieważ przenoszenie urządzenia w nieprawidłowej pozycji może doprowadzić do wycieku oleju do układu chłodniczego, co w konsekwencji może uniemożliwić naprawę.");
-                            messageBuilder.AppendLine("\nProszę również o odpowiednie zabezpieczenie wnętrza lodówki, najlepiej wykorzystując oryginalne opakowanie wraz ze styropianowymi osłonami.");
-                            messageBuilder.AppendLine("W przypadku braku oryginalnych materiałów należy upewnić się, że urządzenie jest solidnie unieruchomione, a wszystkie luźne elementy, takie jak półki czy szuflady, są zabezpieczone przed przemieszczaniem się.");
-                        }
-                        else
-                        {
-                            messageBuilder.AppendLine("Proszę pamiętać o odpowiednim i bezpiecznym zapakowaniu przesyłki przed odbiorem.");
-                            messageBuilder.AppendLine("Urządzenie powinno być zabezpieczone w taki sposób, aby zminimalizować ryzyko uszkodzeń podczas transportu.");
-                            messageBuilder.AppendLine("Rekomendujemy wykorzystanie oryginalnego opakowania lub solidnego kartonu z wypełnieniem, które zabezpieczy produkt przed przemieszczaniem się.");
-                            messageBuilder.AppendLine("Proszę upewnić się, że paczka jest prawidłowo oznaczona oraz gotowa do transportu w momencie przyjazdu kuriera.");
-                        }
-                    }
-                    else
-                    {
-                        messageBuilder.AppendLine($"Informujemy, że w zgłoszeniu nr {nrZgloszenia} została nadana do Ciebie przesyłka.");
-                        messageBuilder.AppendLine($"Numer listu przewozowego: {trackingNumber}");
-                        messageBuilder.AppendLine($"\nMożesz ją śledzić pod adresem:\n{trackingLink}");
-                        messageBuilder.AppendLine("\nProszę pamiętać o sprawdzeniu stanu przesyłki przy odbiorze, a w razie problemów sporządzić protokół szkody z kurierem.");
-                    }
-
-                    string defaultMessage = messageBuilder.ToString();
-
-                    string messageToSend = ShowEditMessageDialog("Edytuj treść powiadomienia", defaultMessage);
-
-                    if (messageToSend == null) return;
-
-                    var dziennik = new DziennikLogger();
-                    if (notifyEmail)
-                    {
-                        await SendEmail(messageToSend);
-                        await dziennik.DodajAsync(Program.fullName, "Przygotowano powiadomienie e-mail do klienta.", nrZgloszenia);
-                    }
-                    if (notifySms)
-                    {
-                        await SendSms(messageToSend);
-                        await dziennik.DodajAsync(Program.fullName, "Przygotowano powiadomienie SMS dla klienta.", nrZgloszenia);
-                    }
-                    if (notifyAllegro)
-                    {
-                        await SendAllegroMessage(messageToSend);
-                    }
+                    messageBuilder.AppendLine("Proszę o przygotowanie lodówki do odbioru przez kuriera oraz odpowiednie oznaczenie góry i dołu paczki.");
+                    messageBuilder.AppendLine("Jest to niezwykle ważne, ponieważ przenoszenie urządzenia w nieprawidłowej pozycji może doprowadzić do wycieku oleju do układu chłodniczego, co w konsekwencji może uniemożliwić naprawę.");
+                    messageBuilder.AppendLine("\nProszę również o odpowiednie zabezpieczenie wnętrza lodówki, najlepiej wykorzystując oryginalne opakowanie wraz ze styropianowymi osłonami.");
+                    messageBuilder.AppendLine("W przypadku braku oryginalnych materiałów należy upewnić się, że urządzenie jest solidnie unieruchomione, a wszystkie luźne elementy, takie jak półki czy szuflady, są zabezpieczone przed przemieszczaniem się.");
+                }
+                else
+                {
+                    messageBuilder.AppendLine("Proszę pamiętać o odpowiednim i bezpiecznym zapakowaniu przesyłki przed odbiorem.");
+                    messageBuilder.AppendLine("Urządzenie powinno być zabezpieczone w taki sposób, aby zminimalizować ryzyko uszkodzeń podczas transportu.");
+                    messageBuilder.AppendLine("Rekomendujemy wykorzystanie oryginalnego opakowania lub solidnego kartonu z wypełnieniem, które zabezpieczy produkt przed przemieszczaniem się.");
+                    messageBuilder.AppendLine("Proszę upewnić się, że paczka jest prawidłowo oznaczona oraz gotowa do transportu w momencie przyjazdu kuriera.");
                 }
             }
+            else
+            {
+                messageBuilder.AppendLine($"Informujemy, że w zgłoszeniu nr {nrZgloszenia} została nadana do Ciebie przesyłka.");
+                messageBuilder.AppendLine($"Numer listu przewozowego: {trackingNumber}");
+                messageBuilder.AppendLine($"\nMożesz ją śledzić pod adresem:\n{trackingLink}");
+                messageBuilder.AppendLine("\nProszę pamiętać o sprawdzeniu stanu przesyłki przy odbiorze, a w razie problemów sporządzić protokół szkody z kurierem.");
+            }
+
+            string defaultMessage = messageBuilder.ToString();
+            string messageToSend = ShowEditMessageDialog("Edytuj treść powiadomienia", defaultMessage);
+
+            if (messageToSend == null) return;
+
+            using (var form4 = new Form4(nrZgloszenia, messageToSend))
+            {
+                form4.ShowDialog(this);
+            }
+
+            var dziennik = new DziennikLogger();
+            await dziennik.DodajAsync(Program.fullName, "Otworzono formularz powiadomień kuriera (Form4).", nrZgloszenia);
         }
 
         private Form CreateNotificationForm(bool email, bool sms, bool allegro)
