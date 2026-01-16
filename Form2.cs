@@ -242,9 +242,9 @@ namespace Reklamacje_Dane
                         {
                             if (await reader.ReadAsync())
                             {
-                                this.idZgloszeniaInt = Convert.ToInt32(reader["Id"]);
-                                this.nrKlienta = reader["KlientID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["KlientID"]);
-                                this.nrProduktu = reader["ProduktID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ProduktID"]);
+                                this.idZgloszeniaInt = ReadInt(reader, "Id");
+                                this.nrKlienta = ReadInt(reader, "KlientID");
+                                this.nrProduktu = ReadInt(reader, "ProduktID");
                                 this.kategoriaProduktu = reader["Kategoria"]?.ToString() ?? "Brak";
                                 this.producentProduktu = reader["Producent"]?.ToString() ?? "Brak";
                                 this.originalOpisUsterki = reader["OpisUsterki"]?.ToString() ?? "";
@@ -283,7 +283,7 @@ namespace Reklamacje_Dane
                                         EventDate = date,
                                         Content = reader["Tresc"]?.ToString(),
                                         Author = reader["Uzytkownik"]?.ToString() ?? "System",
-                                        Tag = Convert.ToInt32(reader["Id"])
+                                        Tag = ReadInt(reader, "Id")
                                     });
                                 }
                             }
@@ -383,7 +383,7 @@ namespace Reklamacje_Dane
                 Label lbl = new Label { Text = $"Dostawa: {dostawa}", AutoSize = true, ForeColor = Color.DarkRed, Font = new Font("Segoe UI", 9, FontStyle.Bold), Margin = new Padding(0, 3, 15, 3) };
                 flowDocuments.Controls.Add(lbl);
             }
-            int czyNota = reader["CzyNotaRozliczona"] == DBNull.Value ? 0 : Convert.ToInt32(reader["CzyNotaRozliczona"]);
+            int czyNota = ReadInt(reader, "CzyNotaRozliczona");
             if (czyNota == 1)
             {
                 Label lbl = new Label { Text = "Nota: TAK", AutoSize = true, ForeColor = Color.Green, Margin = new Padding(0, 3, 10, 3) };
@@ -404,6 +404,25 @@ namespace Reklamacje_Dane
                 link.Click += (s, e) => { Clipboard.SetText(numer); ToastManager.ShowToast("Skopiowano", $"{prefix} {numer}", NotificationType.Info); };
                 flowDocuments.Controls.Add(link);
             }
+        }
+
+        private int ReadInt(DbDataReader reader, string columnName, int defaultValue = 0)
+        {
+            if (reader == null || string.IsNullOrWhiteSpace(columnName)) return defaultValue;
+            object value;
+            try
+            {
+                value = reader[columnName];
+            }
+            catch
+            {
+                return defaultValue;
+            }
+
+            if (value == null || value == DBNull.Value) return defaultValue;
+            if (value is int intValue) return intValue;
+            if (int.TryParse(value.ToString(), out int parsed)) return parsed;
+            return defaultValue;
         }
 
         // --- SKRÓCONE METODY POMOCNICZE (BEZ ZMIAN) ---
