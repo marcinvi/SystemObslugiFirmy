@@ -16,6 +16,9 @@ namespace Reklamacje_Dane
         private readonly DatabaseService _db;
         private bool _listsInitialized;
         private bool _isLoaded = false;
+        private TextBox _txtDataFolder;
+        private Button _btnSaveDataFolder;
+        private Button _btnBrowseDataFolder;
 
         public AdminControl()
         {
@@ -51,6 +54,8 @@ namespace Reklamacje_Dane
                 // NOWE METODY
                 await LoadDeepLSettingsAsync();
                 await LoadEmailSettingsAsync();
+                EnsureDataFolderSettingsUi();
+                await LoadDataFolderSettingsAsync();
             }
             catch (Exception ex)
             {
@@ -128,6 +133,102 @@ namespace Reklamacje_Dane
             catch (Exception ex)
             {
                 MessageBox.Show("Błąd zapisu e-maila: " + ex.Message, "Ustawienia", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void EnsureDataFolderSettingsUi()
+        {
+            if (_txtDataFolder != null || tabPageSettings == null)
+            {
+                return;
+            }
+
+            var groupBoxFiles = new GroupBox
+            {
+                Text = "Ustawienia plików",
+                Width = 520,
+                Height = 140,
+                Left = 10,
+                Top = groupBoxEmail.Bottom + 15
+            };
+
+            var lblPath = new Label
+            {
+                Text = "Ścieżka do folderu danych:",
+                AutoSize = true,
+                Left = 15,
+                Top = 30
+            };
+
+            _txtDataFolder = new TextBox
+            {
+                Left = 15,
+                Top = 55,
+                Width = 370
+            };
+
+            _btnBrowseDataFolder = new Button
+            {
+                Text = "Przeglądaj",
+                Left = _txtDataFolder.Right + 10,
+                Top = 52,
+                Width = 90
+            };
+            _btnBrowseDataFolder.Click += (s, e) =>
+            {
+                using (var dialog = new FolderBrowserDialog())
+                {
+                    dialog.SelectedPath = _txtDataFolder.Text;
+                    if (dialog.ShowDialog(this) == DialogResult.OK)
+                    {
+                        _txtDataFolder.Text = dialog.SelectedPath;
+                    }
+                }
+            };
+
+            _btnSaveDataFolder = new Button
+            {
+                Text = "Zapisz ścieżkę",
+                Left = 15,
+                Top = 90,
+                Width = 140
+            };
+            _btnSaveDataFolder.Click += btnSaveDataFolder_Click;
+
+            groupBoxFiles.Controls.Add(lblPath);
+            groupBoxFiles.Controls.Add(_txtDataFolder);
+            groupBoxFiles.Controls.Add(_btnBrowseDataFolder);
+            groupBoxFiles.Controls.Add(_btnSaveDataFolder);
+
+            tabPageSettings.Controls.Add(groupBoxFiles);
+        }
+
+        private async Task LoadDataFolderSettingsAsync()
+        {
+            if (_txtDataFolder == null)
+            {
+                return;
+            }
+
+            var value = await GetSettingAsync("DataFolderPath");
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                value = AppPaths.GetDataRootPath();
+            }
+            _txtDataFolder.Text = value;
+        }
+
+        private async void btnSaveDataFolder_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                await UpsertPlainSettingAsync("DataFolderPath", _txtDataFolder.Text);
+                AppPaths.SetDataRootPath(_txtDataFolder.Text);
+                MessageBox.Show("Ścieżka danych zapisana.", "Ustawienia", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Błąd zapisu ścieżki: " + ex.Message, "Ustawienia", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -233,7 +334,7 @@ namespace Reklamacje_Dane
             }
             panelUserDetails.Enabled = true;
             int userId = (int)listViewUsers.SelectedItems[0].Tag;
-            var dt = await _db.GetDataTableAsync("SELECT Id, Login, \"Nazwa Wyświetlana\" as Name, IFNULL(Rola,'') as Rola FROM Uzytkownicy WHERE Id = @id", new MySqlParameter("@id", userId));
+            var dt = await _db.GetDataTableAsync("SELECT Id, Login, `Nazwa Wyświetlana` as Name, IFNULL(Rola,'') as Rola FROM Uzytkownicy WHERE Id = @id", new MySqlParameter("@id", userId));
             if (dt.Rows.Count == 0)
             {
                 panelUserDetails.Enabled = false;

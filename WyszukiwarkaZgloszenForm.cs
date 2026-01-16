@@ -29,6 +29,9 @@ namespace Reklamacje_Dane
         private Panel _filterPanelContainer;
         private Panel _filterPanel;
         private readonly Dictionary<string, TextBox> _columnFilters = new Dictionary<string, TextBox>();
+        private readonly Timer _searchDebounceTimer = new Timer();
+        private string _currentSortColumn;
+        private bool _sortAscending = true;
 
         // Dostępne kolumny (użytkownik może wybierać które pokazać)
         private readonly List<ColumnDefinition> _availableColumns = new List<ColumnDefinition>
@@ -138,13 +141,13 @@ namespace Reklamacje_Dane
             
          
             
-                _txtSearch = new TextBox
-                {
+            _txtSearch = new TextBox
+            {
                     Width = 400, 
                 Font = new Font("Segoe UI", 11),
                 //PlaceholderText = "Wpisz nr zgłoszenia, klienta, produkt, SN..."
             };
-            _txtSearch.TextChanged += (s, e) => ApplyFilters();
+            _txtSearch.TextChanged += (s, e) => ScheduleFilterUpdate();
 
             var btnRefresh = new Button 
             { 
@@ -268,6 +271,7 @@ namespace Reklamacje_Dane
                     BuildColumnFilters();
                 }
             };
+            _grid.ColumnHeaderMouseClick += (s, e) => SortByColumn(_grid.Columns[e.ColumnIndex]);
             _grid.Scroll += (s, e) =>
             {
                 if (e.ScrollOrientation == ScrollOrientation.HorizontalScroll)
@@ -284,6 +288,17 @@ namespace Reklamacje_Dane
             this.Controls.Add(_loadingOverlay);
 
             SetupGridColumns();
+            ConfigureSearchDebounce();
+        }
+
+        private void ConfigureSearchDebounce()
+        {
+            _searchDebounceTimer.Interval = 350;
+            _searchDebounceTimer.Tick += (s, e) =>
+            {
+                _searchDebounceTimer.Stop();
+                ApplyFilters();
+            };
         }
 
         private void SetupGridColumns()
@@ -336,7 +351,7 @@ namespace Reklamacje_Dane
                     textBox.Text = value;
                 }
 
-                textBox.TextChanged += (s, e) => ApplyFilters();
+                textBox.TextChanged += (s, e) => ScheduleFilterUpdate();
 
                 _filterPanel.Controls.Add(textBox);
                 _columnFilters[column.DataPropertyName] = textBox;
@@ -414,6 +429,60 @@ namespace Reklamacje_Dane
             _grid.DataSource = _filteredData;
             _lblStats.Text = $"Wyniki: {_filteredData.Count} / {_allData.Count}";
             _lblStats.ForeColor = _filteredData.Count > 0 ? Color.Green : Color.Red;
+        }
+
+        private void ScheduleFilterUpdate()
+        {
+            _searchDebounceTimer.Stop();
+            _searchDebounceTimer.Start();
+        }
+
+        private void SortByColumn(DataGridViewColumn column)
+        {
+            if (column == null || string.IsNullOrWhiteSpace(column.DataPropertyName)) return;
+
+            var propertyName = column.DataPropertyName;
+            if (_currentSortColumn == propertyName)
+            {
+                _sortAscending = !_sortAscending;
+            }
+            else
+            {
+                _currentSortColumn = propertyName;
+                _sortAscending = true;
+            }
+
+            Func<ComplaintViewModel, object> selector = item =>
+            {
+                if (propertyName == "NrZgloszenia")
+                {
+                    return ParseNrZgloszenia(item?.NrZgloszenia);
+                }
+
+                var prop = item?.GetType().GetProperty(propertyName);
+                return prop?.GetValue(item);
+            };
+
+            _filteredData = _sortAscending
+                ? _filteredData.OrderBy(selector).ToList()
+                : _filteredData.OrderByDescending(selector).ToList();
+
+            _grid.DataSource = null;
+            _grid.DataSource = _filteredData;
+        }
+
+        private static Tuple<int, int> ParseNrZgloszenia(string nr)
+        {
+            if (string.IsNullOrWhiteSpace(nr)) return Tuple.Create(0, 0);
+
+            var parts = nr.Split('/');
+            if (parts.Length < 2) return Tuple.Create(0, 0);
+
+            int przed = 0;
+            int po = 0;
+            int.TryParse(parts[0], out przed);
+            int.TryParse(parts[1], out po);
+            return Tuple.Create(po, przed);
         }
 
         private bool ColumnMatches(ComplaintViewModel item, string propertyName, string term)

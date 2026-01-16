@@ -91,6 +91,32 @@ namespace Reklamacje_Dane
             }
         }
 
+        private void ResetChatLayout()
+        {
+            if (_chatPanel == null || _chatFlow == null) return;
+
+            _chatPanel.SuspendLayout();
+            _chatPanel.AutoScroll = false;
+            _chatPanel.AutoScrollPosition = new Point(0, 0);
+            _chatPanel.AutoScrollMinSize = Size.Empty;
+
+            _chatFlow.SuspendLayout();
+            _chatFlow.Controls.Clear();
+            _chatFlow.Height = 0;
+            _chatFlow.ResumeLayout();
+
+            _chatPanel.AutoScroll = true;
+            _chatPanel.ResumeLayout();
+        }
+
+        private void ScrollChatToBottom()
+        {
+            if (_chatPanel == null || _chatFlow == null) return;
+
+            _chatPanel.AutoScrollMinSize = new Size(0, _chatFlow.Height + _chatFlow.Padding.Vertical);
+            _chatPanel.AutoScrollPosition = new Point(0, _chatFlow.Height);
+        }
+
         private void SetupLoadMoreButton()
         {
             _btnLoadMore = new Button
@@ -288,11 +314,8 @@ namespace Reklamacje_Dane
                 if (pnlChat != null) pnlChat.Visible = true;
 
                 // Wyczyść stare wiadomości
-                if (_chatFlow != null)
-                {
-                    _chatFlow.Controls.Clear();
-                    _chatFlow.SuspendLayout();
-                }
+                ResetChatLayout();
+                _chatFlow?.SuspendLayout();
 
                 // Pokaż panel czatu
                 if (_chatPanel != null)
@@ -328,7 +351,7 @@ namespace Reklamacje_Dane
                 if (_chatPanel != null)
                 {
                     Application.DoEvents();
-                    _chatPanel.AutoScrollPosition = new Point(0, _chatFlow.Height);
+                    ScrollChatToBottom();
                 }
 
                 // Oznacz jako przeczytane
@@ -413,7 +436,7 @@ namespace Reklamacje_Dane
                 await Task.Delay(500);
                 
                 var messages = await Task.Run(() => LoadMessages(_activeDisputeId));
-                _chatFlow.Controls.Clear();
+                ResetChatLayout();
                 foreach (var msg in messages)
                 {
                     var msgControl = new ChatMessageControl();
@@ -423,7 +446,7 @@ namespace Reklamacje_Dane
                 }
                 
                 Application.DoEvents();
-                _chatPanel.AutoScrollPosition = new Point(0, _chatFlow.Height);
+                ScrollChatToBottom();
             }
             catch (Exception ex)
             {
