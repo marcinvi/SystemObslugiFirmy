@@ -306,18 +306,12 @@ namespace Reklamacje_Dane
 
         private async Task ApplyStatusTemplateAsync()
         {
-            var status = _initialStatusKlient;
-            if (string.IsNullOrWhiteSpace(status) && daneZgloszenia.TryGetValue("{{StatusKlient}}", out var statusFromData))
-            {
-                status = statusFromData;
-            }
-
-            if (string.IsNullOrWhiteSpace(status))
+            if (string.IsNullOrWhiteSpace(_initialStatusKlient))
             {
                 return;
             }
 
-            var templateId = await _emailTemplateService.GetTemplateIdForStatusAsync(status);
+            var templateId = await _emailTemplateService.GetTemplateIdForStatusAsync(_initialStatusKlient);
             if (!templateId.HasValue)
             {
                 return;
