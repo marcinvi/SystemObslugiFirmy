@@ -1101,6 +1101,9 @@
     <EmbeddedResource Include="AddActionControl.resx">
       <DependentUpon>AddActionControl.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="AdminControl.resx">
+      <DependentUpon>AdminControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="ChatMessageBubble.resx">
       <DependentUpon>ChatMessageBubble.cs</DependentUpon>
     </EmbeddedResource>

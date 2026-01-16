@@ -590,6 +590,18 @@ namespace Reklamacje_Dane
                 VisibleByDefault = visible;
             }
         }
+
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            // 
+            // WyszukiwarkaZgloszenForm
+            // 
+            this.ClientSize = new System.Drawing.Size(282, 253);
+            this.Name = "WyszukiwarkaZgloszenForm";
+            this.ResumeLayout(false);
+
+        }
     }
 
     // Cache singleton (taki sam jak wcześniej)

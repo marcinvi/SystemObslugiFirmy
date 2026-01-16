@@ -40,6 +40,14 @@ namespace Reklamacje_Dane
             this.btnResetPassword = new System.Windows.Forms.Button();
             this.btnSaveChanges = new System.Windows.Forms.Button();
             this.tabPageSettings = new System.Windows.Forms.TabPage();
+            this.groupBoxEmail = new System.Windows.Forms.GroupBox();
+            this.btnSaveEmailSettings = new System.Windows.Forms.Button();
+            this.txtDefaultEmail = new System.Windows.Forms.TextBox();
+            this.label8 = new System.Windows.Forms.Label();
+            this.groupBoxDeepL = new System.Windows.Forms.GroupBox();
+            this.btnSaveDeepLSettings = new System.Windows.Forms.Button();
+            this.txtDeepLApiKey = new System.Windows.Forms.TextBox();
+            this.label7 = new System.Windows.Forms.Label();
             this.groupBoxDpd = new System.Windows.Forms.GroupBox();
             this.btnSaveDpdSettings = new System.Windows.Forms.Button();
             this.txtDpdPassword = new System.Windows.Forms.TextBox();
@@ -53,14 +61,6 @@ namespace Reklamacje_Dane
             this.btnUsunKonto = new System.Windows.Forms.Button();
             this.btnDodajKonto = new System.Windows.Forms.Button();
             this.listViewKonta = new System.Windows.Forms.ListView();
-            this.groupBoxDeepL = new System.Windows.Forms.GroupBox();
-            this.btnSaveDeepLSettings = new System.Windows.Forms.Button();
-            this.txtDeepLApiKey = new System.Windows.Forms.TextBox();
-            this.label7 = new System.Windows.Forms.Label();
-            this.groupBoxEmail = new System.Windows.Forms.GroupBox();
-            this.btnSaveEmailSettings = new System.Windows.Forms.Button();
-            this.txtDefaultEmail = new System.Windows.Forms.TextBox();
-            this.label8 = new System.Windows.Forms.Label();
             this.tabPageOpiekunowie = new System.Windows.Forms.TabPage();
             this.allegroOpiekunowieControl1 = new Reklamacje_Dane.AllegroOpiekunowieControl();
             this.tabPageDelegacje = new System.Windows.Forms.TabPage();
@@ -77,10 +77,10 @@ namespace Reklamacje_Dane
             this.groupBoxDanePodstawowe.SuspendLayout();
             this.panelAkcje.SuspendLayout();
             this.tabPageSettings.SuspendLayout();
+            this.groupBoxEmail.SuspendLayout();
+            this.groupBoxDeepL.SuspendLayout();
             this.groupBoxDpd.SuspendLayout();
             this.groupBoxAllegro.SuspendLayout();
-            this.groupBoxDeepL.SuspendLayout();
-            this.groupBoxEmail.SuspendLayout();
             this.tabPageOpiekunowie.SuspendLayout();
             this.tabPageDelegacje.SuspendLayout();
             this.SuspendLayout();
@@ -96,7 +96,7 @@ namespace Reklamacje_Dane
             this.tabControlAdmin.Location = new System.Drawing.Point(0, 0);
             this.tabControlAdmin.Name = "tabControlAdmin";
             this.tabControlAdmin.SelectedIndex = 0;
-            this.tabControlAdmin.Size = new System.Drawing.Size(900, 750);
+            this.tabControlAdmin.Size = new System.Drawing.Size(900, 850);
             this.tabControlAdmin.TabIndex = 0;
             // 
             // tabPageUsers
@@ -105,7 +105,7 @@ namespace Reklamacje_Dane
             this.tabPageUsers.Location = new System.Drawing.Point(4, 29);
             this.tabPageUsers.Name = "tabPageUsers";
             this.tabPageUsers.Padding = new System.Windows.Forms.Padding(10);
-            this.tabPageUsers.Size = new System.Drawing.Size(892, 717);
+            this.tabPageUsers.Size = new System.Drawing.Size(892, 817);
             this.tabPageUsers.TabIndex = 0;
             this.tabPageUsers.Text = "👤 Zarządzanie Użytkownikami";
             this.tabPageUsers.UseVisualStyleBackColor = true;
@@ -115,9 +115,15 @@ namespace Reklamacje_Dane
             this.splitContainerUsers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainerUsers.Location = new System.Drawing.Point(10, 10);
             this.splitContainerUsers.Name = "splitContainerUsers";
+            // 
+            // splitContainerUsers.Panel1
+            // 
             this.splitContainerUsers.Panel1.Controls.Add(this.groupBox1);
+            // 
+            // splitContainerUsers.Panel2
+            // 
             this.splitContainerUsers.Panel2.Controls.Add(this.panelUserDetails);
-            this.splitContainerUsers.Size = new System.Drawing.Size(872, 697);
+            this.splitContainerUsers.Size = new System.Drawing.Size(872, 797);
             this.splitContainerUsers.SplitterDistance = 450;
             this.splitContainerUsers.TabIndex = 0;
             // 
@@ -128,7 +134,7 @@ namespace Reklamacje_Dane
             this.groupBox1.Location = new System.Drawing.Point(0, 0);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Padding = new System.Windows.Forms.Padding(10);
-            this.groupBox1.Size = new System.Drawing.Size(450, 697);
+            this.groupBox1.Size = new System.Drawing.Size(450, 797);
             this.groupBox1.TabIndex = 1;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Lista Użytkowników";
@@ -138,10 +144,10 @@ namespace Reklamacje_Dane
             this.listViewUsers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.listViewUsers.FullRowSelect = true;
             this.listViewUsers.HideSelection = false;
-            this.listViewUsers.Location = new System.Drawing.Point(10, 28);
+            this.listViewUsers.Location = new System.Drawing.Point(10, 30);
             this.listViewUsers.MultiSelect = false;
             this.listViewUsers.Name = "listViewUsers";
-            this.listViewUsers.Size = new System.Drawing.Size(430, 659);
+            this.listViewUsers.Size = new System.Drawing.Size(430, 757);
             this.listViewUsers.TabIndex = 0;
             this.listViewUsers.UseCompatibleStateImageBehavior = false;
             this.listViewUsers.View = System.Windows.Forms.View.Details;
@@ -156,7 +162,7 @@ namespace Reklamacje_Dane
             this.panelUserDetails.Enabled = false;
             this.panelUserDetails.Location = new System.Drawing.Point(0, 0);
             this.panelUserDetails.Name = "panelUserDetails";
-            this.panelUserDetails.Size = new System.Drawing.Size(418, 697);
+            this.panelUserDetails.Size = new System.Drawing.Size(418, 797);
             this.panelUserDetails.TabIndex = 0;
             // 
             // groupBoxUprawnienia
@@ -166,7 +172,7 @@ namespace Reklamacje_Dane
             this.groupBoxUprawnienia.Location = new System.Drawing.Point(0, 180);
             this.groupBoxUprawnienia.Name = "groupBoxUprawnienia";
             this.groupBoxUprawnienia.Padding = new System.Windows.Forms.Padding(10, 5, 10, 10);
-            this.groupBoxUprawnienia.Size = new System.Drawing.Size(418, 457);
+            this.groupBoxUprawnienia.Size = new System.Drawing.Size(418, 557);
             this.groupBoxUprawnienia.TabIndex = 11;
             this.groupBoxUprawnienia.TabStop = false;
             this.groupBoxUprawnienia.Text = "Dostęp do modułów";
@@ -177,7 +183,7 @@ namespace Reklamacje_Dane
             this.checkedListBoxModules.FormattingEnabled = true;
             this.checkedListBoxModules.Location = new System.Drawing.Point(10, 25);
             this.checkedListBoxModules.Name = "checkedListBoxModules";
-            this.checkedListBoxModules.Size = new System.Drawing.Size(398, 422);
+            this.checkedListBoxModules.Size = new System.Drawing.Size(398, 522);
             this.checkedListBoxModules.TabIndex = 8;
             // 
             // groupBoxDanePodstawowe
@@ -198,7 +204,8 @@ namespace Reklamacje_Dane
             // 
             // txtLogin
             // 
-            this.txtLogin.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtLogin.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.txtLogin.Location = new System.Drawing.Point(15, 50);
             this.txtLogin.Name = "txtLogin";
             this.txtLogin.Size = new System.Drawing.Size(387, 27);
@@ -215,7 +222,8 @@ namespace Reklamacje_Dane
             // 
             // txtNazwaWyswietlana
             // 
-            this.txtNazwaWyswietlana.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtNazwaWyswietlana.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.txtNazwaWyswietlana.Location = new System.Drawing.Point(15, 100);
             this.txtNazwaWyswietlana.Name = "txtNazwaWyswietlana";
             this.txtNazwaWyswietlana.Size = new System.Drawing.Size(387, 27);
@@ -226,16 +234,21 @@ namespace Reklamacje_Dane
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(15, 80);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(142, 20);
+            this.label1.Size = new System.Drawing.Size(141, 20);
             this.label1.TabIndex = 2;
             this.label1.Text = "Nazwa wyświetlana:";
             // 
             // comboRola
             // 
-            this.comboRola.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
+            this.comboRola.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.comboRola.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboRola.FormattingEnabled = true;
-            this.comboRola.Items.AddRange(new object[] { "Admin", "Handlowiec", "Magazyn", "Reklamacje" });
+            this.comboRola.Items.AddRange(new object[] {
+            "Admin",
+            "Handlowiec",
+            "Magazyn",
+            "Reklamacje"});
             this.comboRola.Location = new System.Drawing.Point(15, 145);
             this.comboRola.Name = "comboRola";
             this.comboRola.Size = new System.Drawing.Size(387, 28);
@@ -255,7 +268,7 @@ namespace Reklamacje_Dane
             this.panelAkcje.Controls.Add(this.btnResetPassword);
             this.panelAkcje.Controls.Add(this.btnSaveChanges);
             this.panelAkcje.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panelAkcje.Location = new System.Drawing.Point(0, 637);
+            this.panelAkcje.Location = new System.Drawing.Point(0, 737);
             this.panelAkcje.Name = "panelAkcje";
             this.panelAkcje.Size = new System.Drawing.Size(418, 60);
             this.panelAkcje.TabIndex = 12;
@@ -296,14 +309,96 @@ namespace Reklamacje_Dane
             this.tabPageSettings.Location = new System.Drawing.Point(4, 29);
             this.tabPageSettings.Name = "tabPageSettings";
             this.tabPageSettings.Padding = new System.Windows.Forms.Padding(10);
-            this.tabPageSettings.Size = new System.Drawing.Size(892, 717);
+            this.tabPageSettings.Size = new System.Drawing.Size(892, 817);
             this.tabPageSettings.TabIndex = 1;
             this.tabPageSettings.Text = "⚙️ Ustawienia Aplikacji";
             this.tabPageSettings.UseVisualStyleBackColor = true;
             // 
+            // groupBoxEmail
+            // 
+            this.groupBoxEmail.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBoxEmail.Controls.Add(this.btnSaveEmailSettings);
+            this.groupBoxEmail.Controls.Add(this.txtDefaultEmail);
+            this.groupBoxEmail.Controls.Add(this.label8);
+            this.groupBoxEmail.Location = new System.Drawing.Point(13, 637);
+            this.groupBoxEmail.Name = "groupBoxEmail";
+            this.groupBoxEmail.Size = new System.Drawing.Size(166, 95);
+            this.groupBoxEmail.TabIndex = 3;
+            this.groupBoxEmail.TabStop = false;
+            this.groupBoxEmail.Text = "Ustawienia E-mail";
+            // 
+            // btnSaveEmailSettings
+            // 
+            this.btnSaveEmailSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnSaveEmailSettings.Location = new System.Drawing.Point(-20, 43);
+            this.btnSaveEmailSettings.Name = "btnSaveEmailSettings";
+            this.btnSaveEmailSettings.Size = new System.Drawing.Size(180, 40);
+            this.btnSaveEmailSettings.TabIndex = 2;
+            this.btnSaveEmailSettings.Text = "Zapisz E-mail";
+            this.btnSaveEmailSettings.UseVisualStyleBackColor = true;
+            // 
+            // txtDefaultEmail
+            // 
+            this.txtDefaultEmail.Location = new System.Drawing.Point(15, 50);
+            this.txtDefaultEmail.Name = "txtDefaultEmail";
+            this.txtDefaultEmail.Size = new System.Drawing.Size(450, 27);
+            this.txtDefaultEmail.TabIndex = 1;
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(15, 25);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(282, 20);
+            this.label8.TabIndex = 0;
+            this.label8.Text = "Domyślny e-mail magazynu (do wysyłek):";
+            // 
+            // groupBoxDeepL
+            // 
+            this.groupBoxDeepL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBoxDeepL.Controls.Add(this.btnSaveDeepLSettings);
+            this.groupBoxDeepL.Controls.Add(this.txtDeepLApiKey);
+            this.groupBoxDeepL.Controls.Add(this.label7);
+            this.groupBoxDeepL.Location = new System.Drawing.Point(13, 536);
+            this.groupBoxDeepL.Name = "groupBoxDeepL";
+            this.groupBoxDeepL.Size = new System.Drawing.Size(166, 95);
+            this.groupBoxDeepL.TabIndex = 2;
+            this.groupBoxDeepL.TabStop = false;
+            this.groupBoxDeepL.Text = "Ustawienia Tłumaczeń (DeepL)";
+            // 
+            // btnSaveDeepLSettings
+            // 
+            this.btnSaveDeepLSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnSaveDeepLSettings.Location = new System.Drawing.Point(-20, 43);
+            this.btnSaveDeepLSettings.Name = "btnSaveDeepLSettings";
+            this.btnSaveDeepLSettings.Size = new System.Drawing.Size(180, 40);
+            this.btnSaveDeepLSettings.TabIndex = 2;
+            this.btnSaveDeepLSettings.Text = "Zapisz Klucz API";
+            this.btnSaveDeepLSettings.UseVisualStyleBackColor = true;
+            // 
+            // txtDeepLApiKey
+            // 
+            this.txtDeepLApiKey.Location = new System.Drawing.Point(15, 50);
+            this.txtDeepLApiKey.Name = "txtDeepLApiKey";
+            this.txtDeepLApiKey.PasswordChar = '*';
+            this.txtDeepLApiKey.Size = new System.Drawing.Size(450, 27);
+            this.txtDeepLApiKey.TabIndex = 1;
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(15, 25);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(120, 20);
+            this.label7.TabIndex = 0;
+            this.label7.Text = "Klucz API DeepL:";
+            // 
             // groupBoxDpd
             // 
-            this.groupBoxDpd.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBoxDpd.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBoxDpd.Controls.Add(this.btnSaveDpdSettings);
             this.groupBoxDpd.Controls.Add(this.txtDpdPassword);
             this.groupBoxDpd.Controls.Add(this.label6);
@@ -313,7 +408,7 @@ namespace Reklamacje_Dane
             this.groupBoxDpd.Controls.Add(this.label4);
             this.groupBoxDpd.Location = new System.Drawing.Point(13, 330);
             this.groupBoxDpd.Name = "groupBoxDpd";
-            this.groupBoxDpd.Size = new System.Drawing.Size(866, 200);
+            this.groupBoxDpd.Size = new System.Drawing.Size(166, 200);
             this.groupBoxDpd.TabIndex = 1;
             this.groupBoxDpd.TabStop = false;
             this.groupBoxDpd.Text = "Ustawienia DPD";
@@ -321,7 +416,7 @@ namespace Reklamacje_Dane
             // btnSaveDpdSettings
             // 
             this.btnSaveDpdSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnSaveDpdSettings.Location = new System.Drawing.Point(680, 145);
+            this.btnSaveDpdSettings.Location = new System.Drawing.Point(-20, 145);
             this.btnSaveDpdSettings.Name = "btnSaveDpdSettings";
             this.btnSaveDpdSettings.Size = new System.Drawing.Size(180, 40);
             this.btnSaveDpdSettings.TabIndex = 6;
@@ -357,7 +452,7 @@ namespace Reklamacje_Dane
             this.label5.AutoSize = true;
             this.label5.Location = new System.Drawing.Point(15, 80);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(73, 20);
+            this.label5.Size = new System.Drawing.Size(74, 20);
             this.label5.TabIndex = 2;
             this.label5.Text = "ID Klienta";
             // 
@@ -373,20 +468,21 @@ namespace Reklamacje_Dane
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(15, 25);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(49, 20);
+            this.label4.Size = new System.Drawing.Size(46, 20);
             this.label4.TabIndex = 0;
             this.label4.Text = "Login";
             // 
             // groupBoxAllegro
             // 
-            this.groupBoxAllegro.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBoxAllegro.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBoxAllegro.Controls.Add(this.btnAutoryzujKonto);
             this.groupBoxAllegro.Controls.Add(this.btnUsunKonto);
             this.groupBoxAllegro.Controls.Add(this.btnDodajKonto);
             this.groupBoxAllegro.Controls.Add(this.listViewKonta);
             this.groupBoxAllegro.Location = new System.Drawing.Point(13, 13);
             this.groupBoxAllegro.Name = "groupBoxAllegro";
-            this.groupBoxAllegro.Size = new System.Drawing.Size(866, 311);
+            this.groupBoxAllegro.Size = new System.Drawing.Size(166, 311);
             this.groupBoxAllegro.TabIndex = 0;
             this.groupBoxAllegro.TabStop = false;
             this.groupBoxAllegro.Text = "Zarządzanie Kontami Allegro";
@@ -423,92 +519,15 @@ namespace Reklamacje_Dane
             // 
             // listViewKonta
             // 
-            this.listViewKonta.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
+            this.listViewKonta.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.listViewKonta.HideSelection = false;
             this.listViewKonta.Location = new System.Drawing.Point(15, 25);
             this.listViewKonta.Name = "listViewKonta";
-            this.listViewKonta.Size = new System.Drawing.Size(835, 225);
+            this.listViewKonta.Size = new System.Drawing.Size(135, 225);
             this.listViewKonta.TabIndex = 0;
             this.listViewKonta.UseCompatibleStateImageBehavior = false;
-            // 
-            // groupBoxDeepL
-            // 
-            this.groupBoxDeepL.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
-            this.groupBoxDeepL.Controls.Add(this.btnSaveDeepLSettings);
-            this.groupBoxDeepL.Controls.Add(this.txtDeepLApiKey);
-            this.groupBoxDeepL.Controls.Add(this.label7);
-            this.groupBoxDeepL.Location = new System.Drawing.Point(13, 536);
-            this.groupBoxDeepL.Name = "groupBoxDeepL";
-            this.groupBoxDeepL.Size = new System.Drawing.Size(866, 95);
-            this.groupBoxDeepL.TabIndex = 2;
-            this.groupBoxDeepL.TabStop = false;
-            this.groupBoxDeepL.Text = "Ustawienia Tłumaczeń (DeepL)";
-            // 
-            // btnSaveDeepLSettings
-            // 
-            this.btnSaveDeepLSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnSaveDeepLSettings.Location = new System.Drawing.Point(680, 43);
-            this.btnSaveDeepLSettings.Name = "btnSaveDeepLSettings";
-            this.btnSaveDeepLSettings.Size = new System.Drawing.Size(180, 40);
-            this.btnSaveDeepLSettings.TabIndex = 2;
-            this.btnSaveDeepLSettings.Text = "Zapisz Klucz API";
-            this.btnSaveDeepLSettings.UseVisualStyleBackColor = true;
-            // 
-            // txtDeepLApiKey
-            // 
-            this.txtDeepLApiKey.Location = new System.Drawing.Point(15, 50);
-            this.txtDeepLApiKey.Name = "txtDeepLApiKey";
-            this.txtDeepLApiKey.PasswordChar = '*';
-            this.txtDeepLApiKey.Size = new System.Drawing.Size(450, 27);
-            this.txtDeepLApiKey.TabIndex = 1;
-            // 
-            // label7
-            // 
-            this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(15, 25);
-            this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(100, 20);
-            this.label7.TabIndex = 0;
-            this.label7.Text = "Klucz API DeepL:";
-            // 
-            // groupBoxEmail
-            // 
-            this.groupBoxEmail.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) | System.Windows.Forms.AnchorStyles.Right)));
-            this.groupBoxEmail.Controls.Add(this.btnSaveEmailSettings);
-            this.groupBoxEmail.Controls.Add(this.txtDefaultEmail);
-            this.groupBoxEmail.Controls.Add(this.label8);
-            this.groupBoxEmail.Location = new System.Drawing.Point(13, 637);
-            this.groupBoxEmail.Name = "groupBoxEmail";
-            this.groupBoxEmail.Size = new System.Drawing.Size(866, 95);
-            this.groupBoxEmail.TabIndex = 3;
-            this.groupBoxEmail.TabStop = false;
-            this.groupBoxEmail.Text = "Ustawienia E-mail";
-            // 
-            // btnSaveEmailSettings
-            // 
-            this.btnSaveEmailSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnSaveEmailSettings.Location = new System.Drawing.Point(680, 43);
-            this.btnSaveEmailSettings.Name = "btnSaveEmailSettings";
-            this.btnSaveEmailSettings.Size = new System.Drawing.Size(180, 40);
-            this.btnSaveEmailSettings.TabIndex = 2;
-            this.btnSaveEmailSettings.Text = "Zapisz E-mail";
-            this.btnSaveEmailSettings.UseVisualStyleBackColor = true;
-            // 
-            // txtDefaultEmail
-            // 
-            this.txtDefaultEmail.Location = new System.Drawing.Point(15, 50);
-            this.txtDefaultEmail.Name = "txtDefaultEmail";
-            this.txtDefaultEmail.Size = new System.Drawing.Size(450, 27);
-            this.txtDefaultEmail.TabIndex = 1;
-            // 
-            // label8
-            // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(15, 25);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(220, 20);
-            this.label8.TabIndex = 0;
-            this.label8.Text = "Domyślny e-mail magazynu (do wysyłek):";
             // 
             // tabPageOpiekunowie
             // 
@@ -523,6 +542,7 @@ namespace Reklamacje_Dane
             // 
             // allegroOpiekunowieControl1
             // 
+            this.allegroOpiekunowieControl1.BackColor = System.Drawing.Color.White;
             this.allegroOpiekunowieControl1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.allegroOpiekunowieControl1.Location = new System.Drawing.Point(8, 8);
             this.allegroOpiekunowieControl1.Name = "allegroOpiekunowieControl1";
@@ -542,6 +562,7 @@ namespace Reklamacje_Dane
             // 
             // delegacjeControl1
             // 
+            this.delegacjeControl1.BackColor = System.Drawing.Color.White;
             this.delegacjeControl1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.delegacjeControl1.Location = new System.Drawing.Point(8, 8);
             this.delegacjeControl1.Name = "delegacjeControl1";
@@ -569,16 +590,17 @@ namespace Reklamacje_Dane
             this.groupBoxDanePodstawowe.PerformLayout();
             this.panelAkcje.ResumeLayout(false);
             this.tabPageSettings.ResumeLayout(false);
+            this.groupBoxEmail.ResumeLayout(false);
+            this.groupBoxEmail.PerformLayout();
+            this.groupBoxDeepL.ResumeLayout(false);
+            this.groupBoxDeepL.PerformLayout();
             this.groupBoxDpd.ResumeLayout(false);
             this.groupBoxDpd.PerformLayout();
             this.groupBoxAllegro.ResumeLayout(false);
-            this.groupBoxDeepL.ResumeLayout(false);
-            this.groupBoxDeepL.PerformLayout();
-            this.groupBoxEmail.ResumeLayout(false);
-            this.groupBoxEmail.PerformLayout();
             this.tabPageOpiekunowie.ResumeLayout(false);
             this.tabPageDelegacje.ResumeLayout(false);
             this.ResumeLayout(false);
+
         }
 
         #endregion
