@@ -242,9 +242,9 @@ namespace Reklamacje_Dane
                         {
                             if (await reader.ReadAsync())
                             {
-                                this.idZgloszeniaInt = Convert.ToInt32(reader["Id"]);
-                                this.nrKlienta = reader["KlientID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["KlientID"]);
-                                this.nrProduktu = reader["ProduktID"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ProduktID"]);
+                                this.idZgloszeniaInt = SafeToInt(reader["Id"]);
+                                this.nrKlienta = SafeToInt(reader["KlientID"]);
+                                this.nrProduktu = SafeToInt(reader["ProduktID"]);
                                 this.kategoriaProduktu = reader["Kategoria"]?.ToString() ?? "Brak";
                                 this.producentProduktu = reader["Producent"]?.ToString() ?? "Brak";
                                 this.originalOpisUsterki = reader["OpisUsterki"]?.ToString() ?? "";
@@ -283,7 +283,7 @@ namespace Reklamacje_Dane
                                         EventDate = date,
                                         Content = reader["Tresc"]?.ToString(),
                                         Author = reader["Uzytkownik"]?.ToString() ?? "System",
-                                        Tag = Convert.ToInt32(reader["Id"])
+                                        Tag = SafeToInt(reader["Id"])
                                     });
                                 }
                             }
@@ -370,6 +370,24 @@ namespace Reklamacje_Dane
             return clean.Length >= 9 && clean.Length <= 15;
         }
 
+        private static int SafeToInt(object value, int defaultValue = 0)
+        {
+            if (value == null || value == DBNull.Value) return defaultValue;
+            if (value is int intValue) return intValue;
+            if (value is long longValue) return (int)longValue;
+            if (value is short shortValue) return shortValue;
+            if (value is byte byteValue) return byteValue;
+            if (value is decimal decimalValue) return (int)decimalValue;
+            if (value is double doubleValue) return (int)doubleValue;
+            if (value is float floatValue) return (int)floatValue;
+
+            var text = value.ToString();
+            if (string.IsNullOrWhiteSpace(text)) return defaultValue;
+            return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)
+                ? parsed
+                : defaultValue;
+        }
+
         private void WypelnijFlowDokumenty(DbDataReader reader)
         {
             flowDocuments.Controls.Clear();
@@ -383,7 +401,7 @@ namespace Reklamacje_Dane
                 Label lbl = new Label { Text = $"Dostawa: {dostawa}", AutoSize = true, ForeColor = Color.DarkRed, Font = new Font("Segoe UI", 9, FontStyle.Bold), Margin = new Padding(0, 3, 15, 3) };
                 flowDocuments.Controls.Add(lbl);
             }
-            int czyNota = reader["CzyNotaRozliczona"] == DBNull.Value ? 0 : Convert.ToInt32(reader["CzyNotaRozliczona"]);
+            int czyNota = SafeToInt(reader["CzyNotaRozliczona"]);
             if (czyNota == 1)
             {
                 Label lbl = new Label { Text = "Nota: TAK", AutoSize = true, ForeColor = Color.Green, Margin = new Padding(0, 3, 10, 3) };
