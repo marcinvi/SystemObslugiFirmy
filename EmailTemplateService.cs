@@ -20,6 +20,7 @@ namespace Reklamacje_Dane
         // 1. POBIERANIE (Dostosowane do tabeli EmailTemplates)
         public async Task<List<SzablonEmail>> GetActiveTemplatesAsync()
         {
+            await EnsureStatusMappingTableAsync();
             // ZMIANA: Używamy tabeli EmailTemplates i kolumny CzyAktywny
             const string query = "SELECT Id, Nazwa, TrescRtf FROM EmailTemplates WHERE CzyAktywny = 1 ORDER BY Nazwa";
 
@@ -82,6 +83,7 @@ namespace Reklamacje_Dane
         // 2. ZAPISYWANIE (Dostosowane do EmailTemplates)
         public async Task SaveTemplateAsync(SzablonEmail template)
         {
+            await EnsureStatusMappingTableAsync();
             string query = template.Id > 0
                 ? "UPDATE EmailTemplates SET Nazwa = @nazwa, TrescRtf = @tresc WHERE Id = @id"
                 : "INSERT INTO EmailTemplates (Nazwa, TrescRtf, CzyAktywny) VALUES (@nazwa, @tresc, 1)";
@@ -103,6 +105,62 @@ namespace Reklamacje_Dane
             // ZMIANA: Ustawiamy CzyAktywny = 0
             const string query = "UPDATE EmailTemplates SET CzyAktywny = 0 WHERE Id = @id";
             await _dbService.ExecuteNonQueryAsync(query, new MySqlParameter("@id", id));
+        }
+
+        public async Task<int?> GetTemplateIdForStatusAsync(string statusName)
+        {
+            if (string.IsNullOrWhiteSpace(statusName)) return null;
+
+            await EnsureStatusMappingTableAsync();
+            var result = await _dbService.ExecuteScalarAsync(
+                "SELECT TemplateId FROM EmailTemplateStatusMap WHERE StatusName = @s LIMIT 1",
+                new MySqlParameter("@s", statusName));
+
+            if (result == null || result == DBNull.Value) return null;
+            return Convert.ToInt32(result);
+        }
+
+        public async Task UpsertTemplateStatusAsync(int templateId, string statusName)
+        {
+            if (templateId <= 0 || string.IsNullOrWhiteSpace(statusName)) return;
+
+            await EnsureStatusMappingTableAsync();
+            await _dbService.ExecuteNonQueryAsync(
+                @"INSERT INTO EmailTemplateStatusMap (StatusName, TemplateId)
+                  VALUES (@status, @template)
+                  ON DUPLICATE KEY UPDATE TemplateId = VALUES(TemplateId)",
+                new MySqlParameter("@status", statusName),
+                new MySqlParameter("@template", templateId));
+        }
+
+        public async Task ClearTemplateStatusAsync(int templateId)
+        {
+            if (templateId <= 0) return;
+            await EnsureStatusMappingTableAsync();
+            await _dbService.ExecuteNonQueryAsync(
+                "DELETE FROM EmailTemplateStatusMap WHERE TemplateId = @id",
+                new MySqlParameter("@id", templateId));
+        }
+
+        public async Task<string> GetStatusForTemplateAsync(int templateId)
+        {
+            if (templateId <= 0) return null;
+
+            await EnsureStatusMappingTableAsync();
+            var result = await _dbService.ExecuteScalarAsync(
+                "SELECT StatusName FROM EmailTemplateStatusMap WHERE TemplateId = @id LIMIT 1",
+                new MySqlParameter("@id", templateId));
+            return result?.ToString();
+        }
+
+        private async Task EnsureStatusMappingTableAsync()
+        {
+            const string sql = @"
+                CREATE TABLE IF NOT EXISTS EmailTemplateStatusMap (
+                    StatusName VARCHAR(255) PRIMARY KEY,
+                    TemplateId INT NOT NULL
+                )";
+            await _dbService.ExecuteNonQueryAsync(sql);
         }
 
         // Aliasy dla zgodności nazw metod

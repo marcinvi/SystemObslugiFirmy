@@ -11,11 +11,17 @@ namespace Reklamacje_Dane
     public partial class FormSzablonyEmail : Form
     {
         private readonly EmailTemplateService _templateService = new EmailTemplateService();
+        private readonly StatusService _statusService = new StatusService(DatabaseHelper.GetConnectionString(), "Klient");
+        private ComboBox _cmbStatusMap;
+        private Button _btnAssignStatus;
+        private Button _btnClearStatus;
+        private Label _lblStatusMap;
 
         public FormSzablonyEmail()
         {
             InitializeComponent();
             this.StartPosition = FormStartPosition.CenterParent;
+            InitializeStatusMappingUi();
         
 
             // Włącz sprawdzanie pisowni dla wszystkich TextBoxów
@@ -27,6 +33,63 @@ namespace Reklamacje_Dane
             WypelnijKontrolkiFormatowania();
             WyswietlZmienne();
             await WczytajSzablonyAsync();
+            await LoadStatusOptionsAsync();
+        }
+
+        private void InitializeStatusMappingUi()
+        {
+            _lblStatusMap = new Label
+            {
+                Text = "Przypisz do statusu:",
+                AutoSize = true,
+                Left = listBoxSzablony.Right + 20,
+                Top = listBoxSzablony.Top
+            };
+
+            _cmbStatusMap = new ComboBox
+            {
+                Left = _lblStatusMap.Left,
+                Top = _lblStatusMap.Bottom + 6,
+                Width = 220,
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+
+            _btnAssignStatus = new Button
+            {
+                Text = "Przypisz",
+                Left = _cmbStatusMap.Left,
+                Top = _cmbStatusMap.Bottom + 6,
+                Width = 100
+            };
+            _btnAssignStatus.Click += btnAssignStatus_Click;
+
+            _btnClearStatus = new Button
+            {
+                Text = "Wyczyść",
+                Left = _btnAssignStatus.Right + 10,
+                Top = _btnAssignStatus.Top,
+                Width = 100
+            };
+            _btnClearStatus.Click += btnClearStatus_Click;
+
+            this.Controls.Add(_lblStatusMap);
+            this.Controls.Add(_cmbStatusMap);
+            this.Controls.Add(_btnAssignStatus);
+            this.Controls.Add(_btnClearStatus);
+        }
+
+        private async Task LoadStatusOptionsAsync()
+        {
+            try
+            {
+                var statuses = await _statusService.GetStatusesAsync();
+                _cmbStatusMap.Items.Clear();
+                _cmbStatusMap.Items.AddRange(statuses.ToArray());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Błąd ładowania statusów: " + ex.Message);
+            }
         }
 
         private void WypelnijKontrolkiFormatowania()
@@ -115,7 +178,54 @@ namespace Reklamacje_Dane
                 {
                     rtbTrescSzablonu.Text = selected.TrescRtf; // Fallback
                 }
+
+                _ = LoadTemplateStatusAsync(selected.Id);
             }
+        }
+
+        private async Task LoadTemplateStatusAsync(int templateId)
+        {
+            if (_cmbStatusMap == null) return;
+
+            var status = await _templateService.GetStatusForTemplateAsync(templateId);
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                _cmbStatusMap.SelectedIndex = -1;
+                return;
+            }
+
+            _cmbStatusMap.SelectedItem = status;
+        }
+
+        private async void btnAssignStatus_Click(object sender, EventArgs e)
+        {
+            if (!(listBoxSzablony.SelectedItem is SzablonEmail selected))
+            {
+                MessageBox.Show("Wybierz szablon.", "Informacja");
+                return;
+            }
+
+            if (_cmbStatusMap.SelectedItem == null)
+            {
+                MessageBox.Show("Wybierz status do przypisania.", "Informacja");
+                return;
+            }
+
+            await _templateService.UpsertTemplateStatusAsync(selected.Id, _cmbStatusMap.SelectedItem.ToString());
+            MessageBox.Show("Przypisano status do szablonu.", "Sukces");
+        }
+
+        private async void btnClearStatus_Click(object sender, EventArgs e)
+        {
+            if (!(listBoxSzablony.SelectedItem is SzablonEmail selected))
+            {
+                MessageBox.Show("Wybierz szablon.", "Informacja");
+                return;
+            }
+
+            await _templateService.ClearTemplateStatusAsync(selected.Id);
+            _cmbStatusMap.SelectedIndex = -1;
+            MessageBox.Show("Usunięto przypisanie statusu.", "Sukces");
         }
 
         private void btnNowy_Click(object sender, EventArgs e)

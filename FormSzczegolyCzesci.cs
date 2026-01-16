@@ -200,8 +200,16 @@ namespace Reklamacje_Dane
                     try
                     {
                         await _service.UzyjCzescAsync(_czesc.Id, nr);
-                        string log = $"WYDANIE CZĘŚCI: {_czesc.NazwaCzesci} (ID: {_czesc.Id}) do zgłoszenia {nr}. Użytkownik: {Program.fullName}";
-                        await new DziennikLogger().DodajAsync(Program.fullName, log, nr);
+                        string logBiorca = $"WYDANIE CZĘŚCI: {_czesc.NazwaCzesci} (ID: {_czesc.Id}) do zgłoszenia {nr}. Użytkownik: {Program.fullName}";
+                        await new DziennikLogger().DodajAsync(Program.fullName, logBiorca, nr);
+                        new Dzialaniee().DodajNoweDzialanie(nr, Program.fullName, logBiorca);
+
+                        if (!string.IsNullOrWhiteSpace(_czesc.ZgloszenieDawcy) && _czesc.ZgloszenieDawcy != "-" && _czesc.ZgloszenieDawcy != nr)
+                        {
+                            string logDawca = $"MAGAZYN: Część '{_czesc.NazwaCzesci}' (ID: {_czesc.Id}) została wydana do zgłoszenia {nr}.";
+                            await new DziennikLogger().DodajAsync(Program.fullName, logDawca, _czesc.ZgloszenieDawcy);
+                            new Dzialaniee().DodajNoweDzialanie(_czesc.ZgloszenieDawcy, Program.fullName, logDawca);
+                        }
                         MessageBox.Show($"Część wydana do zgłoszenia {nr}.", "Sukces");
                         this.Close();
                     }

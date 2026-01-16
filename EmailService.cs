@@ -215,7 +215,10 @@ namespace Reklamacje_Dane
         {
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(konto.NazwaWyswietlana, konto.AdresEmail));
-            message.To.Add(MailboxAddress.Parse(doKogo));
+            foreach (var address in SplitRecipients(doKogo))
+            {
+                message.To.Add(MailboxAddress.Parse(address));
+            }
             message.Subject = temat;
             var builder = new BodyBuilder { HtmlBody = trescHtml };
             if (sciezkiZalacznikow != null) foreach (var path in sciezkiZalacznikow) if (File.Exists(path)) builder.Attachments.Add(path);
@@ -229,6 +232,24 @@ namespace Reklamacje_Dane
                 await client.AuthenticateAsync(konto.Login, konto.Haslo);
                 await client.SendAsync(message);
                 await client.DisconnectAsync(true);
+            }
+        }
+
+        private IEnumerable<string> SplitRecipients(string recipients)
+        {
+            if (string.IsNullOrWhiteSpace(recipients))
+            {
+                yield break;
+            }
+
+            var parts = recipients.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                var trimmed = part.Trim();
+                if (!string.IsNullOrWhiteSpace(trimmed))
+                {
+                    yield return trimmed;
+                }
             }
         }
     }
