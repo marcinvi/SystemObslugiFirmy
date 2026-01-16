@@ -353,15 +353,42 @@ namespace Reklamacje_Dane
         {
             if (string.IsNullOrWhiteSpace(invoiceNumber)) return true;
 
-            var regex = new Regex(@"\/(\d{1,2})\/");
-            var match = regex.Match(invoiceNumber);
+            var parts = invoiceNumber.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            int monthFromInvoice = -1;
 
-            if (match.Success && int.TryParse(match.Groups[1].Value, out int monthFromInvoice))
+            if (parts.Length >= 3)
             {
-                return monthFromInvoice == purchaseDate.Month;
+                var first = parts[0].Trim();
+                var last = parts[parts.Length - 1].Trim();
+                bool hasPrefix = first.StartsWith("FV", StringComparison.OrdinalIgnoreCase);
+                bool hasSuffix = last.StartsWith("FV", StringComparison.OrdinalIgnoreCase);
+
+                if (hasPrefix && parts.Length > 2)
+                {
+                    int.TryParse(parts[2], out monthFromInvoice);
+                }
+                else if (hasSuffix && parts.Length > 1)
+                {
+                    int.TryParse(parts[1], out monthFromInvoice);
+                }
             }
 
-            return true;
+            if (monthFromInvoice <= 0)
+            {
+                var regex = new Regex(@"\/(\d{1,2})\/");
+                var match = regex.Match(invoiceNumber);
+                if (match.Success)
+                {
+                    int.TryParse(match.Groups[1].Value, out monthFromInvoice);
+                }
+            }
+
+            if (monthFromInvoice <= 0)
+            {
+                return true;
+            }
+
+            return monthFromInvoice == purchaseDate.Month;
         }
 
         #endregion

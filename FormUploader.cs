@@ -24,7 +24,7 @@ namespace Reklamacje_Dane
 
             // Tworzenie ścieżki zapisu
             string folderName = nrZgloszenia.Replace('/', '.');
-            _targetPath = Path.Combine(Application.StartupPath, "Dane", folderName);
+            _targetPath = Path.Combine(AppPaths.GetDataRootPath(), folderName);
             labelTitle.Text = $"Dodaj załączniki do: {nrZgloszenia}";
         
 

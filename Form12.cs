@@ -25,6 +25,7 @@ namespace Reklamacje_Dane
             this.StartPosition = FormStartPosition.CenterScreen;
             this.nrZgloszenia = nrZgloszenia;
             _magazynService = new MagazynService(); // Inicjalizacja
+            if (chkPoinformujKlienta != null) chkPoinformujKlienta.Checked = true;
         
 
             // Włącz sprawdzanie pisowni dla wszystkich TextBoxów
@@ -256,7 +257,7 @@ namespace Reklamacje_Dane
 
             if (chkPoinformujKlienta.Checked)
             {
-                using (var form4 = new Form4(this.nrZgloszenia, $"Zmieniono status zgłoszenia na: {nowyStatusKlient}."))
+                using (var form4 = new Form4(this.nrZgloszenia, $"Zmieniono status zgłoszenia na: {nowyStatusKlient}.", nowyStatusKlient))
                 {
                     form4.ShowDialog();
                 }

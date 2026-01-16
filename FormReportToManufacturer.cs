@@ -29,6 +29,7 @@ namespace Reklamacje_Dane
 
         // NOWOŚĆ: Zmienna na język producenta
         private string _jezykProducenta = "EN"; // Domyślnie angielski
+        private Timer _previewDebounceTimer;
 
         // Dane z bazy
         private string _dbKodProduktu;
@@ -52,12 +53,12 @@ namespace Reklamacje_Dane
             _producent = producent;
             _adresEmailProducenta = adresEmail;
 
-            string appDir = AppDomain.CurrentDomain.BaseDirectory;
-            _complaintFolderPath = Path.Combine(appDir, "Dane", nrZgloszenia.Replace('/', '.'));
+            _complaintFolderPath = Path.Combine(AppPaths.GetDataRootPath(), nrZgloszenia.Replace('/', '.'));
             if (!Directory.Exists(_complaintFolderPath)) Directory.CreateDirectory(_complaintFolderPath);
 
             InitializeComponent();
             InitializeWebView();
+            InitializePreviewDebounce();
 
             this.Load += Form_Load;
         
@@ -76,6 +77,19 @@ namespace Reklamacje_Dane
                 pnlWebViewContainer.Controls.Add(webView);
                 webView.BringToFront();
             }
+        }
+
+        private void InitializePreviewDebounce()
+        {
+            _previewDebounceTimer = new Timer { Interval = 800 };
+            _previewDebounceTimer.Tick += (s, e) =>
+            {
+                _previewDebounceTimer.Stop();
+                if (!btnShowMailPreview.Visible)
+                {
+                    RefreshHtmlPreview();
+                }
+            };
         }
 
         private async void Form_Load(object sender, EventArgs e)
@@ -104,9 +118,7 @@ namespace Reklamacje_Dane
 
         private void BindEvents()
         {
-            EventHandler refreshStandard = (s, e) => {
-                if (!btnShowMailPreview.Visible) RefreshHtmlPreview();
-            };
+            EventHandler refreshStandard = (s, e) => SchedulePreviewRefresh();
 
             chkIncSN.CheckedChanged += refreshStandard;
             chkIncFV.CheckedChanged += refreshStandard;
@@ -124,6 +136,13 @@ namespace Reklamacje_Dane
             btnTranslate.Click += BtnTranslate_Click;
             btnSend.Click += BtnSend_Click;
             btnShowMailPreview.Click += (s, e) => ShowEmailPreviewMode();
+        }
+
+        private void SchedulePreviewRefresh()
+        {
+            if (_previewDebounceTimer == null) return;
+            _previewDebounceTimer.Stop();
+            _previewDebounceTimer.Start();
         }
 
         #region Ładowanie Danych

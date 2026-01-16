@@ -195,9 +195,10 @@ namespace Reklamacje_Dane
                 var task1 = LoadProcessingCasesAsync();
                 var task2 = RebuildRemindersCardsAsync();
                 var task3 = LoadChangeLogAsync();
+                var task4 = UpdateAllegroChatUnreadCountAsync();
 
                 // Czekamy na wszystkie (ale asynchronicznie, UI nie zamarznie)
-                await Task.WhenAll(task1, task2, task3);
+                await Task.WhenAll(task1, task2, task3, task4);
 
                 SafeInvoke(() => lblLastRefresh.Text = "Odświeżono: " + DateTime.Now.ToString("HH:mm"));
             }
@@ -214,6 +215,30 @@ namespace Reklamacje_Dane
                 {
                     RequestDataReload();
                 }
+            }
+        }
+
+        private async Task UpdateAllegroChatUnreadCountAsync()
+        {
+            try
+            {
+                int count = 0;
+                using (var con = DatabaseHelper.GetConnection())
+                {
+                    await con.OpenAsync();
+                    var cmd = new MySqlCommand("SELECT COUNT(*) FROM AllegroDisputes WHERE HasNewMessages = 1", con);
+                    count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                }
+
+                SafeInvoke(() =>
+                {
+                    btnChat.Text = $"💬 Czat Allegro ({count})";
+                    btnChat.ForeColor = count > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
+                });
+            }
+            catch
+            {
+                // ignoruj błąd odświeżania licznika
             }
         }
 

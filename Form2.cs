@@ -40,6 +40,8 @@ namespace Reklamacje_Dane
         private readonly DatabaseService _dbService = new DatabaseService(DatabaseHelper.GetConnectionString());
         private readonly ContactRepository _repo = new ContactRepository();
         private readonly ContextMenuStrip _quickActionsMenu = new ContextMenuStrip();
+        private Button _btnFetchPart;
+        private Button _btnRefreshData;
 
         public Form2(string nrZgloszenia)
         {
@@ -49,6 +51,7 @@ namespace Reklamacje_Dane
             try { GlobalFontSettings.FontResolver = new PdfFontResolver(); } catch { }
 
             AttachEventHandlers();
+            InitializeExtraMenuButtons();
         
 
             // Włącz sprawdzanie pisowni dla wszystkich TextBoxów
@@ -97,6 +100,34 @@ namespace Reklamacje_Dane
                 ResizeBubbles(flowLayoutPanelHistory);
                 ResizeBubbles(flowChatRight);
             };
+        }
+
+        private void InitializeExtraMenuButtons()
+        {
+            if (panelLeftSidebar == null) return;
+
+            var btnBg = Color.FromArgb(13, 71, 161);
+            var btnHover = Color.FromArgb(21, 101, 192);
+
+            _btnFetchPart = new Button();
+            ConfigureMenuButton(_btnFetchPart, "🧰 Pobierz z magazynu części", btnBg, btnHover);
+            _btnFetchPart.Click += btnFetchPart_Click;
+
+            _btnRefreshData = new Button();
+            ConfigureMenuButton(_btnRefreshData, "🔄 Odśwież dane", btnBg, btnHover);
+            _btnRefreshData.Click += async (s, e) => await LoadData();
+
+            panelLeftSidebar.Controls.Add(_btnFetchPart);
+            panelLeftSidebar.Controls.Add(_btnRefreshData);
+
+            if (panelLeftSidebar.Controls.Contains(button9))
+            {
+                panelLeftSidebar.Controls.SetChildIndex(_btnFetchPart, panelLeftSidebar.Controls.GetChildIndex(button9));
+            }
+            if (panelLeftSidebar.Controls.Contains(buttonWyslijMail))
+            {
+                panelLeftSidebar.Controls.SetChildIndex(_btnRefreshData, panelLeftSidebar.Controls.GetChildIndex(buttonWyslijMail));
+            }
         }
 
         private void ResizeBubbles(FlowLayoutPanel panel)
@@ -534,8 +565,8 @@ namespace Reklamacje_Dane
         private async void OnChangeClientRequested(object sender, EventArgs e) { using (var form3 = new Form3(this.nrKlienta, true)) { if (form3.ShowDialog() == DialogResult.OK && form3.NowoWybranyKlientId.HasValue && form3.NowoWybranyKlientId.Value != this.nrKlienta) { await _dbService.ExecuteNonQueryAsync("UPDATE Zgloszenia SET KlientID = @nid WHERE NrZgloszenia = @nr", new MySqlParameter("@nid", form3.NowoWybranyKlientId.Value), new MySqlParameter("@nr", this.nrZgloszenia)); await LoadData(); } } }
         private void OnEditProductRequested(object sender, int produktId) { if (produktId > 0) UruchomAkcje(new Form15(produktId.ToString())); }
         private async void btnZapiszOpis_Click(object sender, EventArgs e) { await _dbService.ExecuteNonQueryAsync("UPDATE Zgloszenia SET OpisUsterki = @opis WHERE NrZgloszenia = @nr", new MySqlParameter("@opis", textBox1.Text), new MySqlParameter("@nr", this.nrZgloszenia)); await new DziennikLogger().DodajAsync(Program.fullName, "Zaktualizowano opis usterki", this.nrZgloszenia); originalOpisUsterki = textBox1.Text; btnZapiszOpis.Visible = false; }
-        private void UpdateFilesButton() { string appDir = AppDomain.CurrentDomain.BaseDirectory; string targetFolder = Path.Combine(appDir, "Dane", this.nrZgloszenia.Replace('/', '.')); int count = Directory.Exists(targetFolder) ? Directory.GetFiles(targetFolder).Length : 0; button9.Text = $"  📂 Zobacz Pliki ({count})"; }
-        private void btnPrintToPdf_Click(object sender, EventArgs e) { try { string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dane", $"Zgloszenie_{this.nrZgloszenia.Replace('/', '_')}.pdf"); CreatePdf(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); } catch (Exception ex) { MessageBox.Show("Błąd PDF: " + ex.Message); } }
+        private void UpdateFilesButton() { string targetFolder = Path.Combine(AppPaths.GetDataRootPath(), this.nrZgloszenia.Replace('/', '.')); int count = Directory.Exists(targetFolder) ? Directory.GetFiles(targetFolder).Length : 0; button9.Text = $"  📂 Zobacz Pliki ({count})"; }
+        private void btnPrintToPdf_Click(object sender, EventArgs e) { try { string path = Path.Combine(AppPaths.GetDataRootPath(), $"Zgloszenie_{this.nrZgloszenia.Replace('/', '_')}.pdf"); CreatePdf(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); } catch (Exception ex) { MessageBox.Show("Błąd PDF: " + ex.Message); } }
         // =========================================================
         // PEŁNA LOGIKA GENEROWANIA PDF (Naprawiona)
         // =========================================================
@@ -744,6 +775,31 @@ namespace Reklamacje_Dane
         private void button8_Click(object sender, EventArgs e) { new FormUploader(this.nrZgloszenia, PhoneClient.Instance).Show(); }
         private void button9_Click(object sender, EventArgs e) => new FormFileViewer(this.nrZgloszenia).ShowDialog(this);
         private void button11_Click(object sender, EventArgs e) => new FormDpdTracking().ShowDialog(this);
+        private async void btnFetchPart_Click(object sender, EventArgs e)
+        {
+            using (var formSzukaj = new FormWybierzCzesc())
+            {
+                if (formSzukaj.ShowDialog() == DialogResult.OK && formSzukaj.WybranaCzesc != null)
+                {
+                    var czesc = formSzukaj.WybranaCzesc;
+                    await _magazynService.UzyjCzescAsync(czesc.Id, this.nrZgloszenia);
+
+                    string logBiorca = $"NAPRAWA: Zamontowano część '{czesc.NazwaCzesci}' pochodzącą z dawcy: {czesc.ModelDawcy} (Zgł. {czesc.ZgloszenieDawcy}).";
+                    await new DziennikLogger().DodajAsync(Program.fullName, logBiorca, this.nrZgloszenia);
+                    new Dzialaniee().DodajNoweDzialanie(this.nrZgloszenia, Program.fullName, logBiorca);
+
+                    if (!string.IsNullOrEmpty(czesc.ZgloszenieDawcy))
+                    {
+                        string logDawca = $"MAGAZYN: Część '{czesc.NazwaCzesci}' została pobrana i użyta do naprawy zgłoszenia {this.nrZgloszenia}.";
+                        await new DziennikLogger().DodajAsync(Program.fullName, logDawca, czesc.ZgloszenieDawcy);
+                        new Dzialaniee().DodajNoweDzialanie(czesc.ZgloszenieDawcy, Program.fullName, logDawca);
+                    }
+
+                    MessageBox.Show("Część przypisana do zgłoszenia.", "Sukces", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    await LoadData();
+                }
+            }
+        }
 
         private struct TimelineEvent : IComparable<TimelineEvent> { public DateTime EventDate { get; set; } public string Content { get; set; } public object Tag { get; set; } public string Author { get; set; } public int CompareTo(TimelineEvent other) => other.EventDate.CompareTo(this.EventDate); }
         private TimelineItemType DetermineEventType(string text, string author) { string t = text.ToUpper(); if (t.Contains("DPD") || t.Contains("KURIER")) return TimelineItemType.Courier; if (t.Contains("ZMIANA STATUSU")) return TimelineItemType.Status; if (t.Contains("WIADOMOŚĆ") || author.ToUpper().Contains("ALLEGRO")) return TimelineItemType.Message; if (t.Contains("WRL") || t.Contains("KWZ")) return TimelineItemType.Document; return TimelineItemType.Action; }
