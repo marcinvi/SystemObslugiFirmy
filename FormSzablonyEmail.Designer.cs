@@ -126,14 +126,12 @@
             // 
             // cmbFontFamily
             // 
-            this.cmbFontFamily.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.cmbFontFamily.Name = "cmbFontFamily";
             this.cmbFontFamily.Size = new System.Drawing.Size(150, 31);
             this.cmbFontFamily.SelectedIndexChanged += new System.EventHandler(this.cmbFontFamily_SelectedIndexChanged);
             // 
             // cmbFontSize
             // 
-            this.cmbFontSize.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.cmbFontSize.Name = "cmbFontSize";
             this.cmbFontSize.Size = new System.Drawing.Size(75, 31);
             this.cmbFontSize.SelectedIndexChanged += new System.EventHandler(this.cmbFontSize_SelectedIndexChanged);

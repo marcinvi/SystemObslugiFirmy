@@ -1,0 +1,137 @@
+### Reklamacje API - Test Requests
+### Use with REST Client extension in VS Code
+
+@baseUrl = https://localhost:5001/api
+@token = YOUR_TOKEN_HERE
+
+### ============================================
+### 1. AUTH - Login
+### ============================================
+
+POST {{baseUrl}}/Auth/login
+Content-Type: application/json
+
+{
+  "login": "admin",
+  "password": "test123"
+}
+
+### ============================================
+### 2. AUTH - Validate Token
+### ============================================
+
+GET {{baseUrl}}/Auth/validate
+Authorization: Bearer {{token}}
+
+### ============================================
+### 3. ZGLOSZENIA - Get All (paginated)
+### ============================================
+
+GET {{baseUrl}}/Zgloszenia?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### ============================================
+### 4. ZGLOSZENIA - Get My Zgloszenia
+### ============================================
+
+GET {{baseUrl}}/Zgloszenia/moje?page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### ============================================
+### 5. ZGLOSZENIA - Get by ID
+### ============================================
+
+GET {{baseUrl}}/Zgloszenia/1
+Authorization: Bearer {{token}}
+
+### ============================================
+### 6. ZGLOSZENIA - Create New
+### ============================================
+
+POST {{baseUrl}}/Zgloszenia
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "idKlienta": 1,
+  "idProduktu": 1,
+  "usterka": "Nie działa ekran",
+  "priorytet": "Wysoki",
+  "przypisanyDo": 1
+}
+
+### ============================================
+### 7. ZGLOSZENIA - Update Status
+### ============================================
+
+PATCH {{baseUrl}}/Zgloszenia/1/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "statusOgolny": "W realizacji",
+  "komentarz": "Rozpoczęto diagnostykę"
+}
+
+### ============================================
+### 8. ZGLOSZENIA - Add Notatka
+### ============================================
+
+POST {{baseUrl}}/Zgloszenia/1/notatka
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "opis": "Sprawdzono zasilacz - działa prawidłowo"
+}
+
+### ============================================
+### 9. ZGLOSZENIA - Get Dzialania
+### ============================================
+
+GET {{baseUrl}}/Zgloszenia/1/dzialania
+Authorization: Bearer {{token}}
+
+### ============================================
+### 10. KLIENCI - Get All
+### ============================================
+
+GET {{baseUrl}}/Klienci?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### ============================================
+### 11. KLIENCI - Search
+### ============================================
+
+GET {{baseUrl}}/Klienci/search?query=Nowak
+Authorization: Bearer {{token}}
+
+### ============================================
+### 12. KLIENCI - Get by ID
+### ============================================
+
+GET {{baseUrl}}/Klienci/1
+Authorization: Bearer {{token}}
+
+### ============================================
+### 13. KLIENCI - Create New
+### ============================================
+
+POST {{baseUrl}}/Klienci
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "imieNazwisko": "Jan Testowy",
+  "telefon": "123456789",
+  "email": "jan@test.pl",
+  "adres": "ul. Testowa 1",
+  "kodPocztowy": "00-001",
+  "miasto": "Warszawa"
+}
+
+### ============================================
+### 14. HEALTH CHECK
+### ============================================
+
+GET https://localhost:5001/health
