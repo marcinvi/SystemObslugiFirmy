@@ -391,6 +391,7 @@
     <Compile Include="AllegroSyncManager.cs" />
     <Compile Include="AllegroSyncService.cs" />
     <Compile Include="AppEvents.cs" />
+    <Compile Include="AppPaths.cs" />
     <Compile Include="BackupService.cs" />
     <Compile Include="BaseForm.cs">
       <SubType>Form</SubType>
