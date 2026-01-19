@@ -63,6 +63,21 @@ Otwórz przeglądarkę: `https://localhost:5001/`
 - Swagger UI: `https://localhost:5001/`
 - API endpoint: `https://localhost:5001/api/`
 
+**Adres dla innych urządzeń (telefon/tablet/inna stacja):**
+```
+http://<IP_SERWERA>:5000
+https://<IP_SERWERA>:5001
+```
+
+**Skąd wziąć IP?**
+- Linux/Mac: `hostname -I`
+- Windows: `ipconfig`
+
+Jeśli urządzenia nie widzą API, uruchom z:
+```
+ASPNETCORE_URLS=http://0.0.0.0:5000;https://0.0.0.0:5001
+```
+
 **Dane testowe:**
 - Login: `admin` / Hasło: `test123`
 - Login: `technik` / Hasło: `test123`
