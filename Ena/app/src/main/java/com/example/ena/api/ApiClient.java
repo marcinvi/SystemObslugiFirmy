@@ -1,147 +1,65 @@
-package com.example.ena.api;
+package com.example.ena;
 
 import android.content.Context;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import com.example.ena.PairingManager;
-import java.io.IOException;
-import java.lang.reflect.Type;
-import java.util.List;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import android.content.SharedPreferences;
 
-public class ApiClient {
-    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-    private static final OkHttpClient CLIENT = new OkHttpClient();
-    private static final Gson GSON = new Gson();
+import java.security.SecureRandom;
 
-    public interface ApiCallback<T> {
-        void onSuccess(T data);
+public class PairingManager {
+    private static final String PREFS_NAME = "ena_pairing";
+    private static final String KEY_CODE = "pairing_code";
+    private static final String KEY_PAIRED = "paired";
+    private static final String KEY_USER = "paired_user";
+    private static final SecureRandom RANDOM = new SecureRandom();
 
-        void onError(String message);
+    private PairingManager() {
     }
 
-    private final Context context;
-
-    public ApiClient(Context context) {
-        this.context = context.getApplicationContext();
-    }
-
-    private String buildUrl(String path) {
-        String base = ApiConfig.getBaseUrl(context);
-        if (base == null || base.isEmpty()) {
-            return null;
+    public static String getOrCreateCode(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String code = prefs.getString(KEY_CODE, null);
+        if (code == null || code.isEmpty()) {
+            code = generateCode();
+            prefs.edit().putString(KEY_CODE, code).apply();
         }
-        if (base.endsWith("/")) {
-            base = base.substring(0, base.length() - 1);
+        return code;
+    }
+
+    public static boolean isPaired(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getBoolean(KEY_PAIRED, false);
+    }
+
+    public static void setPaired(Context context, boolean paired) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putBoolean(KEY_PAIRED, paired).apply();
+    }
+
+    public static void setPairedUser(Context context, String userName) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putString(KEY_USER, userName == null ? "" : userName.trim()).apply();
+    }
+
+    public static String getPairedUser(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getString(KEY_USER, "");
+    }
+
+    public static boolean verifyCode(Context context, String code) {
+        if (code == null) {
+            return false;
         }
-        if (!path.startsWith("/")) {
-            path = "/" + path;
-        }
-        return base + path;
+        String expected = getOrCreateCode(context);
+        return expected.equals(code.trim());
     }
 
-    private <T> void get(String path, Type type, ApiCallback<T> callback) {
-        String url = buildUrl(path);
-        if (url == null) {
-            callback.onError("Brak adresu API. Ustaw go w Ustawieniach.");
-            return;
-        }
-        Request request = buildRequest(url).get().build();
-        CLIENT.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError(e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (!response.isSuccessful()) {
-                    callback.onError("HTTP " + response.code());
-                    return;
-                }
-                String body = response.body() != null ? response.body().string() : "";
-                T data = GSON.fromJson(body, type);
-                callback.onSuccess(data);
-            }
-        });
+    public static void reset(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().remove(KEY_PAIRED).remove(KEY_CODE).remove(KEY_USER).apply();
     }
 
-    private void sendJson(String path, Object payload, String method, ApiCallback<Void> callback) {
-        String url = buildUrl(path);
-        if (url == null) {
-            callback.onError("Brak adresu API. Ustaw go w Ustawieniach.");
-            return;
-        }
-        String json = GSON.toJson(payload);
-        RequestBody body = RequestBody.create(json, JSON);
-        Request request = buildRequest(url).method(method, body).build();
-        CLIENT.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError(e.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) {
-                if (!response.isSuccessful()) {
-                    callback.onError("HTTP " + response.code());
-                    return;
-                }
-                callback.onSuccess(null);
-            }
-        });
-    }
-
-    private Request.Builder buildRequest(String url) {
-        Request.Builder builder = new Request.Builder().url(url);
-        String user = PairingManager.getPairedUser(context);
-        if (user != null && !user.isEmpty()) {
-            builder.addHeader("X-User", user);
-        }
-        return builder;
-    }
-
-    public void fetchReturns(String query, ApiCallback<List<ReturnListItem>> callback) {
-        Type type = new TypeToken<List<ReturnListItem>>() {
-        }.getType();
-        get("api/returns" + query, type, callback);
-    }
-
-    public void fetchAssignedReturns(String query, ApiCallback<List<ReturnListItem>> callback) {
-        Type type = new TypeToken<List<ReturnListItem>>() {
-        }.getType();
-        get("api/returns/assigned" + query, type, callback);
-    }
-
-    public void fetchReturnDetails(int id, ApiCallback<ReturnDetails> callback) {
-        Type type = new TypeToken<ReturnDetails>() {
-        }.getType();
-        get("api/returns/" + id, type, callback);
-    }
-
-    public void submitWarehouseUpdate(int id, ReturnWarehouseUpdateRequest payload, ApiCallback<Void> callback) {
-        sendJson("api/returns/" + id + "/warehouse", payload, "PATCH", callback);
-    }
-
-    public void submitDecision(int id, ReturnDecisionRequest payload, ApiCallback<Void> callback) {
-        sendJson("api/returns/" + id + "/decision", payload, "PATCH", callback);
-    }
-
-    public void fetchSummary(ApiCallback<ReturnSummaryResponse> callback) {
-        Type type = new TypeToken<ReturnSummaryResponse>() {
-        }.getType();
-        get("api/returns/summary", type, callback);
-    }
-
-    public void fetchMessages(ApiCallback<List<MessageDto>> callback) {
-        Type type = new TypeToken<List<MessageDto>>() {
-        }.getType();
-        get("api/messages", type, callback);
+    private static String generateCode() {
+        int value = 100000 + RANDOM.nextInt(900000);
+        return String.valueOf(value);
     }
 }
