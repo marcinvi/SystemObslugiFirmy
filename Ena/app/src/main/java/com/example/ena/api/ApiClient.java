@@ -34,6 +34,10 @@ public class ApiClient {
 
     private String buildUrl(String path) {
         String base = ApiConfig.getBaseUrl(context);
+        return buildUrlWithBase(base, path);
+    }
+
+    private String buildUrlWithBase(String base, String path) {
         if (base == null || base.isEmpty()) {
             return null;
         }
@@ -56,7 +60,7 @@ public class ApiClient {
         CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                callback.onError(e.getMessage());
+                retryGetWithFallback(path, type, callback, e);
             }
 
             @Override
@@ -72,10 +76,11 @@ public class ApiClient {
         });
     }
 
-    private void sendJson(String path, Object payload, String method, ApiCallback<Void> callback) {
-        String url = buildUrl(path);
-        if (url == null) {
-            callback.onError("Brak adresu API. Ustaw go w Ustawieniach.");
+    private <T> void retryGetWithFallback(String path, Type type, ApiCallback<T> callback, IOException originalError) {
+        String fallback = ApiConfig.getFallbackBaseUrl(context);
+        String fallbackUrl = buildUrlWithBase(fallback, path);
+        if (fallbackUrl == null) {
+            callback.onError(originalError.getMessage());
             return;
         }
         String json = GSON.toJson(payload);
@@ -84,7 +89,7 @@ public class ApiClient {
         CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                callback.onError(e.getMessage());
+                retrySendWithFallback(path, method, body, callback, e);
             }
 
             @Override
@@ -93,6 +98,32 @@ public class ApiClient {
                     callback.onError("HTTP " + response.code());
                     return;
                 }
+                callback.onSuccess(null);
+            }
+        });
+    }
+
+    private void retrySendWithFallback(String path, String method, RequestBody body, ApiCallback<Void> callback, IOException originalError) {
+        String fallback = ApiConfig.getFallbackBaseUrl(context);
+        String fallbackUrl = buildUrlWithBase(fallback, path);
+        if (fallbackUrl == null) {
+            callback.onError(originalError.getMessage());
+            return;
+        }
+        Request fallbackRequest = buildRequest(fallbackUrl).method(method, body).build();
+        CLIENT.newCall(fallbackRequest).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callback.onError(originalError.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                if (!response.isSuccessful()) {
+                    callback.onError("HTTP " + response.code());
+                    return;
+                }
+                ApiConfig.setBaseUrl(context, fallback);
                 callback.onSuccess(null);
             }
         });
