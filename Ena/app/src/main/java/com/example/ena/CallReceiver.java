@@ -13,11 +13,13 @@ public class CallReceiver extends BroadcastReceiver {
             String incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER);
 
             if (TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
-                MainActivity.czyDzwoniTeraz = true;
-                if (incomingNumber != null) MainActivity.numerDzwoniacy = incomingNumber;
+                GlobalState.isRinging = true;
+                if (incomingNumber != null) {
+                    GlobalState.incomingNumber = incomingNumber;
+                }
             } else if (TelephonyManager.EXTRA_STATE_IDLE.equals(state)) {
-                MainActivity.czyDzwoniTeraz = false;
-                MainActivity.numerDzwoniacy = "";
+                GlobalState.isRinging = false;
+                GlobalState.incomingNumber = "";
             }
         }
     }
