@@ -94,6 +94,8 @@ builder.Services.AddCors(options =>
 // Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IZgloszeniaService, ZgloszeniaService>();
+builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IDzialanieService, DzialanieService>();
 
 var app = builder.Build();
 
