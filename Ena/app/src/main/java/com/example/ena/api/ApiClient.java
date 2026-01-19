@@ -1,0 +1,137 @@
+package com.example.ena.api;
+
+import android.content.Context;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.List;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+public class ApiClient {
+    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    private static final OkHttpClient CLIENT = new OkHttpClient();
+    private static final Gson GSON = new Gson();
+
+    public interface ApiCallback<T> {
+        void onSuccess(T data);
+
+        void onError(String message);
+    }
+
+    private final Context context;
+
+    public ApiClient(Context context) {
+        this.context = context.getApplicationContext();
+    }
+
+    private String buildUrl(String path) {
+        String base = ApiConfig.getBaseUrl(context);
+        if (base == null || base.isEmpty()) {
+            return null;
+        }
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        if (!path.startsWith("/")) {
+            path = "/" + path;
+        }
+        return base + path;
+    }
+
+    private <T> void get(String path, Type type, ApiCallback<T> callback) {
+        String url = buildUrl(path);
+        if (url == null) {
+            callback.onError("Brak adresu API. Ustaw go w Ustawieniach.");
+            return;
+        }
+        Request request = new Request.Builder().url(url).get().build();
+        CLIENT.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callback.onError(e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    callback.onError("HTTP " + response.code());
+                    return;
+                }
+                String body = response.body() != null ? response.body().string() : "";
+                T data = GSON.fromJson(body, type);
+                callback.onSuccess(data);
+            }
+        });
+    }
+
+    private void sendJson(String path, Object payload, String method, ApiCallback<Void> callback) {
+        String url = buildUrl(path);
+        if (url == null) {
+            callback.onError("Brak adresu API. Ustaw go w Ustawieniach.");
+            return;
+        }
+        String json = GSON.toJson(payload);
+        RequestBody body = RequestBody.create(json, JSON);
+        Request request = new Request.Builder().url(url).method(method, body).build();
+        CLIENT.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callback.onError(e.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                if (!response.isSuccessful()) {
+                    callback.onError("HTTP " + response.code());
+                    return;
+                }
+                callback.onSuccess(null);
+            }
+        });
+    }
+
+    public void fetchReturns(String query, ApiCallback<List<ReturnListItem>> callback) {
+        Type type = new TypeToken<List<ReturnListItem>>() {
+        }.getType();
+        get("api/returns" + query, type, callback);
+    }
+
+    public void fetchAssignedReturns(String query, ApiCallback<List<ReturnListItem>> callback) {
+        Type type = new TypeToken<List<ReturnListItem>>() {
+        }.getType();
+        get("api/returns/assigned" + query, type, callback);
+    }
+
+    public void fetchReturnDetails(int id, ApiCallback<ReturnDetails> callback) {
+        Type type = new TypeToken<ReturnDetails>() {
+        }.getType();
+        get("api/returns/" + id, type, callback);
+    }
+
+    public void submitWarehouseUpdate(int id, ReturnWarehouseUpdateRequest payload, ApiCallback<Void> callback) {
+        sendJson("api/returns/" + id + "/warehouse", payload, "PATCH", callback);
+    }
+
+    public void submitDecision(int id, ReturnDecisionRequest payload, ApiCallback<Void> callback) {
+        sendJson("api/returns/" + id + "/decision", payload, "PATCH", callback);
+    }
+
+    public void fetchSummary(ApiCallback<ReturnSummaryResponse> callback) {
+        Type type = new TypeToken<ReturnSummaryResponse>() {
+        }.getType();
+        get("api/returns/summary", type, callback);
+    }
+
+    public void fetchMessages(ApiCallback<List<MessageDto>> callback) {
+        Type type = new TypeToken<List<MessageDto>>() {
+        }.getType();
+        get("api/messages", type, callback);
+    }
+}
