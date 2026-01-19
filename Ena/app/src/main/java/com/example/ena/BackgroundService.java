@@ -110,6 +110,27 @@ public class BackgroundService extends Service {
         public Response serve(IHTTPSession session) {
             String uri = session.getUri();
             Map<String, String> parms = session.getParms();
+            String pairingCode = PairingManager.getOrCreateCode(getApplicationContext());
+
+            if (uri.equals("/pair/status")) {
+                PairingStatus status = new PairingStatus(PairingManager.isPaired(getApplicationContext()));
+                return newFixedLengthResponse(Response.Status.OK, "application/json", new Gson().toJson(status));
+            }
+
+            if (uri.equals("/pair")) {
+                String code = parms.get("code");
+                if (PairingManager.verifyCode(getApplicationContext(), code)) {
+                    PairingManager.setPaired(getApplicationContext(), true);
+                    PairingStatus status = new PairingStatus(true);
+                    return newFixedLengthResponse(Response.Status.OK, "application/json", new Gson().toJson(status));
+                }
+                return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain", "Niepoprawny kod parowania");
+            }
+
+            if (!PairingManager.isPaired(getApplicationContext())) {
+                return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain",
+                        "Telefon nie jest sparowany. Kod: " + pairingCode);
+            }
 
             // 1. Sprawdzanie stanu dzwonienia
             if (uri.equals("/stan")) {
@@ -144,6 +165,23 @@ public class BackgroundService extends Service {
                     return newFixedLengthResponse(Response.Status.OK, "text/plain", "OK");
                 } catch (Exception e) {
                     return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Błąd Androida: " + e.getMessage());
+                }
+            }
+
+            // 4. Wykonanie połączenia telefonicznego (/call?number=...)
+            if (uri.equals("/call")) {
+                String numer = parms.get("number");
+                if (numer == null || numer.isEmpty()) {
+                    return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Brak numeru");
+                }
+                try {
+                    Intent callIntent = new Intent(Intent.ACTION_CALL);
+                    callIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    callIntent.setData(android.net.Uri.parse("tel:" + numer));
+                    getApplicationContext().startActivity(callIntent);
+                    return newFixedLengthResponse(Response.Status.OK, "text/plain", "OK");
+                } catch (Exception e) {
+                    return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Błąd połączenia: " + e.getMessage());
                 }
             }
 
@@ -192,6 +230,13 @@ public class BackgroundService extends Service {
         StatusData(boolean d, String n) {
             this.dzwoni = d;
             this.numer = n;
+        }
+    }
+
+    static class PairingStatus {
+        boolean paired;
+        PairingStatus(boolean paired) {
+            this.paired = paired;
         }
     }
 }
