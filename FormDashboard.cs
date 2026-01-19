@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.VisualBasic;
 
 namespace Reklamacje_Dane
 {
@@ -119,6 +120,46 @@ namespace Reklamacje_Dane
             if (string.IsNullOrWhiteSpace(ip) || ip.Contains("XXX")) return;
 
             _phoneClient = new PhoneClient(ip);
+
+            var pairStatus = await _phoneClient.CheckPairStatusAsync();
+            if (pairStatus == null)
+            {
+                if (!quiet)
+                {
+                    btnConnectPhone.BackColor = Color.Red;
+                    btnConnectPhone.Text = "Błąd";
+                    MessageBox.Show("Nie można połączyć się z telefonem. Sprawdź IP i sieć Wi-Fi.", "Brak połączenia z telefonem", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                return;
+            }
+
+            if (!pairStatus.paired)
+            {
+                if (quiet)
+                {
+                    return;
+                }
+
+                string code = Interaction.InputBox(
+                    "Wpisz kod parowania z aplikacji ENA na telefonie.\nKod jest widoczny na ekranie głównym telefonu.",
+                    "Parowanie telefonu",
+                    "");
+
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    MessageBox.Show("Parowanie anulowane. Wpisz kod parowania, aby połączyć aplikacje.", "Parowanie", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                bool paired = await _phoneClient.PairAsync(code.Trim());
+                if (!paired)
+                {
+                    btnConnectPhone.BackColor = Color.Red;
+                    btnConnectPhone.Text = "Błąd";
+                    MessageBox.Show("Nieprawidłowy kod parowania. Sprawdź kod na telefonie i spróbuj ponownie.", "Błąd parowania", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
 
             // Test połączenia (Endpoint /stan)
             var status = await _phoneClient.CheckCallStatus();

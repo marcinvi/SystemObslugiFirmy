@@ -21,6 +21,23 @@
         android:text="API: brak konfiguracji"
         android:textSize="14sp" />
 
+    <TextView
+        android:id="@+id/txtPhoneIp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Telefon IP: -"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/txtPairCode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Kod parowania: -"
+        android:textStyle="bold"
+        android:textSize="16sp" />
+
     <Button
         android:id="@+id/btnWarehouse"
         android:layout_width="match_parent"
