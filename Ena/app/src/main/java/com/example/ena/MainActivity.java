@@ -26,7 +26,6 @@ public class MainActivity extends AppCompatActivity {
         TextView txtBaseUrl = findViewById(R.id.txtBaseUrl);
         TextView txtPhoneIp = findViewById(R.id.txtPhoneIp);
         TextView txtPairCode = findViewById(R.id.txtPairCode);
-        TextView txtPairedUser = findViewById(R.id.txtPairedUser);
         Button btnWarehouse = findViewById(R.id.btnWarehouse);
         Button btnSales = findViewById(R.id.btnSales);
         Button btnSummary = findViewById(R.id.btnSummary);
@@ -34,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnSettings = findViewById(R.id.btnSettings);
 
         updateBaseUrlLabel(txtBaseUrl);
-        updatePhoneInfo(txtPhoneIp, txtPairCode, txtPairedUser);
+        updatePhoneInfo(txtPhoneIp, txtPairCode);
         startBackgroundServer();
         requestRuntimePermissions();
 
@@ -51,9 +50,8 @@ public class MainActivity extends AppCompatActivity {
         TextView txtBaseUrl = findViewById(R.id.txtBaseUrl);
         TextView txtPhoneIp = findViewById(R.id.txtPhoneIp);
         TextView txtPairCode = findViewById(R.id.txtPairCode);
-        TextView txtPairedUser = findViewById(R.id.txtPairedUser);
         updateBaseUrlLabel(txtBaseUrl);
-        updatePhoneInfo(txtPhoneIp, txtPairCode, txtPairedUser);
+        updatePhoneInfo(txtPhoneIp, txtPairCode);
     }
 
     private void updateBaseUrlLabel(TextView label) {
@@ -65,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updatePhoneInfo(TextView ipLabel, TextView codeLabel, TextView userLabel) {
+    private void updatePhoneInfo(TextView ipLabel, TextView codeLabel) {
         String ip = NetworkUtils.getIPAddress(true);
         if (ip == null || ip.isEmpty()) {
             ip = "brak IP";
@@ -73,12 +71,6 @@ public class MainActivity extends AppCompatActivity {
         ipLabel.setText("Telefon IP: " + ip + ":8080");
         String code = PairingManager.getOrCreateCode(this);
         codeLabel.setText("Kod parowania: " + code);
-        String user = PairingManager.getPairedUser(this);
-        if (user == null || user.isEmpty()) {
-            userLabel.setText("Użytkownik: nie sparowano");
-        } else {
-            userLabel.setText("Użytkownik: " + user);
-        }
     }
 
     private void startBackgroundServer() {

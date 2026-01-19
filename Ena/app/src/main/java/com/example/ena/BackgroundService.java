@@ -114,11 +114,7 @@ public class BackgroundService extends Service {
             String pairingCode = PairingManager.getOrCreateCode(getApplicationContext());
 
             if (uri.equals("/pair/status")) {
-                PairingStatus status = new PairingStatus(
-                        PairingManager.isPaired(getApplicationContext()),
-                        PairingManager.getPairedUser(getApplicationContext()),
-                        ApiConfig.getBaseUrl(getApplicationContext())
-                );
+                PairingStatus status = new PairingStatus(PairingManager.isPaired(getApplicationContext()));
                 return newFixedLengthResponse(Response.Status.OK, "application/json", new Gson().toJson(status));
             }
 
@@ -126,35 +122,10 @@ public class BackgroundService extends Service {
                 String code = parms.get("code");
                 if (PairingManager.verifyCode(getApplicationContext(), code)) {
                     PairingManager.setPaired(getApplicationContext(), true);
-                    PairingStatus status = new PairingStatus(
-                            true,
-                            PairingManager.getPairedUser(getApplicationContext()),
-                            ApiConfig.getBaseUrl(getApplicationContext())
-                    );
+                    PairingStatus status = new PairingStatus(true);
                     return newFixedLengthResponse(Response.Status.OK, "application/json", new Gson().toJson(status));
                 }
                 return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain", "Niepoprawny kod parowania");
-            }
-
-            if (uri.equals("/pair/config")) {
-                String code = parms.get("code");
-                String apiBaseUrl = parms.get("apiBaseUrl");
-                String userName = parms.get("user");
-                if (!PairingManager.verifyCode(getApplicationContext(), code)) {
-                    return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain", "Niepoprawny kod parowania");
-                }
-                if (apiBaseUrl == null || apiBaseUrl.trim().isEmpty()) {
-                    return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Brak apiBaseUrl");
-                }
-                ApiConfig.setBaseUrl(getApplicationContext(), apiBaseUrl);
-                PairingManager.setPairedUser(getApplicationContext(), userName);
-                PairingManager.setPaired(getApplicationContext(), true);
-                PairingStatus status = new PairingStatus(
-                        true,
-                        PairingManager.getPairedUser(getApplicationContext()),
-                        ApiConfig.getBaseUrl(getApplicationContext())
-                );
-                return newFixedLengthResponse(Response.Status.OK, "application/json", new Gson().toJson(status));
             }
 
             if (!PairingManager.isPaired(getApplicationContext())) {
@@ -265,12 +236,8 @@ public class BackgroundService extends Service {
 
     static class PairingStatus {
         boolean paired;
-        String user;
-        String apiBaseUrl;
-        PairingStatus(boolean paired, String user, String apiBaseUrl) {
+        PairingStatus(boolean paired) {
             this.paired = paired;
-            this.user = user;
-            this.apiBaseUrl = apiBaseUrl;
         }
     }
 }
