@@ -9,7 +9,6 @@ public class PairingManager {
     private static final String PREFS_NAME = "ena_pairing";
     private static final String KEY_CODE = "pairing_code";
     private static final String KEY_PAIRED = "paired";
-    private static final String KEY_USER = "paired_user";
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private PairingManager() {
@@ -35,16 +34,6 @@ public class PairingManager {
         prefs.edit().putBoolean(KEY_PAIRED, paired).apply();
     }
 
-    public static void setPairedUser(Context context, String userName) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        prefs.edit().putString(KEY_USER, userName == null ? "" : userName.trim()).apply();
-    }
-
-    public static String getPairedUser(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        return prefs.getString(KEY_USER, "");
-    }
-
     public static boolean verifyCode(Context context, String code) {
         if (code == null) {
             return false;
@@ -55,7 +44,7 @@ public class PairingManager {
 
     public static void reset(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        prefs.edit().remove(KEY_PAIRED).remove(KEY_CODE).remove(KEY_USER).apply();
+        prefs.edit().remove(KEY_PAIRED).remove(KEY_CODE).apply();
     }
 
     private static String generateCode() {
