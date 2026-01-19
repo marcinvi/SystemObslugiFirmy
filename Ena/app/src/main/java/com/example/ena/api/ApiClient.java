@@ -3,6 +3,7 @@ package com.example.ena.api;
 import android.content.Context;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.example.ena.PairingManager;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -51,7 +52,7 @@ public class ApiClient {
             callback.onError("Brak adresu API. Ustaw go w Ustawieniach.");
             return;
         }
-        Request request = new Request.Builder().url(url).get().build();
+        Request request = buildRequest(url).get().build();
         CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -79,7 +80,7 @@ public class ApiClient {
         }
         String json = GSON.toJson(payload);
         RequestBody body = RequestBody.create(json, JSON);
-        Request request = new Request.Builder().url(url).method(method, body).build();
+        Request request = buildRequest(url).method(method, body).build();
         CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -95,6 +96,15 @@ public class ApiClient {
                 callback.onSuccess(null);
             }
         });
+    }
+
+    private Request.Builder buildRequest(String url) {
+        Request.Builder builder = new Request.Builder().url(url);
+        String user = PairingManager.getPairedUser(context);
+        if (user != null && !user.isEmpty()) {
+            builder.addHeader("X-User", user);
+        }
+        return builder;
     }
 
     public void fetchReturns(String query, ApiCallback<List<ReturnListItem>> callback) {
