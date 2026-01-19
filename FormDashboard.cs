@@ -7,6 +7,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.VisualBasic;
+using System.Configuration;
+using System.Net;
+using System.Net.Sockets;
 
 namespace Reklamacje_Dane
 {
@@ -133,6 +136,7 @@ namespace Reklamacje_Dane
                 return;
             }
 
+            string pairingCode = null;
             if (!pairStatus.paired)
             {
                 if (quiet)
@@ -157,6 +161,39 @@ namespace Reklamacje_Dane
                     btnConnectPhone.BackColor = Color.Red;
                     btnConnectPhone.Text = "Błąd";
                     MessageBox.Show("Nieprawidłowy kod parowania. Sprawdź kod na telefonie i spróbuj ponownie.", "Błąd parowania", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                pairingCode = code.Trim();
+            }
+            else if (string.IsNullOrWhiteSpace(pairStatus.user) || string.IsNullOrWhiteSpace(pairStatus.apiBaseUrl))
+            {
+                if (quiet)
+                {
+                    return;
+                }
+
+                string code = Interaction.InputBox(
+                    "Telefon jest sparowany, ale brakuje konfiguracji API.\nPodaj kod parowania z telefonu, aby zsynchronizować ustawienia.",
+                    "Synchronizacja konfiguracji",
+                    "");
+
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    MessageBox.Show("Synchronizacja anulowana. Bez konfiguracji API moduły zwrotów na telefonie nie zadziałają.", "Synchronizacja", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                pairingCode = code.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(pairingCode))
+            {
+                string apiBaseUrl = ResolveApiBaseUrl();
+                bool configured = await _phoneClient.ConfigureAsync(pairingCode, apiBaseUrl, _fullName);
+                if (!configured)
+                {
+                    MessageBox.Show("Nie udało się przesłać konfiguracji API do telefonu. Sprawdź dostępność API i spróbuj ponownie.", "Błąd konfiguracji", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
             }
@@ -199,7 +236,7 @@ namespace Reklamacje_Dane
 
         private static string ResolveApiBaseUrl()
         {
-            string baseUrl = ConfigurationManager.AppSettings["ReklamacjeApiBaseUrl"];
+            string baseUrl = global::System.Configuration.ConfigurationManager.AppSettings["ReklamacjeApiBaseUrl"];
             if (string.IsNullOrWhiteSpace(baseUrl))
             {
                 baseUrl = "http://localhost:5000";
@@ -228,8 +265,10 @@ namespace Reklamacje_Dane
         {
             try
             {
-                var host = Dns.GetHostEntry(Dns.GetHostName());
-                var address = host.AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
+                var host = global::System.Net.Dns.GetHostEntry(global::System.Net.Dns.GetHostName());
+                var address = host.AddressList.FirstOrDefault(a =>
+                    a.AddressFamily == global::System.Net.Sockets.AddressFamily.InterNetwork &&
+                    !global::System.Net.IPAddress.IsLoopback(a));
                 return address?.ToString();
             }
             catch
@@ -285,7 +324,7 @@ namespace Reklamacje_Dane
                 _lastCallerNumber = "";
                 _userClosedCallPopup = false;
             }
-            
+
             // 2. Sprawdzanie nowych SMS-ów
             var smsy = await _phoneClient.CheckNewSms();
             if (smsy != null && smsy.Count > 0)
