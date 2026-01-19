@@ -197,6 +197,47 @@ namespace Reklamacje_Dane
             });
         }
 
+        private static string ResolveApiBaseUrl()
+        {
+            string baseUrl = ConfigurationManager.AppSettings["ReklamacjeApiBaseUrl"];
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                baseUrl = "http://localhost:5000";
+            }
+
+            string localIp = GetLocalIpv4Address();
+            if (string.IsNullOrWhiteSpace(localIp))
+            {
+                return baseUrl;
+            }
+
+            if (baseUrl.Contains("localhost"))
+            {
+                return baseUrl.Replace("localhost", localIp);
+            }
+
+            if (baseUrl.Contains("127.0.0.1"))
+            {
+                return baseUrl.Replace("127.0.0.1", localIp);
+            }
+
+            return baseUrl;
+        }
+
+        private static string GetLocalIpv4Address()
+        {
+            try
+            {
+                var host = Dns.GetHostEntry(Dns.GetHostName());
+                var address = host.AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
+                return address?.ToString();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private async void TimerPhone_Tick(object sender, EventArgs e)
         {
             if (_phoneClient == null) return;
