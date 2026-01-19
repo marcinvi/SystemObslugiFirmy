@@ -13,9 +13,9 @@ public interface IDzialanieService
 
 public class DzialanieService : IDzialanieService
 {
-    private readonly ReklamacjeDbContext _context;
+    private readonly ApplicationDbContext _context;
 
-    public DzialanieService(ReklamacjeDbContext context)
+    public DzialanieService(ApplicationDbContext context)
     {
         _context = context;
     }
@@ -23,25 +23,27 @@ public class DzialanieService : IDzialanieService
     public async Task<List<DzialanieDto>> GetDzialaniaByZgloszenieAsync(int zgloszenieId)
     {
         var dzialania = await _context.Dzialania
-            .Include(d => d.Uzytkownik)
+            .Include(d => d.User)
             .Where(d => d.IdZgloszenia == zgloszenieId)
             .OrderByDescending(d => d.DataDzialania)
             .ToListAsync();
 
         return dzialania.Select(d => new DzialanieDto
         {
-            IdDzialania = d.IdDzialania,
-            IdZgloszenia = d.IdZgloszenia,
+            Id = d.Id,
             TypDzialania = d.TypDzialania,
             Opis = d.Opis,
-            StaryStatus = d.StaryStatus,
-            NowyStatus = d.NowyStatus,
+            StatusPoprzedni = d.StatusPoprzedni,
+            StatusNowy = d.StatusNowy,
             DataDzialania = d.DataDzialania,
-            Uzytkownik = d.Uzytkownik != null ? new UserMinimalDto
+            User = d.User != null ? new UserDto
             {
-                IdUzytkownika = d.Uzytkownik.IdUzytkownika,
-                NazwaWyswietlana = d.Uzytkownik.NazwaWyswietlana
-            } : null
+                Id = d.User.Id,
+                Login = d.User.Login,
+                NazwaWyswietlana = d.User.DisplayName,
+                Email = d.User.Email,
+                Aktywny = d.User.IsActive
+            } : null!
         }).ToList();
     }
 
@@ -70,20 +72,24 @@ public class DzialanieService : IDzialanieService
 
         // Reload with user
         dzialanie = await _context.Dzialania
-            .Include(d => d.Uzytkownik)
-            .FirstAsync(d => d.IdDzialania == dzialanie.IdDzialania);
+            .Include(d => d.User)
+            .FirstAsync(d => d.Id == dzialanie.Id);
 
         return new DzialanieDto
         {
-            IdDzialania = dzialanie.IdDzialania,
-            IdZgloszenia = dzialanie.IdZgloszenia,
+            Id = dzialanie.Id,
             TypDzialania = dzialanie.TypDzialania,
             Opis = dzialanie.Opis,
             DataDzialania = dzialanie.DataDzialania,
-            Uzytkownik = new UserMinimalDto
+            StatusPoprzedni = dzialanie.StatusPoprzedni,
+            StatusNowy = dzialanie.StatusNowy,
+            User = new UserDto
             {
-                IdUzytkownika = dzialanie.Uzytkownik!.IdUzytkownika,
-                NazwaWyswietlana = dzialanie.Uzytkownik.NazwaWyswietlana
+                Id = dzialanie.User.Id,
+                Login = dzialanie.User.Login,
+                NazwaWyswietlana = dzialanie.User.DisplayName,
+                Email = dzialanie.User.Email,
+                Aktywny = dzialanie.User.IsActive
             }
         };
     }

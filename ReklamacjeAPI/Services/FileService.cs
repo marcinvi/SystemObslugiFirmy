@@ -15,10 +15,10 @@ public interface IFileService
 
 public class FileService : IFileService
 {
-    private readonly ReklamacjeDbContext _context;
+    private readonly ApplicationDbContext _context;
     private readonly string _uploadPath;
 
-    public FileService(ReklamacjeDbContext context, IWebHostEnvironment environment)
+    public FileService(ApplicationDbContext context, IWebHostEnvironment environment)
     {
         _context = context;
         _uploadPath = Path.Combine(environment.ContentRootPath, "uploads");
@@ -33,6 +33,11 @@ public class FileService : IFileService
     public async Task<FileUploadResponse> UploadFileAsync(
         IFormFile file, int? zgloszenieId, int userId)
     {
+        if (zgloszenieId == null)
+        {
+            throw new Exception("Brak powiązanego zgłoszenia");
+        }
+
         // Validate file
         if (file.Length == 0)
             throw new Exception("Plik jest pusty");
@@ -58,13 +63,12 @@ public class FileService : IFileService
         // Save to database
         var plik = new Plik
         {
-            IdZgloszenia = zgloszenieId,
+            IdZgloszenia = zgloszenieId.Value,
             NazwaPliku = fileName,
-            NazwaOryginalnaPliku = file.FileName,
             SciezkaPliku = filePath,
             TypPliku = file.ContentType,
             RozmiarPliku = file.Length,
-            IdUzytkownikaDodal = userId,
+            DodanyPrzez = userId,
             DataDodania = DateTime.Now
         };
 
@@ -73,9 +77,9 @@ public class FileService : IFileService
 
         return new FileUploadResponse
         {
-            IdPliku = plik.IdPliku,
+            Id = plik.Id,
             NazwaPliku = plik.NazwaPliku,
-            Url = $"/api/files/{plik.IdPliku}"
+            Url = $"/api/files/{plik.Id}"
         };
     }
 
@@ -87,24 +91,25 @@ public class FileService : IFileService
     public async Task<List<PlikDto>> GetFilesByZgloszenieAsync(int zgloszenieId)
     {
         var pliki = await _context.Pliki
-            .Include(p => p.UzytkownikDodal)
+            .Include(p => p.UploadedBy)
             .Where(p => p.IdZgloszenia == zgloszenieId)
             .OrderByDescending(p => p.DataDodania)
             .ToListAsync();
 
         return pliki.Select(p => new PlikDto
         {
-            IdPliku = p.IdPliku,
-            IdZgloszenia = p.IdZgloszenia,
+            Id = p.Id,
             NazwaPliku = p.NazwaPliku,
-            NazwaOryginalnaPliku = p.NazwaOryginalnaPliku,
             TypPliku = p.TypPliku,
             RozmiarPliku = p.RozmiarPliku,
             DataDodania = p.DataDodania,
-            UzytkownikDodal = p.UzytkownikDodal != null ? new UserMinimalDto
+            DodanyPrzez = p.UploadedBy != null ? new UserDto
             {
-                IdUzytkownika = p.UzytkownikDodal.IdUzytkownika,
-                NazwaWyswietlana = p.UzytkownikDodal.NazwaWyswietlana
+                Id = p.UploadedBy.Id,
+                Login = p.UploadedBy.Login,
+                NazwaWyswietlana = p.UploadedBy.DisplayName,
+                Email = p.UploadedBy.Email,
+                Aktywny = p.UploadedBy.IsActive
             } : null
         }).ToList();
     }

@@ -10,8 +10,7 @@ public class ReklamacjeDbContext : DbContext
     {
     }
 
-    // DbSets
-    public DbSet<Uzytkownik> Uzytkownicy { get; set; }
+    public DbSet<User> Users { get; set; }
     public DbSet<Klient> Klienci { get; set; }
     public DbSet<Produkt> Produkty { get; set; }
     public DbSet<Zgloszenie> Zgloszenia { get; set; }
@@ -22,21 +21,21 @@ public class ReklamacjeDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Uzytkownik
-        modelBuilder.Entity<Uzytkownik>(entity =>
+        modelBuilder.Entity<User>(entity =>
         {
             entity.ToTable("Uzytkownicy");
-            entity.HasKey(e => e.IdUzytkownika);
+            entity.HasKey(e => e.Id);
             entity.Property(e => e.Login).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.Haslo).IsRequired();
-            entity.Property(e => e.NazwaWyswietlana).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.PasswordHash).IsRequired();
+            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Email).HasMaxLength(100);
         });
 
         // Klient
         modelBuilder.Entity<Klient>(entity =>
         {
             entity.ToTable("Klienci");
-            entity.HasKey(e => e.IdKlienta);
+            entity.HasKey(e => e.Id);
             entity.Property(e => e.ImieNazwisko).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Email).HasMaxLength(100);
             entity.Property(e => e.Telefon).HasMaxLength(20);
@@ -46,7 +45,7 @@ public class ReklamacjeDbContext : DbContext
         modelBuilder.Entity<Produkt>(entity =>
         {
             entity.ToTable("Produkty");
-            entity.HasKey(e => e.IdProduktu);
+            entity.HasKey(e => e.Id);
             entity.Property(e => e.Nazwa).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Producent).HasMaxLength(100);
             entity.Property(e => e.Model).HasMaxLength(100);
@@ -56,28 +55,23 @@ public class ReklamacjeDbContext : DbContext
         modelBuilder.Entity<Zgloszenie>(entity =>
         {
             entity.ToTable("Zgloszenia");
-            entity.HasKey(e => e.IdZgloszenia);
+            entity.HasKey(e => e.Id);
             entity.Property(e => e.NrZgloszenia).IsRequired().HasMaxLength(50);
 
             // Relationships
             entity.HasOne(e => e.Klient)
                 .WithMany(k => k.Zgloszenia)
                 .HasForeignKey(e => e.IdKlienta)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.Produkt)
                 .WithMany(p => p.Zgloszenia)
                 .HasForeignKey(e => e.IdProduktu)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            entity.HasOne(e => e.UzytkownikStworzyl)
-                .WithMany(u => u.ZgloszeniaStworzone)
-                .HasForeignKey(e => e.IdUzytkownikaStworzyl)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            entity.HasOne(e => e.UzytkownikPrzypisany)
-                .WithMany(u => u.ZgloszeniaPrzypisane)
-                .HasForeignKey(e => e.IdUzytkownikaPrzypisany)
+            entity.HasOne(e => e.AssignedUser)
+                .WithMany(u => u.AssignedZgloszenia)
+                .HasForeignKey(e => e.PrzypisanyDo)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -85,24 +79,24 @@ public class ReklamacjeDbContext : DbContext
         modelBuilder.Entity<Dzialanie>(entity =>
         {
             entity.ToTable("Dzialania");
-            entity.HasKey(e => e.IdDzialania);
+            entity.HasKey(e => e.Id);
 
             entity.HasOne(e => e.Zgloszenie)
                 .WithMany(z => z.Dzialania)
                 .HasForeignKey(e => e.IdZgloszenia)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(e => e.Uzytkownik)
-                .WithMany(u => u.Dzialania)
+            entity.HasOne(e => e.User)
+                .WithMany()
                 .HasForeignKey(e => e.IdUzytkownika)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Plik
         modelBuilder.Entity<Plik>(entity =>
         {
             entity.ToTable("Pliki");
-            entity.HasKey(e => e.IdPliku);
+            entity.HasKey(e => e.Id);
             entity.Property(e => e.NazwaPliku).IsRequired().HasMaxLength(255);
 
             entity.HasOne(e => e.Zgloszenie)
