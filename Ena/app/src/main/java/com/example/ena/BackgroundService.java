@@ -18,6 +18,7 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 
 import com.google.gson.Gson;
+import com.example.ena.api.ApiConfig;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -110,6 +111,58 @@ public class BackgroundService extends Service {
         public Response serve(IHTTPSession session) {
             String uri = session.getUri();
             Map<String, String> parms = session.getParms();
+            String pairingCode = PairingManager.getOrCreateCode(getApplicationContext());
+
+            if (uri.equals("/pair/status")) {
+                PairingStatus status = new PairingStatus(
+                        PairingManager.isPaired(getApplicationContext()),
+                        PairingManager.getPairedUser(getApplicationContext()),
+                        ApiConfig.getBaseUrl(getApplicationContext())
+                );
+                return newFixedLengthResponse(Response.Status.OK, "application/json", new Gson().toJson(status));
+            }
+
+            if (uri.equals("/pair")) {
+                String code = parms.get("code");
+                if (PairingManager.verifyCode(getApplicationContext(), code)) {
+                    PairingManager.setPaired(getApplicationContext(), true);
+                    PairingStatus status = new PairingStatus(
+                            true,
+                            PairingManager.getPairedUser(getApplicationContext()),
+                            ApiConfig.getBaseUrl(getApplicationContext())
+                    );
+                    return newFixedLengthResponse(Response.Status.OK, "application/json", new Gson().toJson(status));
+                }
+                return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain", "Niepoprawny kod parowania");
+            }
+
+            if (uri.equals("/pair/config")) {
+                String code = parms.get("code");
+                String apiBaseUrl = parms.get("apiBaseUrl");
+                String fallbackBaseUrl = parms.get("fallbackBaseUrl");
+                String userName = parms.get("user");
+                if (!PairingManager.verifyCode(getApplicationContext(), code)) {
+                    return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain", "Niepoprawny kod parowania");
+                }
+                if (apiBaseUrl == null || apiBaseUrl.trim().isEmpty()) {
+                    return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Brak apiBaseUrl");
+                }
+                ApiConfig.setBaseUrl(getApplicationContext(), apiBaseUrl);
+                ApiConfig.setFallbackBaseUrl(getApplicationContext(), fallbackBaseUrl);
+                PairingManager.setPairedUser(getApplicationContext(), userName);
+                PairingManager.setPaired(getApplicationContext(), true);
+                PairingStatus status = new PairingStatus(
+                        true,
+                        PairingManager.getPairedUser(getApplicationContext()),
+                        ApiConfig.getBaseUrl(getApplicationContext())
+                );
+                return newFixedLengthResponse(Response.Status.OK, "application/json", new Gson().toJson(status));
+            }
+
+            if (!PairingManager.isPaired(getApplicationContext())) {
+                return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain",
+                        "Telefon nie jest sparowany. Kod: " + pairingCode);
+            }
 
             // 1. Sprawdzanie stanu dzwonienia
             if (uri.equals("/stan")) {
@@ -144,6 +197,23 @@ public class BackgroundService extends Service {
                     return newFixedLengthResponse(Response.Status.OK, "text/plain", "OK");
                 } catch (Exception e) {
                     return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Błąd Androida: " + e.getMessage());
+                }
+            }
+
+            // 4. Wykonanie połączenia telefonicznego (/call?number=...)
+            if (uri.equals("/call")) {
+                String numer = parms.get("number");
+                if (numer == null || numer.isEmpty()) {
+                    return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Brak numeru");
+                }
+                try {
+                    Intent callIntent = new Intent(Intent.ACTION_CALL);
+                    callIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    callIntent.setData(android.net.Uri.parse("tel:" + numer));
+                    getApplicationContext().startActivity(callIntent);
+                    return newFixedLengthResponse(Response.Status.OK, "text/plain", "OK");
+                } catch (Exception e) {
+                    return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Błąd połączenia: " + e.getMessage());
                 }
             }
 
@@ -192,6 +262,17 @@ public class BackgroundService extends Service {
         StatusData(boolean d, String n) {
             this.dzwoni = d;
             this.numer = n;
+        }
+    }
+
+    static class PairingStatus {
+        boolean paired;
+        String user;
+        String apiBaseUrl;
+        PairingStatus(boolean paired, String user, String apiBaseUrl) {
+            this.paired = paired;
+            this.user = user;
+            this.apiBaseUrl = apiBaseUrl;
         }
     }
 }

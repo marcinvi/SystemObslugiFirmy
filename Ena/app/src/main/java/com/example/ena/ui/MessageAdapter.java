@@ -32,6 +32,12 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         MessageDto item = items.get(position);
+        if (item == null) {
+            holder.txtTitle.setText("Brak wiadomości");
+            holder.txtBody.setText("");
+            holder.txtMeta.setText("");
+            return;
+        }
         String title = item.tytul != null && !item.tytul.isEmpty() ? item.tytul : "Wiadomość #" + item.id;
         holder.txtTitle.setText(title);
         holder.txtBody.setText(item.tresc != null ? item.tresc : "");

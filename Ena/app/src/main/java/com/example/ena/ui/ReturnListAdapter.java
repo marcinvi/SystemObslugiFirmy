@@ -42,6 +42,14 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ReturnListItem item = items.get(position);
+        if (item == null) {
+            holder.txtRef.setText("Brak danych");
+            holder.txtProduct.setText("");
+            holder.txtBuyer.setText("");
+            holder.txtStatus.setText("");
+            holder.itemView.setOnClickListener(null);
+            return;
+        }
         holder.txtRef.setText(item.referenceNumber != null ? item.referenceNumber : "Zwrot #" + item.id);
         holder.txtProduct.setText(item.productName != null ? item.productName : "Brak produktu");
         holder.txtBuyer.setText(item.buyerName != null ? item.buyerName : "");

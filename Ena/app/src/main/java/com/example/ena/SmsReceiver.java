@@ -5,8 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.telephony.SmsMessage;
-import org.json.JSONObject;
-
 public class SmsReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -26,16 +24,12 @@ public class SmsReceiver extends BroadcastReceiver {
                         fullContent.append(msgs[i].getMessageBody());
                     }
 
-                    try {
-                        JSONObject obj = new JSONObject();
-                        obj.put("number", senderNumber);
-                        obj.put("content", fullContent.toString()); // Tutaj jest już CAŁA treść
-
-                        synchronized (MainActivity.smsQueue) {
-                            MainActivity.smsQueue.add(obj);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    GlobalState.SmsData data = new GlobalState.SmsData(
+                            senderNumber,
+                            fullContent.toString()
+                    );
+                    synchronized (GlobalState.smsQueue) {
+                        GlobalState.smsQueue.add(data);
                     }
                 }
             }
