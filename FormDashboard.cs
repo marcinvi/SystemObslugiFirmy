@@ -6,6 +6,11 @@ using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.VisualBasic;
+using System.Configuration;
+using System.Net;
+using System.Net.Sockets;
+using System.Net.Http;
 
 namespace Reklamacje_Dane
 {
@@ -120,6 +125,80 @@ namespace Reklamacje_Dane
 
             _phoneClient = new PhoneClient(ip);
 
+            var pairStatus = await _phoneClient.CheckPairStatusAsync();
+            if (pairStatus == null)
+            {
+                if (!quiet)
+                {
+                    btnConnectPhone.BackColor = Color.Red;
+                    btnConnectPhone.Text = "Błąd";
+                    MessageBox.Show("Nie można połączyć się z telefonem. Sprawdź IP i sieć Wi-Fi.", "Brak połączenia z telefonem", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+                return;
+            }
+
+            string pairingCode = null;
+            if (!pairStatus.paired)
+            {
+                if (quiet)
+                {
+                    return;
+                }
+
+                string code = Interaction.InputBox(
+                    "Wpisz kod parowania z aplikacji ENA na telefonie.\nKod jest widoczny na ekranie głównym telefonu.",
+                    "Parowanie telefonu",
+                    "");
+
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    MessageBox.Show("Parowanie anulowane. Wpisz kod parowania, aby połączyć aplikacje.", "Parowanie", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                bool paired = await _phoneClient.PairAsync(code.Trim());
+                if (!paired)
+                {
+                    btnConnectPhone.BackColor = Color.Red;
+                    btnConnectPhone.Text = "Błąd";
+                    MessageBox.Show("Nieprawidłowy kod parowania. Sprawdź kod na telefonie i spróbuj ponownie.", "Błąd parowania", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                pairingCode = code.Trim();
+            }
+            else if (string.IsNullOrWhiteSpace(pairStatus.user) || string.IsNullOrWhiteSpace(pairStatus.apiBaseUrl))
+            {
+                if (quiet)
+                {
+                    return;
+                }
+
+                string code = Interaction.InputBox(
+                    "Telefon jest sparowany, ale brakuje konfiguracji API.\nPodaj kod parowania z telefonu, aby zsynchronizować ustawienia.",
+                    "Synchronizacja konfiguracji",
+                    "");
+
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    MessageBox.Show("Synchronizacja anulowana. Bez konfiguracji API moduły zwrotów na telefonie nie zadziałają.", "Synchronizacja", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                pairingCode = code.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(pairingCode))
+            {
+                var apiUrls = await ResolveApiBaseUrlAsync();
+                bool configured = await _phoneClient.ConfigureAsync(pairingCode, apiUrls.primary, _fullName, apiUrls.fallback);
+                if (!configured)
+                {
+                    MessageBox.Show("Nie udało się przesłać konfiguracji API do telefonu. Sprawdź dostępność API i spróbuj ponownie.", "Błąd konfiguracji", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
             // Test połączenia (Endpoint /stan)
             var status = await _phoneClient.CheckCallStatus();
 
@@ -154,6 +233,100 @@ namespace Reklamacje_Dane
                         "4. Kliknij 'Połącz' ponownie.", "Brak połączenia z telefonem", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             });
+        }
+
+        private static async Task<(string primary, string fallback)> ResolveApiBaseUrlAsync()
+        {
+            string baseUrl = global::System.Configuration.ConfigurationManager.AppSettings["ReklamacjeApiBaseUrl"];
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                baseUrl = "http://localhost:5000";
+            }
+
+            string localIp = GetLocalIpv4Address();
+            string resolvedBaseUrl = ReplaceLocalhost(baseUrl, localIp);
+            var candidates = BuildCandidateUrls(resolvedBaseUrl);
+            foreach (var candidate in candidates)
+            {
+                if (await IsApiAvailableAsync(candidate))
+                {
+                    string fallback = candidates.FirstOrDefault(url => !string.Equals(url, candidate, StringComparison.OrdinalIgnoreCase));
+                    return (candidate, fallback);
+                }
+            }
+            string fallbackUrl = candidates.Skip(1).FirstOrDefault();
+            return (resolvedBaseUrl, fallbackUrl);
+        }
+
+        private static string ReplaceLocalhost(string baseUrl, string localIp)
+        {
+            if (string.IsNullOrWhiteSpace(localIp))
+            {
+                return baseUrl;
+            }
+            if (baseUrl.Contains("localhost"))
+            {
+                return baseUrl.Replace("localhost", localIp);
+            }
+            if (baseUrl.Contains("127.0.0.1"))
+            {
+                return baseUrl.Replace("127.0.0.1", localIp);
+            }
+            return baseUrl;
+        }
+
+        private static List<string> BuildCandidateUrls(string baseUrl)
+        {
+            var candidates = new List<string>();
+            if (!string.IsNullOrWhiteSpace(baseUrl))
+            {
+                candidates.Add(baseUrl);
+                if (baseUrl.Contains(":5000"))
+                {
+                    candidates.Add(baseUrl.Replace(":5000", ":5500"));
+                }
+                else if (baseUrl.Contains(":5500"))
+                {
+                    candidates.Add(baseUrl.Replace(":5500", ":5000"));
+                }
+            }
+            return candidates.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        private static async Task<bool> IsApiAvailableAsync(string baseUrl)
+        {
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                return false;
+            }
+            try
+            {
+                using (var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) })
+                {
+                    var response = await client.GetAsync($"{baseUrl.TrimEnd('/')}/health");
+                    return response.IsSuccessStatusCode;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static string GetLocalIpv4Address()
+        {
+            try
+            {
+                var host = global::System.Net.Dns.GetHostEntry(global::System.Net.Dns.GetHostName());
+                var address = host.AddressList.FirstOrDefault(a =>
+                    a.AddressFamily == global::System.Net.Sockets.AddressFamily.InterNetwork &&
+                    !global::System.Net.IPAddress.IsLoopback(a));
+                return address?.ToString();
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private async void TimerPhone_Tick(object sender, EventArgs e)
