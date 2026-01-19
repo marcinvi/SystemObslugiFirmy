@@ -62,15 +62,11 @@ namespace Reklamacje_Dane
             catch { return false; }
         }
 
-        public async Task<bool> ConfigureAsync(string code, string apiBaseUrl, string userName, string fallbackBaseUrl = null)
+        public async Task<bool> ConfigureAsync(string code, string apiBaseUrl, string userName)
         {
             try
             {
                 string url = $"http://{_phoneIp}:8080/pair/config?code={Uri.EscapeDataString(code)}&apiBaseUrl={Uri.EscapeDataString(apiBaseUrl)}&user={Uri.EscapeDataString(userName ?? string.Empty)}";
-                if (!string.IsNullOrWhiteSpace(fallbackBaseUrl))
-                {
-                    url += $"&fallbackBaseUrl={Uri.EscapeDataString(fallbackBaseUrl)}";
-                }
                 var res = await _client.GetAsync(url);
                 return res.IsSuccessStatusCode;
             }

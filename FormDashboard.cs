@@ -10,7 +10,6 @@ using Microsoft.VisualBasic;
 using System.Configuration;
 using System.Net;
 using System.Net.Sockets;
-using System.Net.Http;
 
 namespace Reklamacje_Dane
 {
@@ -190,8 +189,8 @@ namespace Reklamacje_Dane
 
             if (!string.IsNullOrWhiteSpace(pairingCode))
             {
-                var apiUrls = await ResolveApiBaseUrlAsync();
-                bool configured = await _phoneClient.ConfigureAsync(pairingCode, apiUrls.primary, _fullName, apiUrls.fallback);
+                string apiBaseUrl = ResolveApiBaseUrl();
+                bool configured = await _phoneClient.ConfigureAsync(pairingCode, apiBaseUrl, _fullName);
                 if (!configured)
                 {
                     MessageBox.Show("Nie udało się przesłać konfiguracji API do telefonu. Sprawdź dostępność API i spróbuj ponownie.", "Błąd konfiguracji", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -235,7 +234,7 @@ namespace Reklamacje_Dane
             });
         }
 
-        private static async Task<(string primary, string fallback)> ResolveApiBaseUrlAsync()
+        private static string ResolveApiBaseUrl()
         {
             string baseUrl = global::System.Configuration.ConfigurationManager.AppSettings["ReklamacjeApiBaseUrl"];
             if (string.IsNullOrWhiteSpace(baseUrl))
@@ -244,73 +243,22 @@ namespace Reklamacje_Dane
             }
 
             string localIp = GetLocalIpv4Address();
-            string resolvedBaseUrl = ReplaceLocalhost(baseUrl, localIp);
-            var candidates = BuildCandidateUrls(resolvedBaseUrl);
-            foreach (var candidate in candidates)
-            {
-                if (await IsApiAvailableAsync(candidate))
-                {
-                    string fallback = candidates.FirstOrDefault(url => !string.Equals(url, candidate, StringComparison.OrdinalIgnoreCase));
-                    return (candidate, fallback);
-                }
-            }
-            string fallbackUrl = candidates.Skip(1).FirstOrDefault();
-            return (resolvedBaseUrl, fallbackUrl);
-        }
-
-        private static string ReplaceLocalhost(string baseUrl, string localIp)
-        {
             if (string.IsNullOrWhiteSpace(localIp))
             {
                 return baseUrl;
             }
+
             if (baseUrl.Contains("localhost"))
             {
                 return baseUrl.Replace("localhost", localIp);
             }
+
             if (baseUrl.Contains("127.0.0.1"))
             {
                 return baseUrl.Replace("127.0.0.1", localIp);
             }
+
             return baseUrl;
-        }
-
-        private static List<string> BuildCandidateUrls(string baseUrl)
-        {
-            var candidates = new List<string>();
-            if (!string.IsNullOrWhiteSpace(baseUrl))
-            {
-                candidates.Add(baseUrl);
-                if (baseUrl.Contains(":5000"))
-                {
-                    candidates.Add(baseUrl.Replace(":5000", ":5500"));
-                }
-                else if (baseUrl.Contains(":5500"))
-                {
-                    candidates.Add(baseUrl.Replace(":5500", ":5000"));
-                }
-            }
-            return candidates.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        }
-
-        private static async Task<bool> IsApiAvailableAsync(string baseUrl)
-        {
-            if (string.IsNullOrWhiteSpace(baseUrl))
-            {
-                return false;
-            }
-            try
-            {
-                using (var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) })
-                {
-                    var response = await client.GetAsync($"{baseUrl.TrimEnd('/')}/health");
-                    return response.IsSuccessStatusCode;
-                }
-            }
-            catch
-            {
-                return false;
-            }
         }
 
         private static string GetLocalIpv4Address()
@@ -376,7 +324,7 @@ namespace Reklamacje_Dane
                 _lastCallerNumber = "";
                 _userClosedCallPopup = false;
             }
-            
+
             // 2. Sprawdzanie nowych SMS-ów
             var smsy = await _phoneClient.CheckNewSms();
             if (smsy != null && smsy.Count > 0)
