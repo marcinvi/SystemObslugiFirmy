@@ -10,7 +10,7 @@ namespace Reklamacje_Dane
     public class PhoneStatus { public bool dzwoni { get; set; } public string numer { get; set; } }
     public class SmsData { public string number { get; set; } public string content { get; set; } }
     public class PhoneMediaItem { public string url { get; set; } public string mime { get; set; } }
-    public class PairStatus { public bool paired { get; set; } }
+    public class PairStatus { public bool paired { get; set; } public string user { get; set; } public string apiBaseUrl { get; set; } }
 
     public class PhoneClient
     {
@@ -57,6 +57,17 @@ namespace Reklamacje_Dane
             try
             {
                 var res = await _client.GetAsync($"http://{_phoneIp}:8080/pair?code={Uri.EscapeDataString(code)}");
+                return res.IsSuccessStatusCode;
+            }
+            catch { return false; }
+        }
+
+        public async Task<bool> ConfigureAsync(string code, string apiBaseUrl, string userName)
+        {
+            try
+            {
+                string url = $"http://{_phoneIp}:8080/pair/config?code={Uri.EscapeDataString(code)}&apiBaseUrl={Uri.EscapeDataString(apiBaseUrl)}&user={Uri.EscapeDataString(userName ?? string.Empty)}";
+                var res = await _client.GetAsync(url);
                 return res.IsSuccessStatusCode;
             }
             catch { return false; }
