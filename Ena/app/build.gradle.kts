@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.android.application)
+    id("com.android.application")
 }
 
 android {
@@ -55,7 +55,6 @@ dependencies {
     implementation("com.google.zxing:core:3.4.1")
 // Komunikacja z siecią (HTTP)
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
-// JSON
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("com.google.zxing:core:3.4.1")

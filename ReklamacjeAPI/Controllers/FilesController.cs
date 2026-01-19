@@ -75,7 +75,7 @@ public class FilesController : ControllerBase
         }
 
         var fileBytes = await System.IO.File.ReadAllBytesAsync(plik.SciezkaPliku);
-        return File(fileBytes, plik.TypPliku ?? "application/octet-stream", plik.NazwaOryginalnaPliku);
+        return File(fileBytes, plik.TypPliku ?? "application/octet-stream", plik.NazwaPliku);
     }
 
     [HttpDelete("{id}")]
