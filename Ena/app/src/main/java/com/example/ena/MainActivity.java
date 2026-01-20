@@ -4,6 +4,8 @@ import android.Manifest;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,13 +33,27 @@ import java.util.concurrent.TimeUnit;
 import androidx.activity.result.ActivityResultLauncher;
 
 public class MainActivity extends AppCompatActivity {
-    private static final long PAIRING_STALE_MS = TimeUnit.MINUTES.toMillis(2);
+    private static final long PAIRING_STALE_MS = TimeUnit.SECONDS.toMillis(15);
+    private static final long PAIRING_REFRESH_MS = TimeUnit.SECONDS.toMillis(2);
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .writeTimeout(5, TimeUnit.SECONDS)
             .readTimeout(5, TimeUnit.SECONDS)
             .build();
+
+    private final Handler pairingHandler = new Handler(Looper.getMainLooper());
+    private final Runnable pairingRefresh = new Runnable() {
+        @Override
+        public void run() {
+            updatePairingHint(txtPairingHint);
+            pairingHandler.postDelayed(this, PAIRING_REFRESH_MS);
+        }
+    };
+    private TextView txtBaseUrl;
+    private TextView txtPhoneIp;
+    private TextView txtPairCode;
+    private TextView txtPairingHint;
 
     private final ActivityResultLauncher<ScanOptions> qrLauncher =
             registerForActivityResult(new ScanContract(), this::handleQrResult);
@@ -47,10 +63,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        TextView txtBaseUrl = findViewById(R.id.txtBaseUrl);
-        TextView txtPhoneIp = findViewById(R.id.txtPhoneIp);
-        TextView txtPairCode = findViewById(R.id.txtPairCode);
-        TextView txtPairingHint = findViewById(R.id.txtPairingHint);
+        txtBaseUrl = findViewById(R.id.txtBaseUrl);
+        txtPhoneIp = findViewById(R.id.txtPhoneIp);
+        txtPairCode = findViewById(R.id.txtPairCode);
+        txtPairingHint = findViewById(R.id.txtPairingHint);
         Button btnScanQr = findViewById(R.id.btnScanQr);
         Button btnResetPairing = findViewById(R.id.btnResetPairing);
         Button btnWarehouse = findViewById(R.id.btnWarehouse);
@@ -77,13 +93,25 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        TextView txtBaseUrl = findViewById(R.id.txtBaseUrl);
-        TextView txtPhoneIp = findViewById(R.id.txtPhoneIp);
-        TextView txtPairCode = findViewById(R.id.txtPairCode);
-        TextView txtPairingHint = findViewById(R.id.txtPairingHint);
         updateBaseUrlLabel(txtBaseUrl);
         updatePhoneInfo(txtPhoneIp, txtPairCode);
         updatePairingHint(txtPairingHint);
+        startPairingHintRefresh();
+    }
+
+    @Override
+    protected void onPause() {
+        stopPairingHintRefresh();
+        super.onPause();
+    }
+
+    private void startPairingHintRefresh() {
+        pairingHandler.removeCallbacks(pairingRefresh);
+        pairingHandler.post(pairingRefresh);
+    }
+
+    private void stopPairingHintRefresh() {
+        pairingHandler.removeCallbacks(pairingRefresh);
     }
 
     private void updateBaseUrlLabel(TextView label) {
@@ -167,8 +195,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void resetPairing() {
         PairingManager.reset(this);
-        updatePairingHint(findViewById(R.id.txtPairingHint));
-        updatePhoneInfo(findViewById(R.id.txtPhoneIp), findViewById(R.id.txtPairCode));
+        updatePairingHint(txtPairingHint);
+        updatePhoneInfo(txtPhoneIp, txtPairCode);
         showToast("Parowanie zostało wyczyszczone.");
     }
 
