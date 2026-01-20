@@ -246,20 +246,27 @@ namespace Reklamacje_Dane
 
         private void sprawdz_Click(object sender, EventArgs e)
         {
-            using (var pisownia = new FormAutoMatchFv())
-            {
-                pisownia.ShowDialog(this);
-            }
+
+            var form = new FormApiConfig();
+            form.ShowDialog();
+
+
         }
-    
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            var form = new FormAutoConfig();
+            form.ShowDialog();
+        }
+
         /// <summary>
         /// Włącza sprawdzanie pisowni po polsku dla wszystkich TextBoxów w formularzu
         /// </summary>
-        
+
 
         /// <summary>
         /// Rekurencyjnie pobiera wszystkie kontrolki z kontenera
         /// </summary>
-       
-}
+
+    }
 }

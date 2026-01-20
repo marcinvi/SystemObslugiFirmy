@@ -26,6 +26,7 @@ namespace Reklamacje_Dane
             this.btnLogin = new System.Windows.Forms.Button();
             this.linkRegister = new System.Windows.Forms.LinkLabel();
             this.sprawdz = new System.Windows.Forms.Button();
+            this.button1 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // label1
@@ -116,10 +117,25 @@ namespace Reklamacje_Dane
             this.sprawdz.UseVisualStyleBackColor = false;
             this.sprawdz.Click += new System.EventHandler(this.sprawdz_Click);
             // 
+            // button1
+            // 
+            this.button1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(68)))), ((int)(((byte)(114)))), ((int)(((byte)(196)))));
+            this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.button1.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.button1.ForeColor = System.Drawing.Color.White;
+            this.button1.Location = new System.Drawing.Point(46, 105);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(30, 16);
+            this.button1.TabIndex = 7;
+            this.button1.Text = "Zaloguj";
+            this.button1.UseVisualStyleBackColor = false;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
             // LoginForm
             // 
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(245)))), ((int)(((byte)(245)))));
             this.ClientSize = new System.Drawing.Size(374, 121);
+            this.Controls.Add(this.button1);
             this.Controls.Add(this.sprawdz);
             this.Controls.Add(this.linkRegister);
             this.Controls.Add(this.btnLogin);
@@ -144,5 +160,6 @@ namespace Reklamacje_Dane
         private System.Windows.Forms.Button btnLogin;
         private System.Windows.Forms.LinkLabel linkRegister;
         private System.Windows.Forms.Button sprawdz;
+        private System.Windows.Forms.Button button1;
     }
 }

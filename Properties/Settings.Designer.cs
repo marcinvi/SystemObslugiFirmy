@@ -44,5 +44,79 @@ namespace Reklamacje_Dane.Properties {
                 return ((string)(this["ReklamacjeDBConnectionString"]));
             }
         }
+        
+        // ===== NOWE USTAWIENIA DLA ANDROIDA I API =====
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string PhoneIP {
+            get {
+                return ((string)(this["PhoneIP"]));
+            }
+            set {
+                this["PhoneIP"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("https://localhost:5001")]
+        public string ApiBaseUrl {
+            get {
+                return ((string)(this["ApiBaseUrl"]));
+            }
+            set {
+                this["ApiBaseUrl"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ApiLogin {
+            get {
+                return ((string)(this["ApiLogin"]));
+            }
+            set {
+                this["ApiLogin"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ApiToken {
+            get {
+                return ((string)(this["ApiToken"]));
+            }
+            set {
+                this["ApiToken"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0001-01-01")]
+        public global::System.DateTime ApiTokenExpiry {
+            get {
+                return ((global::System.DateTime)(this["ApiTokenExpiry"]));
+            }
+            set {
+                this["ApiTokenExpiry"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ApiAutoSync {
+            get {
+                return ((bool)(this["ApiAutoSync"]));
+            }
+            set {
+                this["ApiAutoSync"] = value;
+            }
+        }
     }
 }

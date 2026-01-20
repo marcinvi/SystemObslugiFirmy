@@ -60,6 +60,30 @@ public class ApiClient {
             callback.onError("Brak adresu API. Ustaw go w Ustawieniach.");
             return;
         }
+        executeGetWithFallback(url, path, type, callback);
+    }
+
+    private void sendJson(String path, Object payload, String method, ApiCallback<Void> callback) {
+        String url = buildUrl(path);
+        if (url == null) {
+            callback.onError("Brak adresu API. Ustaw go w Ustawieniach.");
+            return;
+        }
+        String json = GSON.toJson(payload);
+        RequestBody body = RequestBody.create(json, JSON);
+        executeSendWithFallback(url, path, method, body, callback);
+    }
+
+    private Request.Builder buildRequest(String url) {
+        Request.Builder builder = new Request.Builder().url(url);
+        String user = PairingManager.getPairedUser(context);
+        if (user != null && !user.isEmpty()) {
+            builder.addHeader("X-User", user);
+        }
+        return builder;
+    }
+
+    private <T> void executeGetWithFallback(String url, String path, Type type, ApiCallback<T> callback) {
         Request request = buildRequest(url).get().build();
         CLIENT.newCall(request).enqueue(new Callback() {
             @Override
@@ -85,33 +109,6 @@ public class ApiClient {
         String fallbackUrl = buildUrlWithBase(fallback, path);
         if (fallbackUrl == null) {
             callback.onError(originalError.getMessage());
-            return;
-        }
-        Request request = buildRequest(fallbackUrl).get().build();
-        CLIENT.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                callback.onError(originalError.getMessage());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (!response.isSuccessful()) {
-                    callback.onError("HTTP " + response.code());
-                    return;
-                }
-                String body = response.body() != null ? response.body().string() : "";
-                T data = GSON.fromJson(body, type);
-                ApiConfig.setBaseUrl(context, fallback);
-                callback.onSuccess(data);
-            }
-        });
-    }
-
-    private <T> void sendJson(String path, T payload, String method, ApiCallback<Void> callback) {
-        String url = buildUrl(path);
-        if (url == null) {
-            callback.onError("Brak adresu API. Ustaw go w Ustawieniach.");
             return;
         }
         String json = GSON.toJson(payload);
@@ -158,15 +155,6 @@ public class ApiClient {
                 callback.onSuccess(null);
             }
         });
-    }
-
-    private Request.Builder buildRequest(String url) {
-        Request.Builder builder = new Request.Builder().url(url);
-        String user = PairingManager.getPairedUser(context);
-        if (user != null && !user.isEmpty()) {
-            builder.addHeader("X-User", user);
-        }
-        return builder;
     }
 
     public void fetchReturns(String query, ApiCallback<List<ReturnListItem>> callback) {

@@ -13,5 +13,27 @@
 &lt;/SerializableConnectionString&gt;</DesignTimeValue>
       <Value Profile="(Default)">Server=localhost;Database=reklamacjedb;Uid=root;Pwd=Bigbrother5;</Value>
     </Setting>
+    
+    <!-- Ustawienia dla parowania telefonu Android -->
+    <Setting Name="PhoneIP" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    
+    <!-- Ustawienia dla REST API -->
+    <Setting Name="ApiBaseUrl" Type="System.String" Scope="User">
+      <Value Profile="(Default)">https://localhost:5001</Value>
+    </Setting>
+    <Setting Name="ApiLogin" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="ApiToken" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="ApiTokenExpiry" Type="System.DateTime" Scope="User">
+      <Value Profile="(Default)">0001-01-01</Value>
+    </Setting>
+    <Setting Name="ApiAutoSync" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

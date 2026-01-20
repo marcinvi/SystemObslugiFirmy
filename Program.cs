@@ -36,6 +36,7 @@ namespace Reklamacje_Dane
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            FormAutoConfig.RunIfNeeded();
             Application.Idle += (s, e) =>
             {
                 foreach (Form form in Application.OpenForms)
