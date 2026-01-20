@@ -48,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
         TextView txtBaseUrl = findViewById(R.id.txtBaseUrl);
         TextView txtPhoneIp = findViewById(R.id.txtPhoneIp);
         TextView txtPairCode = findViewById(R.id.txtPairCode);
+        TextView txtPairingHint = findViewById(R.id.txtPairingHint);
         Button btnScanQr = findViewById(R.id.btnScanQr);
         Button btnWarehouse = findViewById(R.id.btnWarehouse);
         Button btnSales = findViewById(R.id.btnSales);
@@ -98,6 +99,22 @@ public class MainActivity extends AppCompatActivity {
         ipLabel.setText("Telefon IP: " + ip + ":8080");
         String code = PairingManager.getOrCreateCode(this);
         codeLabel.setText("Kod parowania: " + code);
+    }
+
+    private void updatePairingHint(TextView hintLabel) {
+        if (hintLabel == null) {
+            return;
+        }
+        if (PairingManager.isPaired(this)) {
+            String user = PairingManager.getPairedUser(this);
+            if (user == null || user.isEmpty()) {
+                hintLabel.setText("Telefon sparowany z aplikacją. Możesz korzystać z funkcji systemu.");
+            } else {
+                hintLabel.setText("Telefon sparowany z użytkownikiem: " + user + ".");
+            }
+        } else {
+            hintLabel.setText("Hej! Jestem gotowy do pracy! Zeskanuj kod z aplikacji na Windows :)");
+        }
     }
 
     private void startQrScan() {
