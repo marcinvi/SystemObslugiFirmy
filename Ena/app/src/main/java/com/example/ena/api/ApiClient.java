@@ -177,20 +177,20 @@ public class ApiClient {
         });
     }
 
-    public void fetchReturns(String query, ApiCallback<List<ReturnListItem>> callback) {
-        Type type = new TypeToken<List<ReturnListItem>>() {
+    public void fetchReturns(String query, ApiCallback<List<ReturnListItemDto>> callback) {
+        Type type = new TypeToken<List<ReturnListItemDto>>() {
         }.getType();
         get("api/returns" + query, type, callback);
     }
 
-    public void fetchAssignedReturns(String query, ApiCallback<List<ReturnListItem>> callback) {
-        Type type = new TypeToken<List<ReturnListItem>>() {
+    public void fetchAssignedReturns(String query, ApiCallback<List<ReturnListItemDto>> callback) {
+        Type type = new TypeToken<List<ReturnListItemDto>>() {
         }.getType();
         get("api/returns/assigned" + query, type, callback);
     }
 
-    public void fetchReturnDetails(int id, ApiCallback<ReturnDetails> callback) {
-        Type type = new TypeToken<ReturnDetails>() {
+    public void fetchReturnDetails(int id, ApiCallback<ReturnDetailsDto> callback) {
+        Type type = new TypeToken<ReturnDetailsDto>() {
         }.getType();
         get("api/returns/" + id, type, callback);
     }

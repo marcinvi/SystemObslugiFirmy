@@ -13,7 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.ena.R;
 import com.example.ena.api.ApiClient;
 import com.example.ena.api.ReturnDecisionRequest;
-import com.example.ena.api.ReturnDetails;
+import com.example.ena.api.ReturnDetailsDto;
 import com.example.ena.api.ReturnWarehouseUpdateRequest;
 
 public class ReturnDetailActivity extends AppCompatActivity {
@@ -23,7 +23,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private Button btnWarehouseUpdate;
     private Button btnDecision;
     private int returnId;
-    private ReturnDetails details;
+    private ReturnDetailsDto details;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,9 +43,9 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
     private void loadDetails() {
         ApiClient client = new ApiClient(this);
-        client.fetchReturnDetails(returnId, new ApiClient.ApiCallback<ReturnDetails>() {
+        client.fetchReturnDetails(returnId, new ApiClient.ApiCallback<ReturnDetailsDto>() {
             @Override
-            public void onSuccess(ReturnDetails data) {
+            public void onSuccess(ReturnDetailsDto data) {
                 runOnUiThread(() -> {
                     details = data;
                     txtDetailContent.setText(buildDetailsText(data));
@@ -59,23 +59,23 @@ public class ReturnDetailActivity extends AppCompatActivity {
         });
     }
 
-    private String buildDetailsText(ReturnDetails data) {
+    private String buildDetailsText(ReturnDetailsDto data) {
         if (data == null) {
             return "Brak danych";
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("Nr: ").append(safe(data.referenceNumber)).append("\n");
-        sb.append("Status wewn.: ").append(safe(data.statusWewnetrzny)).append("\n");
-        sb.append("Status Allegro: ").append(safe(data.statusAllegro)).append("\n\n");
-        sb.append("Klient: ").append(safe(data.buyerName)).append(" ( ").append(safe(data.buyerLogin)).append(")\n");
-        sb.append("Telefon: ").append(safe(data.buyerPhone)).append("\n");
-        sb.append("Adres: ").append(safe(data.buyerAddress)).append("\n\n");
-        sb.append("Produkt: ").append(safe(data.productName)).append("\n");
-        sb.append("Powód: ").append(safe(data.reason)).append("\n");
-        sb.append("Stan produktu: ").append(safe(data.stanProduktuName)).append("\n");
-        sb.append("Uwagi magazynu: ").append(safe(data.uwagiMagazynu)).append("\n\n");
-        sb.append("Decyzja handlowca: ").append(safe(data.decyzjaHandlowcaName)).append("\n");
-        sb.append("Komentarz: ").append(safe(data.komentarzHandlowca)).append("\n");
+        sb.append("Nr: ").append(safe(data.getReferenceNumber())).append("\n");
+        sb.append("Status wewn.: ").append(safe(data.getStatusWewnetrzny())).append("\n");
+        sb.append("Status Allegro: ").append(safe(data.getStatusAllegro())).append("\n\n");
+        sb.append("Klient: ").append(safe(data.getBuyerName())).append(" ( ").append(safe(data.getBuyerLogin())).append(")\n");
+        sb.append("Telefon: ").append(safe(data.getBuyerPhone())).append("\n");
+        sb.append("Adres: ").append(safe(data.getBuyerAddress())).append("\n\n");
+        sb.append("Produkt: ").append(safe(data.getProductName())).append("\n");
+        sb.append("Powód: ").append(safe(data.getReason())).append("\n");
+        sb.append("Stan produktu: ").append(safe(data.getStanProduktuName())).append("\n");
+        sb.append("Uwagi magazynu: ").append(safe(data.getUwagiMagazynu())).append("\n\n");
+        sb.append("Decyzja handlowca: ").append(safe(data.getDecyzjaHandlowcaName())).append("\n");
+        sb.append("Komentarz: ").append(safe(data.getKomentarzHandlowca())).append("\n");
         return sb.toString();
     }
 
@@ -105,11 +105,17 @@ public class ReturnDetailActivity extends AppCompatActivity {
             .setTitle("Aktualizacja magazynu")
             .setView(layout)
             .setPositiveButton("Zapisz", (dialog, which) -> {
-                ReturnWarehouseUpdateRequest req = new ReturnWarehouseUpdateRequest();
-                req.stanProduktuId = parseInt(editStan.getText().toString(), 0);
-                req.uwagiMagazynu = editUwagi.getText().toString();
-                req.przyjetyPrzezId = parseInt(editPrzyjetyPrzez.getText().toString(), 0);
-                req.dataPrzyjecia = null;
+                int stanId = parseInt(editStan.getText().toString(), 0);
+                String uwagi = editUwagi.getText().toString();
+                int przyjetyId = parseInt(editPrzyjetyPrzez.getText().toString(), 0);
+                
+                // Kotlin data class - użyj konstruktora!
+                ReturnWarehouseUpdateRequest req = new ReturnWarehouseUpdateRequest(
+                    stanId,
+                    uwagi.isEmpty() ? null : uwagi,
+                    java.time.OffsetDateTime.now(),
+                    przyjetyId
+                );
                 submitWarehouse(req);
             })
             .setNegativeButton("Anuluj", null)

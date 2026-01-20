@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.ena.R;
 import com.example.ena.api.ApiClient;
-import com.example.ena.api.ReturnListItem;
+import com.example.ena.api.ReturnListItemDto;
 import java.util.List;
 
 public class ReturnsListActivity extends AppCompatActivity {
@@ -52,9 +52,9 @@ public class ReturnsListActivity extends AppCompatActivity {
         txtEmpty.setVisibility(View.GONE);
 
         ApiClient client = new ApiClient(this);
-        ApiClient.ApiCallback<List<ReturnListItem>> callback = new ApiClient.ApiCallback<List<ReturnListItem>>() {
+        ApiClient.ApiCallback<List<ReturnListItemDto>> callback = new ApiClient.ApiCallback<List<ReturnListItemDto>>() {
             @Override
-            public void onSuccess(List<ReturnListItem> data) {
+            public void onSuccess(List<ReturnListItemDto> data) {
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     adapter.setItems(data);
@@ -81,9 +81,9 @@ public class ReturnsListActivity extends AppCompatActivity {
         }
     }
 
-    private void openDetails(ReturnListItem item) {
+    private void openDetails(ReturnListItemDto item) {
         Intent intent = new Intent(this, ReturnDetailActivity.class);
-        intent.putExtra(ReturnDetailActivity.EXTRA_RETURN_ID, item.id);
+        intent.putExtra(ReturnDetailActivity.EXTRA_RETURN_ID, item.getId());
         startActivity(intent);
     }
 }

@@ -7,24 +7,24 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.ena.R;
-import com.example.ena.api.ReturnListItem;
+import com.example.ena.api.ReturnListItemDto;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.ViewHolder> {
 
     public interface OnItemClickListener {
-        void onItemClick(ReturnListItem item);
+        void onItemClick(ReturnListItemDto item);
     }
 
-    private final List<ReturnListItem> items = new ArrayList<>();
+    private final List<ReturnListItemDto> items = new ArrayList<>();
     private final OnItemClickListener listener;
 
     public ReturnListAdapter(OnItemClickListener listener) {
         this.listener = listener;
     }
 
-    public void setItems(List<ReturnListItem> data) {
+    public void setItems(List<ReturnListItemDto> data) {
         items.clear();
         if (data != null) {
             items.addAll(data);
@@ -41,12 +41,12 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        ReturnListItem item = items.get(position);
-        holder.txtRef.setText(item.referenceNumber != null ? item.referenceNumber : "Zwrot #" + item.id);
-        holder.txtProduct.setText(item.productName != null ? item.productName : "Brak produktu");
-        holder.txtBuyer.setText(item.buyerName != null ? item.buyerName : "");
-        String statusWew = item.statusWewnetrzny != null ? item.statusWewnetrzny : "";
-        String statusAll = item.statusAllegro != null ? item.statusAllegro : "";
+        ReturnListItemDto item = items.get(position);
+        holder.txtRef.setText(item.getReferenceNumber() != null ? item.getReferenceNumber() : "Zwrot #" + item.getId());
+        holder.txtProduct.setText(item.getProductName() != null ? item.getProductName() : "Brak produktu");
+        holder.txtBuyer.setText(item.getBuyerName() != null ? item.getBuyerName() : "");
+        String statusWew = item.getStatusWewnetrzny() != null ? item.getStatusWewnetrzny() : "";
+        String statusAll = item.getStatusAllegro() != null ? item.getStatusAllegro() : "";
         String status = statusWew;
         if (!statusAll.isEmpty()) {
             status = status.isEmpty() ? statusAll : status + " / " + statusAll;
