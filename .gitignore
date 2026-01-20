@@ -32,3 +32,14 @@ Ena/.gradle
 *.sqlite
 .vs/slnx.sqlite
 /.vs/slnx.sqlite
+/Ena/.gradle
+/Ena/.idea
+/Ena/gradle
+/Ena/.gradle
+/Ena/gradle
+/Ena/.gradle
+/Ena/.gradle/buildOutputCleanup
+/Ena/.gradle/buildOutputCleanup
+/Ena/.gradle/buildOutputCleanup
+/Ena/.idea
+Ena/gradle/wrapper/gradle-wrapper.properties
