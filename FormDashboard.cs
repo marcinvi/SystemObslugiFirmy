@@ -516,8 +516,30 @@ namespace Reklamacje_Dane
             }
         }
 
-        private void btnLogout_Click(object sender, EventArgs e) { if (_timerPhone != null) _timerPhone.Stop(); notifyIcon1.Visible = false; this.DialogResult = DialogResult.Retry; this.Close(); }
+        private void btnLogout_Click(object sender, EventArgs e)
+        {
+            if (_timerPhone != null) _timerPhone.Stop();
+            TriggerPhoneDisconnect();
+            notifyIcon1.Visible = false;
+            this.DialogResult = DialogResult.Retry;
+            this.Close();
+        }
 
-        protected override void OnFormClosing(FormClosingEventArgs e) { if (_timerPhone != null) _timerPhone.Stop(); notifyIcon1.Visible = false; base.OnFormClosing(e); }
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            if (_timerPhone != null) _timerPhone.Stop();
+            TriggerPhoneDisconnect();
+            notifyIcon1.Visible = false;
+            base.OnFormClosing(e);
+        }
+
+        private void TriggerPhoneDisconnect()
+        {
+            if (_phoneClient == null)
+            {
+                return;
+            }
+            _ = _phoneClient.DisconnectAsync();
+        }
     }
 }

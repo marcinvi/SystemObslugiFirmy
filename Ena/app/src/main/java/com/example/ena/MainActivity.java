@@ -7,9 +7,10 @@ import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.appcompat.app.AppCompatActivity;
 import com.example.ena.api.ApiConfig;
 import com.example.ena.ui.MessagesActivity;
 import com.example.ena.ui.ReturnsListActivity;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import androidx.activity.result.ActivityResultLauncher;
 
 public class MainActivity extends AppCompatActivity {
+    private static final long PAIRING_STALE_MS = TimeUnit.SECONDS.toMillis(5);
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
@@ -50,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
         TextView txtPairCode = findViewById(R.id.txtPairCode);
         TextView txtPairingHint = findViewById(R.id.txtPairingHint);
         Button btnScanQr = findViewById(R.id.btnScanQr);
+        Button btnResetPairing = findViewById(R.id.btnResetPairing);
         Button btnWarehouse = findViewById(R.id.btnWarehouse);
         Button btnSales = findViewById(R.id.btnSales);
         Button btnSummary = findViewById(R.id.btnSummary);
@@ -63,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
         requestRuntimePermissions();
 
         btnScanQr.setOnClickListener(v -> startQrScan());
+        btnResetPairing.setOnClickListener(v -> confirmResetPairing());
         btnWarehouse.setOnClickListener(v -> openReturns("warehouse"));
         btnSales.setOnClickListener(v -> openReturns("sales"));
         btnSummary.setOnClickListener(v -> startActivity(new Intent(this, SummaryActivity.class)));
@@ -107,14 +111,47 @@ public class MainActivity extends AppCompatActivity {
         }
         if (PairingManager.isPaired(this)) {
             String user = PairingManager.getPairedUser(this);
-            if (user == null || user.isEmpty()) {
-                hintLabel.setText("Telefon sparowany z aplikacją. Możesz korzystać z funkcji systemu.");
+            long lastSeen = PairingManager.getLastSeen(this);
+            long now = System.currentTimeMillis();
+            boolean active = lastSeen > 0 && now - lastSeen <= PAIRING_STALE_MS;
+            if (active) {
+                if (user == null || user.isEmpty()) {
+                    hintLabel.setText("Telefon sparowany z aplikacją. Połączenie aktywne.");
+                } else {
+                    hintLabel.setText("Telefon sparowany z użytkownikiem: " + user + ". Połączenie aktywne.");
+                }
             } else {
-                hintLabel.setText("Telefon sparowany z użytkownikiem: " + user + ".");
+                String staleSuffix = lastSeen > 0 ? " Ostatni kontakt: " + formatStaleDuration(now - lastSeen) + "." : "";
+                if (user == null || user.isEmpty()) {
+                    hintLabel.setText("Telefon sparowany, ale brak połączenia z komputerem." + staleSuffix);
+                } else {
+                    hintLabel.setText("Telefon sparowany z użytkownikiem: " + user + ", ale brak połączenia z komputerem." + staleSuffix);
+                }
             }
         } else {
             hintLabel.setText("Hej! Jestem gotowy do pracy! Zeskanuj kod z aplikacji na Windows :)");
         }
+    }
+
+    private String formatStaleDuration(long diffMs) {
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(diffMs);
+        if (seconds < 60) {
+            if (seconds <= 1) {
+                return "1 sekundę temu";
+            }
+            if (seconds < 5) {
+                return seconds + " sekundy temu";
+            }
+            return seconds + " sekund temu";
+        }
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(diffMs);
+        if (minutes == 1) {
+            return "1 minutę temu";
+        }
+        if (minutes < 5) {
+            return minutes + " minuty temu";
+        }
+        return minutes + " minut temu";
     }
 
     private void startQrScan() {
@@ -124,6 +161,22 @@ public class MainActivity extends AppCompatActivity {
         options.setOrientationLocked(true);
         options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
         qrLauncher.launch(options);
+    }
+
+    private void confirmResetPairing() {
+        new AlertDialog.Builder(this)
+                .setTitle("Rozłącz parowanie")
+                .setMessage("Czy na pewno chcesz wyczyścić parowanie? Telefon będzie można przypisać do innego użytkownika.")
+                .setPositiveButton("Tak, rozłącz", (dialog, which) -> resetPairing())
+                .setNegativeButton("Anuluj", null)
+                .show();
+    }
+
+    private void resetPairing() {
+        PairingManager.reset(this);
+        updatePairingHint(findViewById(R.id.txtPairingHint));
+        updatePhoneInfo(findViewById(R.id.txtPhoneIp), findViewById(R.id.txtPairCode));
+        showToast("Parowanie zostało wyczyszczone.");
     }
 
     private void handleQrResult(ScanIntentResult result) {
