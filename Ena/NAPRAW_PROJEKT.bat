@@ -23,37 +23,37 @@ echo KROK 1: Usuwam problematyczne pliki
 echo ========================================
 echo.
 
-REM Usuń stare pliki Kotlin DSL (.kts)
+REM Usuń stare pliki Groovy (.gradle)
 set deleted=0
 
-if exist "%projectPath%\build.gradle.kts" (
-    del /f "%projectPath%\build.gradle.kts" 2>nul
-    if not exist "%projectPath%\build.gradle.kts" (
-        echo   ✅ Usunięto: build.gradle.kts
+if exist "%projectPath%\build.gradle" (
+    del /f "%projectPath%\build.gradle" 2>nul
+    if not exist "%projectPath%\build.gradle" (
+        echo   ✅ Usunięto: build.gradle
         set /a deleted+=1
     )
 ) else (
-    echo   ⏭️  Pominięto: build.gradle.kts
+    echo   ⏭️  Pominięto: build.gradle
 )
 
-if exist "%projectPath%\settings.gradle.kts" (
-    del /f "%projectPath%\settings.gradle.kts" 2>nul
-    if not exist "%projectPath%\settings.gradle.kts" (
-        echo   ✅ Usunięto: settings.gradle.kts
+if exist "%projectPath%\settings.gradle" (
+    del /f "%projectPath%\settings.gradle" 2>nul
+    if not exist "%projectPath%\settings.gradle" (
+        echo   ✅ Usunięto: settings.gradle
         set /a deleted+=1
     )
 ) else (
-    echo   ⏭️  Pominięto: settings.gradle.kts
+    echo   ⏭️  Pominięto: settings.gradle
 )
 
-if exist "%projectPath%\app\build.gradle.kts" (
-    del /f "%projectPath%\app\build.gradle.kts" 2>nul
-    if not exist "%projectPath%\app\build.gradle.kts" (
-        echo   ✅ Usunięto: app\build.gradle.kts
+if exist "%projectPath%\app\build.gradle" (
+    del /f "%projectPath%\app\build.gradle" 2>nul
+    if not exist "%projectPath%\app\build.gradle" (
+        echo   ✅ Usunięto: app\build.gradle
         set /a deleted+=1
     )
 ) else (
-    echo   ⏭️  Pominięto: app\build.gradle.kts
+    echo   ⏭️  Pominięto: app\build.gradle
 )
 
 echo.
@@ -102,24 +102,24 @@ echo.
 
 set errors=0
 
-if exist "%projectPath%\build.gradle" (
-    echo   ✅ build.gradle - OK
+if exist "%projectPath%\build.gradle.kts" (
+    echo   ✅ build.gradle.kts - OK
 ) else (
-    echo   ❌ BRAK: build.gradle
+    echo   ❌ BRAK: build.gradle.kts
     set /a errors+=1
 )
 
-if exist "%projectPath%\settings.gradle" (
-    echo   ✅ settings.gradle - OK
+if exist "%projectPath%\settings.gradle.kts" (
+    echo   ✅ settings.gradle.kts - OK
 ) else (
-    echo   ❌ BRAK: settings.gradle
+    echo   ❌ BRAK: settings.gradle.kts
     set /a errors+=1
 )
 
-if exist "%projectPath%\app\build.gradle" (
-    echo   ✅ app\build.gradle - OK
+if exist "%projectPath%\app\build.gradle.kts" (
+    echo   ✅ app\build.gradle.kts - OK
 ) else (
-    echo   ❌ BRAK: app\build.gradle
+    echo   ❌ BRAK: app\build.gradle.kts
     set /a errors+=1
 )
 
@@ -151,7 +151,7 @@ if %errors%==0 (
     echo 💡 WSKAZÓWKI:
     echo    - Jeśli sync fails, sprawdź Internet
     echo    - Jeśli brakuje SDK: Tools → SDK Manager → Android 14.0
-    echo    - Jeśli Gradle JDK error: Settings → Gradle → JDK 17
+    echo    - Jeśli Gradle JDK error: Settings → Gradle → Embedded JDK (jbr)
     echo.
 ) else (
     echo ❌ ZNALEZIONO BŁĘDY!

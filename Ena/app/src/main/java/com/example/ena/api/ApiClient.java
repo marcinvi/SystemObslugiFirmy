@@ -83,6 +83,25 @@ public class ApiClient {
         return builder;
     }
 
+    private void executeSendWithFallback(String url, String path, String method, RequestBody body, ApiCallback<Void> callback) {
+        Request request = buildRequest(url).method(method, body).build();
+        CLIENT.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                retrySendWithFallback(path, method, body, callback, e);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                if (!response.isSuccessful()) {
+                    callback.onError("HTTP " + response.code());
+                    return;
+                }
+                callback.onSuccess(null);
+            }
+        });
+    }
+
     private <T> void executeGetWithFallback(String url, String path, Type type, ApiCallback<T> callback) {
         Request request = buildRequest(url).get().build();
         CLIENT.newCall(request).enqueue(new Callback() {
@@ -111,22 +130,23 @@ public class ApiClient {
             callback.onError(originalError.getMessage());
             return;
         }
-        String json = GSON.toJson(payload);
-        RequestBody body = RequestBody.create(json, JSON);
-        Request request = buildRequest(url).method(method, body).build();
+        Request request = buildRequest(fallbackUrl).get().build();
         CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                retrySendWithFallback(path, method, body, callback, e);
+                callback.onError(originalError.getMessage());
             }
 
             @Override
-            public void onResponse(Call call, Response response) {
+            public void onResponse(Call call, Response response) throws IOException {
                 if (!response.isSuccessful()) {
                     callback.onError("HTTP " + response.code());
                     return;
                 }
-                callback.onSuccess(null);
+                String body = response.body() != null ? response.body().string() : "";
+                T data = GSON.fromJson(body, type);
+                ApiConfig.setBaseUrl(context, fallback);
+                callback.onSuccess(data);
             }
         });
     }

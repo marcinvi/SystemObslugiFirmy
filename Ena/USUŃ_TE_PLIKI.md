@@ -2,27 +2,27 @@
 
 **Problem:** Masz dwie wersje plików build - powodują konflikt!
 
-## 🗑️ USUŃ TE PLIKI:
+## 🗑️ USUŃ TE PLIKI (JEŚLI ISTNIEJĄ):
 
-1. `Ena\build.gradle.kts` ← USUŃ (stary Kotlin DSL)
-2. `Ena\settings.gradle.kts` ← USUŃ (stary Kotlin DSL)
-3. `Ena\app\build.gradle.kts` ← USUŃ (stary Kotlin DSL)
+1. `Ena\build.gradle` ← USUŃ (stary Groovy)
+2. `Ena\settings.gradle` ← USUŃ (stary Groovy)
+3. `Ena\app\build.gradle` ← USUŃ (stary Groovy)
 
 ## ✅ ZOSTAW TE PLIKI:
 
-1. `Ena\build.gradle` ✅ (nowy Groovy - DOBRY)
-2. `Ena\settings.gradle` ✅ (nowy Groovy - DOBRY)
-3. `Ena\app\build.gradle` ✅ (nowy Groovy - DOBRY)
+1. `Ena\build.gradle.kts` ✅ (Kotlin DSL - DOBRY)
+2. `Ena\settings.gradle.kts` ✅ (Kotlin DSL - DOBRY)
+3. `Ena\app\build.gradle.kts` ✅ (Kotlin DSL - DOBRY)
 
 ## 📝 KROK PO KROKU:
 
 ### **KROK 1: Usuń stare pliki**
 ```
 1. Idź do: C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\Ena
-2. Usuń plik: build.gradle.kts
-3. Usuń plik: settings.gradle.kts
+2. Usuń plik: build.gradle (jeśli istnieje)
+3. Usuń plik: settings.gradle (jeśli istnieje)
 4. Idź do: Ena\app
-5. Usuń plik: build.gradle.kts
+5. Usuń plik: build.gradle (jeśli istnieje)
 ```
 
 ### **KROK 2: Usuń cache**
@@ -49,7 +49,8 @@ Sprawdź te ustawienia:
 ```
 File → Settings → Build, Execution, Deployment → Build Tools → Gradle
 
-✅ Gradle JDK: Embedded JDK (17) lub JDK 17
+✅ Gradle JDK: Embedded JDK (C:\Program Files\Android\Android Studio\jbr)
+✅ Jeśli Embedded JDK nie działa: wskaż ręcznie JDK 17
 ✅ Use Gradle from: 'gradle-wrapper.properties' file
 ```
 
@@ -91,9 +92,9 @@ Po otwarciu projektu sprawdź:
 ## 📝 CO ZMIENIŁEM:
 
 1. ✅ gradle.properties - Zmieniono SDK z 36 na 34
-2. ✅ Stworzyłem nowe pliki .gradle (Groovy)
-3. ⚠️ Musisz usunąć stare pliki .kts (Kotlin DSL)
+2. ✅ Pliki build są w Kotlin DSL (.kts)
+3. ⚠️ Musisz usunąć stare pliki .gradle (Groovy), jeśli istnieją
 
 ---
 
-**Usuń pliki .kts i spróbuj ponownie!**
+**Usuń pliki .gradle (Groovy) i spróbuj ponownie!**
