@@ -7,9 +7,10 @@ import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.appcompat.app.AppCompatActivity;
 import com.example.ena.api.ApiConfig;
 import com.example.ena.ui.MessagesActivity;
 import com.example.ena.ui.ReturnsListActivity;
@@ -51,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
         TextView txtPairCode = findViewById(R.id.txtPairCode);
         TextView txtPairingHint = findViewById(R.id.txtPairingHint);
         Button btnScanQr = findViewById(R.id.btnScanQr);
+        Button btnResetPairing = findViewById(R.id.btnResetPairing);
         Button btnWarehouse = findViewById(R.id.btnWarehouse);
         Button btnSales = findViewById(R.id.btnSales);
         Button btnSummary = findViewById(R.id.btnSummary);
@@ -64,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
         requestRuntimePermissions();
 
         btnScanQr.setOnClickListener(v -> startQrScan());
+        btnResetPairing.setOnClickListener(v -> confirmResetPairing());
         btnWarehouse.setOnClickListener(v -> openReturns("warehouse"));
         btnSales.setOnClickListener(v -> openReturns("sales"));
         btnSummary.setOnClickListener(v -> startActivity(new Intent(this, SummaryActivity.class)));
@@ -151,6 +154,22 @@ public class MainActivity extends AppCompatActivity {
         options.setOrientationLocked(true);
         options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
         qrLauncher.launch(options);
+    }
+
+    private void confirmResetPairing() {
+        new AlertDialog.Builder(this)
+                .setTitle("Rozłącz parowanie")
+                .setMessage("Czy na pewno chcesz wyczyścić parowanie? Telefon będzie można przypisać do innego użytkownika.")
+                .setPositiveButton("Tak, rozłącz", (dialog, which) -> resetPairing())
+                .setNegativeButton("Anuluj", null)
+                .show();
+    }
+
+    private void resetPairing() {
+        PairingManager.reset(this);
+        updatePairingHint(findViewById(R.id.txtPairingHint));
+        updatePhoneInfo(findViewById(R.id.txtPhoneIp), findViewById(R.id.txtPairCode));
+        showToast("Parowanie zostało wyczyszczone.");
     }
 
     private void handleQrResult(ScanIntentResult result) {
