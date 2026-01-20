@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -399,23 +400,102 @@ namespace Reklamacje_Dane
                 baseUrl = "http://localhost:5000";
             }
 
+            baseUrl = NormalizeLocalApiBaseUrl(baseUrl);
+
             string localIp = GetLocalIpv4Address();
             if (string.IsNullOrWhiteSpace(localIp))
             {
                 return baseUrl;
             }
 
-            if (baseUrl.Contains("localhost"))
+            return ReplaceLoopbackHost(baseUrl, localIp);
+        }
+
+        private static string NormalizeLocalApiBaseUrl(string baseUrl)
+        {
+            if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri))
             {
-                return baseUrl.Replace("localhost", localIp);
+                return baseUrl;
             }
 
-            if (baseUrl.Contains("127.0.0.1"))
+            if (!IsLoopbackHost(uri.Host))
             {
-                return baseUrl.Replace("127.0.0.1", localIp);
+                return baseUrl;
             }
 
-            return baseUrl;
+            if (IsPortOpen("127.0.0.1", uri.Port))
+            {
+                return baseUrl;
+            }
+
+            string detected = TryDetectLocalApiBaseUrl();
+            return string.IsNullOrWhiteSpace(detected) ? baseUrl : detected;
+        }
+
+        private static string ReplaceLoopbackHost(string baseUrl, string host)
+        {
+            if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri))
+            {
+                return baseUrl;
+            }
+
+            if (!IsLoopbackHost(uri.Host))
+            {
+                return baseUrl;
+            }
+
+            var builder = new UriBuilder(uri)
+            {
+                Host = host
+            };
+            return builder.Uri.ToString().TrimEnd('/');
+        }
+
+        private static bool IsLoopbackHost(string host)
+        {
+            return string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(host, "127.0.0.1", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string TryDetectLocalApiBaseUrl()
+        {
+            var candidates = new[]
+            {
+                "http://localhost:50875",
+                "http://localhost:5000",
+                "https://localhost:50876"
+            };
+
+            foreach (var candidate in candidates)
+            {
+                if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri))
+                {
+                    continue;
+                }
+
+                if (IsPortOpen("127.0.0.1", uri.Port))
+                {
+                    return candidate;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private static bool IsPortOpen(string host, int port, int timeoutMs = 200)
+        {
+            try
+            {
+                using (var client = new TcpClient())
+                {
+                    var connectTask = client.ConnectAsync(host, port);
+                    return connectTask.Wait(timeoutMs) && client.Connected;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static string GetLocalIpv4Address()
