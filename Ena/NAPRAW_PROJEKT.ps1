@@ -19,13 +19,13 @@ if (-not (Test-Path $projectPath)) {
 Write-Host "Znaleziono projekt w: $projectPath" -ForegroundColor Green
 Write-Host ""
 
-# KROK 1: Usuń stare pliki .kts
-Write-Host "KROK 1: Usuwam stare pliki Kotlin DSL (.kts)..." -ForegroundColor Yellow
+# KROK 1: Usuń stare pliki Groovy
+Write-Host "KROK 1: Usuwam stare pliki Groovy (.gradle)..." -ForegroundColor Yellow
 
 $filesToDelete = @(
-    "$projectPath\build.gradle.kts",
-    "$projectPath\settings.gradle.kts",
-    "$projectPath\app\build.gradle.kts"
+    "$projectPath\build.gradle",
+    "$projectPath\settings.gradle",
+    "$projectPath\app\build.gradle"
 )
 
 foreach ($file in $filesToDelete) {
@@ -60,13 +60,13 @@ foreach ($folder in $foldersToDelete) {
 
 Write-Host ""
 
-# KROK 3: Sprawdź nowe pliki
-Write-Host "KROK 3: Sprawdzam nowe pliki Groovy..." -ForegroundColor Yellow
+# KROK 3: Sprawdź pliki Kotlin DSL
+Write-Host "KROK 3: Sprawdzam pliki Kotlin DSL (.kts)..." -ForegroundColor Yellow
 
 $requiredFiles = @(
-    "$projectPath\build.gradle",
-    "$projectPath\settings.gradle",
-    "$projectPath\app\build.gradle"
+    "$projectPath\build.gradle.kts",
+    "$projectPath\settings.gradle.kts",
+    "$projectPath\app\build.gradle.kts"
 )
 
 $allFilesExist = $true
@@ -94,7 +94,8 @@ if ($allFilesExist) {
     Write-Host "1. Otwórz Android Studio"
     Write-Host "2. File → Open"
     Write-Host "3. Wybierz folder: $projectPath"
-    Write-Host "4. Poczekaj na Gradle sync (2-3 minuty)"
+    Write-Host "4. W Settings → Gradle ustaw Gradle JDK: Embedded JDK (jbr)"
+    Write-Host "5. Poczekaj na Gradle sync (2-3 minuty)"
     Write-Host ""
 } else {
     Write-Host "⚠️  UWAGA: Brakuje niektórych plików!" -ForegroundColor Red
