@@ -73,6 +73,16 @@ namespace Reklamacje_Dane
             catch { return false; }
         }
 
+        public async Task<bool> DisconnectAsync()
+        {
+            try
+            {
+                var res = await _client.GetAsync($"http://{_phoneIp}:8080/pair/disconnect");
+                return res.IsSuccessStatusCode;
+            }
+            catch { return false; }
+        }
+
         public async Task<List<SmsData>> CheckNewSms()
         {
             try { return JsonConvert.DeserializeObject<List<SmsData>>(await _client.GetStringAsync($"http://{_phoneIp}:8080/sms")); }

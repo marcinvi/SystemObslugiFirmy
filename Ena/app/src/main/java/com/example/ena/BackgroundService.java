@@ -128,6 +128,11 @@ public class BackgroundService extends Service {
                 return newFixedLengthResponse(Response.Status.OK, "application/json", new Gson().toJson(status));
             }
 
+            if (uri.equals("/pair/disconnect")) {
+                PairingManager.reset(getApplicationContext());
+                return newFixedLengthResponse(Response.Status.OK, "text/plain", "OK");
+            }
+
             if (uri.equals("/pair")) {
                 String code = parms.get("code");
                 if (PairingManager.verifyCode(getApplicationContext(), code)) {
