@@ -30,3 +30,14 @@ reklamacje-baza-e2a6599c24f7.json
 *.sqlite
 .vs/slnx.sqlite
 /.vs/slnx.sqlite
+/Ena/.gradle
+/Ena/.idea
+/Ena/gradle
+/Ena/.gradle
+/Ena/gradle
+/Ena/.gradle
+/Ena/.gradle/buildOutputCleanup
+/Ena/.gradle/buildOutputCleanup
+/Ena/.gradle/buildOutputCleanup
+/Ena/.idea
+Ena/gradle/wrapper/gradle-wrapper.properties
