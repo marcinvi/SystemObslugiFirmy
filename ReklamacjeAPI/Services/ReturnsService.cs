@@ -104,7 +104,7 @@ public class ReturnsService
         {
             foreach (var parameter in parameters.Where(p => p.ParameterName != "@limit" && p.ParameterName != "@offset"))
             {
-                countCommand.Parameters.Add(parameter.ParameterName, parameter.Value);
+                countCommand.Parameters.AddWithValue(parameter.ParameterName, parameter.Value);
             }
 
             var total = await countCommand.ExecuteScalarAsync();
@@ -115,7 +115,7 @@ public class ReturnsService
         {
             foreach (var parameter in parameters)
             {
-                command.Parameters.Add(parameter.ParameterName, parameter.Value);
+                command.Parameters.AddWithValue(parameter.ParameterName, parameter.Value);
             }
 
             await using var reader = await command.ExecuteReaderAsync();

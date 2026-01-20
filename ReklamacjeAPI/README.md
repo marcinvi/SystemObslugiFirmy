@@ -174,6 +174,16 @@ Aplikacja uruchomi się na:
 - **HTTP:** `http://localhost:5000`
 - **Swagger UI:** `https://localhost:5001/` (root)
 
+### 📱 Dostęp z Androida / urządzeń w sieci
+
+Jeśli aplikacja Android nie może połączyć się z adresem typu `10.5.0.106:5000`, to najczęstsza przyczyna jest taka, że API nasłuchuje tylko na `localhost`. Uruchom API z ustawionym:
+
+```bash
+ASPNETCORE_URLS="http://0.0.0.0:5000;https://0.0.0.0:5001" dotnet run
+```
+
+Następnie w aplikacji mobilnej użyj adresu IP komputera w sieci lokalnej (np. `http://10.5.0.106:5000`). Upewnij się też, że zapora systemowa pozwala na połączenia przychodzące na port 5000.
+
 ---
 
 ## 🧪 Testowanie
