@@ -292,49 +292,53 @@ namespace Reklamacje_Dane
             }
 
             const int port = 5505;
-            using var server = new QrPairingServer(localIp, port);
 
-            var payload = new QrPairingPayload
+            using (var server = new QrPairingServer(localIp, port))
             {
-                PcIp = localIp,
-                PcPort = port,
-                Token = server.Token,
-                User = SessionManager.CurrentUserLogin ?? string.Empty,
-                ApiBaseUrl = ResolveApiBaseUrl()
-            };
+                var payload = new QrPairingPayload
+                {
+                    PcIp = localIp,
+                    PcPort = port,
+                    Token = server.Token,
+                    User = SessionManager.CurrentUserLogin ?? string.Empty,
+                    ApiBaseUrl = ResolveApiBaseUrl()
+                };
 
-            try
-            {
-                server.Start();
+                try
+                {
+                    server.Start();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Nie udało się uruchomić QR: {ex.Message}", "Parowanie QR", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                using (var qrForm = new FormQrPairing(payload, server))
+                {
+                    var result = qrForm.ShowDialog(this);
+                    if (result != DialogResult.OK || qrForm.PairingRequest == null)
+                        return;
+
+                    txtPhoneIp.Text = qrForm.PairingRequest.PhoneIp;
+                    _phoneClient = new PhoneClient(qrForm.PairingRequest.PhoneIp);
+
+                    bool paired = await _phoneClient.PairAsync(qrForm.PairingRequest.PairingCode);
+                    if (!paired)
+                    {
+                        MessageBox.Show("Nie udało się sparować telefonu po QR. Sprawdź kod i spróbuj ponownie.", "Parowanie QR", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    string apiBaseUrl = ResolveApiBaseUrl();
+                    string userName = SessionManager.CurrentUserLogin ?? string.Empty;
+                    await _phoneClient.ConfigureAsync(qrForm.PairingRequest.PairingCode, apiBaseUrl, userName);
+
+                    StartPhoneMonitoring(qrForm.PairingRequest.PhoneIp, quiet: true);
+                }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Nie udało się uruchomić QR: {ex.Message}", "Parowanie QR", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            using var qrForm = new FormQrPairing(payload, server);
-            var result = qrForm.ShowDialog(this);
-            if (result != DialogResult.OK || qrForm.PairingRequest == null)
-            {
-                return;
-            }
-
-            txtPhoneIp.Text = qrForm.PairingRequest.PhoneIp;
-            _phoneClient = new PhoneClient(qrForm.PairingRequest.PhoneIp);
-            bool paired = await _phoneClient.PairAsync(qrForm.PairingRequest.PairingCode);
-            if (!paired)
-            {
-                MessageBox.Show("Nie udało się sparować telefonu po QR. Sprawdź kod i spróbuj ponownie.", "Parowanie QR", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            string apiBaseUrl = ResolveApiBaseUrl();
-            string userName = SessionManager.CurrentUserLogin ?? string.Empty;
-            await _phoneClient.ConfigureAsync(qrForm.PairingRequest.PairingCode, apiBaseUrl, userName);
-
-            StartPhoneMonitoring(qrForm.PairingRequest.PhoneIp, quiet: true);
         }
+
 
         private async void TimerPhone_Tick(object sender, EventArgs e)
         {

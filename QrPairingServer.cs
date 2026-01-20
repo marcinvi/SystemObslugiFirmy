@@ -75,8 +75,12 @@ namespace Reklamacje_Dane
 
             try
             {
-                using var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
-                string body = reader.ReadToEnd();
+                string body;
+                using (var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding))
+                {
+                    body = reader.ReadToEnd();
+                }
+
                 var payload = JsonConvert.DeserializeObject<QrPairingRequest>(body);
 
                 if (payload == null || string.IsNullOrWhiteSpace(payload.Token) || payload.Token != Token)

@@ -68,10 +68,13 @@ namespace Reklamacje_Dane
         private void GenerateQr(QrPairingPayload payload)
         {
             string json = JsonConvert.SerializeObject(payload);
-            using var generator = new QRCodeGenerator();
-            using QRCodeData data = generator.CreateQrCode(json, QRCodeGenerator.ECCLevel.Q);
-            using var qrCode = new QRCode(data);
-            _pictureBox.Image = qrCode.GetGraphic(10);
+            using (var generator = new QRCodeGenerator())
+            using (var data = generator.CreateQrCode(json, QRCodeGenerator.ECCLevel.Q))
+            using (var qrCode = new QRCode(data))
+            {
+                _pictureBox.Image = qrCode.GetGraphic(10);
+            }
+
         }
 
         private void HandlePairingReceived(QrPairingRequest request)

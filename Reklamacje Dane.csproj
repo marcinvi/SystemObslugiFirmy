@@ -450,6 +450,9 @@
     <Compile Include="FormParujTelefon.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="FormQrPairing.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="FormSpellCheckTest.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -894,6 +897,8 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="PrzypomnieniaService.cs" />
+    <Compile Include="QrPairingModels.cs" />
+    <Compile Include="QrPairingServer.cs" />
     <Compile Include="ReklamacjeApiClient.cs" />
     <Compile Include="ReklamacjeControl.cs">
       <SubType>UserControl</SubType>
