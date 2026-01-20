@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
 
         updateBaseUrlLabel(txtBaseUrl);
         updatePhoneInfo(txtPhoneIp, txtPairCode);
+        updatePairingHint(txtPairingHint);
         startBackgroundServer();
         requestRuntimePermissions();
 
@@ -74,8 +75,10 @@ public class MainActivity extends AppCompatActivity {
         TextView txtBaseUrl = findViewById(R.id.txtBaseUrl);
         TextView txtPhoneIp = findViewById(R.id.txtPhoneIp);
         TextView txtPairCode = findViewById(R.id.txtPairCode);
+        TextView txtPairingHint = findViewById(R.id.txtPairingHint);
         updateBaseUrlLabel(txtBaseUrl);
         updatePhoneInfo(txtPhoneIp, txtPairCode);
+        updatePairingHint(txtPairingHint);
     }
 
     private void updateBaseUrlLabel(TextView label) {
