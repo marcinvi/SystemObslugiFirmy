@@ -58,11 +58,6 @@ data class ReturnForwardToSalesRequest(
     val uwagiMagazynu: String?,
 )
 
-data class ReturnDecisionRequest(
-    val decyzjaId: Int,
-    val komentarz: String?,
-)
-
 data class ReturnDecisionResponse(
     val returnId: Int,
     val statusWewnetrzny: String,
@@ -94,17 +89,6 @@ data class ReturnActionDto(
 
 data class ReturnActionCreateRequest(
     val tresc: String,
-)
-
-data class MessageDto(
-    val id: Int,
-    val nadawcaId: Int,
-    val odbiorcaId: Int,
-    val tytul: String?,
-    val tresc: String,
-    val dataWyslania: OffsetDateTime,
-    val dotyczyZwrotuId: Int?,
-    val czyPrzeczytana: Boolean,
 )
 
 data class MessageCreateRequest(
