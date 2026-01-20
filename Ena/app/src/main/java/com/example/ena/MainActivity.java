@@ -6,6 +6,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,9 +15,30 @@ import com.example.ena.ui.MessagesActivity;
 import com.example.ena.ui.ReturnsListActivity;
 import com.example.ena.ui.SettingsActivity;
 import com.example.ena.ui.SummaryActivity;
+import com.google.gson.Gson;
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanIntentResult;
+import com.journeyapps.barcodescanner.ScanOptions;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import androidx.activity.result.ActivityResultLauncher;
 
 public class MainActivity extends AppCompatActivity {
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .build();
+
+    private final ActivityResultLauncher<ScanOptions> qrLauncher =
+            registerForActivityResult(new ScanContract(), this::handleQrResult);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
         TextView txtBaseUrl = findViewById(R.id.txtBaseUrl);
         TextView txtPhoneIp = findViewById(R.id.txtPhoneIp);
         TextView txtPairCode = findViewById(R.id.txtPairCode);
+        Button btnScanQr = findViewById(R.id.btnScanQr);
         Button btnWarehouse = findViewById(R.id.btnWarehouse);
         Button btnSales = findViewById(R.id.btnSales);
         Button btnSummary = findViewById(R.id.btnSummary);
@@ -37,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
         startBackgroundServer();
         requestRuntimePermissions();
 
+        btnScanQr.setOnClickListener(v -> startQrScan());
         btnWarehouse.setOnClickListener(v -> openReturns("warehouse"));
         btnSales.setOnClickListener(v -> openReturns("sales"));
         btnSummary.setOnClickListener(v -> startActivity(new Intent(this, SummaryActivity.class)));
@@ -71,6 +95,79 @@ public class MainActivity extends AppCompatActivity {
         ipLabel.setText("Telefon IP: " + ip + ":8080");
         String code = PairingManager.getOrCreateCode(this);
         codeLabel.setText("Kod parowania: " + code);
+    }
+
+    private void startQrScan() {
+        ScanOptions options = new ScanOptions();
+        options.setPrompt("Zeskanuj QR z komputera");
+        options.setBeepEnabled(true);
+        options.setOrientationLocked(true);
+        options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
+        qrLauncher.launch(options);
+    }
+
+    private void handleQrResult(ScanIntentResult result) {
+        if (result.getContents() == null) {
+            return;
+        }
+
+        try {
+            QrPairingPayload payload = new Gson().fromJson(result.getContents(), QrPairingPayload.class);
+            if (payload == null || payload.pcIp == null || payload.pcIp.isEmpty() || payload.pcPort <= 0) {
+                Toast.makeText(this, "Niepoprawny QR parowania.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            if (payload.apiBaseUrl != null && !payload.apiBaseUrl.isEmpty()) {
+                ApiConfig.setBaseUrl(this, payload.apiBaseUrl);
+                Config.saveServerUrl(this, payload.apiBaseUrl);
+            }
+
+            if (payload.user != null) {
+                PairingManager.setPairedUser(this, payload.user);
+            }
+
+            sendPairingRequest(payload);
+        } catch (Exception ex) {
+            Toast.makeText(this, "Błąd odczytu QR: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void sendPairingRequest(QrPairingPayload payload) {
+        String phoneIp = NetworkUtils.getIPAddress(true);
+        if (phoneIp == null || phoneIp.isEmpty()) {
+            Toast.makeText(this, "Brak IP telefonu.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String pairingCode = PairingManager.getOrCreateCode(this);
+        QrPairingRequest requestPayload = new QrPairingRequest(payload.token, phoneIp, pairingCode);
+        String json = new Gson().toJson(requestPayload);
+
+        new Thread(() -> {
+            try {
+                String url = "http://" + payload.pcIp + ":" + payload.pcPort + "/pair";
+                RequestBody body = RequestBody.create(json, JSON);
+                Request request = new Request.Builder()
+                        .url(url)
+                        .post(body)
+                        .build();
+
+                try (Response response = CLIENT.newCall(request).execute()) {
+                    if (!response.isSuccessful()) {
+                        showToast("Błąd parowania: HTTP " + response.code());
+                        return;
+                    }
+                }
+                showToast("Wysłano dane parowania do komputera.");
+            } catch (Exception ex) {
+                showToast("Błąd parowania: " + ex.getMessage());
+            }
+        }).start();
+    }
+
+    private void showToast(String message) {
+        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
     }
 
     private void startBackgroundServer() {
@@ -119,5 +216,25 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ReturnsListActivity.class);
         intent.putExtra(ReturnsListActivity.EXTRA_MODE, mode);
         startActivity(intent);
+    }
+
+    static class QrPairingPayload {
+        String pcIp;
+        int pcPort;
+        String token;
+        String user;
+        String apiBaseUrl;
+    }
+
+    static class QrPairingRequest {
+        String token;
+        String phoneIp;
+        String pairingCode;
+
+        QrPairingRequest(String token, String phoneIp, String pairingCode) {
+            this.token = token;
+            this.phoneIp = phoneIp;
+            this.pairingCode = pairingCode;
+        }
     }
 }
