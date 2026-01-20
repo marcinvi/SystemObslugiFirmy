@@ -6,7 +6,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.ena.R;
 import com.example.ena.api.ApiClient;
+import com.example.ena.api.ReturnSummaryItemDto;
 import com.example.ena.api.ReturnSummaryResponse;
+import com.example.ena.api.ReturnSummaryStatsDto;
 
 public class SummaryActivity extends AppCompatActivity {
 
@@ -37,19 +39,21 @@ public class SummaryActivity extends AppCompatActivity {
     }
 
     private String buildSummaryText(ReturnSummaryResponse response) {
-        if (response == null || response.stats == null) {
+        if (response == null || response.getStats() == null) {
             return "Brak danych";
         }
+        ReturnSummaryStatsDto stats = response.getStats();
         StringBuilder sb = new StringBuilder();
-        sb.append("Łącznie: ").append(response.stats.total).append("\n");
-        sb.append("Do decyzji: ").append(response.stats.doDecyzji).append("\n");
-        sb.append("Zakończone: ").append(response.stats.zakonczone).append("\n");
-        if (response.items != null && !response.items.isEmpty()) {
+        sb.append("Łącznie: ").append(stats.getTotal()).append("\n");
+        sb.append("Do decyzji: ").append(stats.getDoDecyzji()).append("\n");
+        sb.append("Zakończone: ").append(stats.getZakonczone()).append("\n");
+        if (response.getItems() != null && !response.getItems().isEmpty()) {
             sb.append("\nOstatnie zwroty:\n");
-            int limit = Math.min(5, response.items.size());
+            int limit = Math.min(5, response.getItems().size());
             for (int i = 0; i < limit; i++) {
-                sb.append("• ").append(response.items.get(i).numerZwrotu)
-                    .append(" - ").append(response.items.get(i).status)
+                ReturnSummaryItemDto item = response.getItems().get(i);
+                sb.append("• ").append(item.getNumerZwrotu())
+                    .append(" - ").append(item.getStatus())
                     .append("\n");
             }
         }
