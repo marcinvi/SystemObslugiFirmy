@@ -13,4 +13,12 @@ public static class DbConnectionFactory
 
         return new MySqlConnection(connectionString);
     }
+
+    public static MySqlConnection CreateDefaultConnection(IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection is not configured.");
+
+        return new MySqlConnection(connectionString);
+    }
 }

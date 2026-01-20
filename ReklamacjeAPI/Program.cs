@@ -96,6 +96,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IZgloszeniaService, ZgloszeniaService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IDzialanieService, DzialanieService>();
+builder.Services.AddScoped<ReturnsService>();
 
 var app = builder.Build();
 
