@@ -2,10 +2,12 @@ package com.example.ena.api;
 
 import android.content.Context;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.example.ena.PairingManager;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.time.OffsetDateTime;
 import java.util.List;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -18,7 +20,9 @@ import okhttp3.Response;
 public class ApiClient {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private static final OkHttpClient CLIENT = new OkHttpClient();
-    private static final Gson GSON = new Gson();
+    private static final Gson GSON = new GsonBuilder()
+        .registerTypeAdapter(OffsetDateTime.class, new OffsetDateTimeAdapter())
+        .create();
 
     public interface ApiCallback<T> {
         void onSuccess(T data);
@@ -81,6 +85,33 @@ public class ApiClient {
         String fallbackUrl = buildUrlWithBase(fallback, path);
         if (fallbackUrl == null) {
             callback.onError(originalError.getMessage());
+            return;
+        }
+        Request request = buildRequest(fallbackUrl).get().build();
+        CLIENT.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callback.onError(originalError.getMessage());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    callback.onError("HTTP " + response.code());
+                    return;
+                }
+                String body = response.body() != null ? response.body().string() : "";
+                T data = GSON.fromJson(body, type);
+                ApiConfig.setBaseUrl(context, fallback);
+                callback.onSuccess(data);
+            }
+        });
+    }
+
+    private <T> void sendJson(String path, T payload, String method, ApiCallback<Void> callback) {
+        String url = buildUrl(path);
+        if (url == null) {
+            callback.onError("Brak adresu API. Ustaw go w Ustawieniach.");
             return;
         }
         String json = GSON.toJson(payload);
