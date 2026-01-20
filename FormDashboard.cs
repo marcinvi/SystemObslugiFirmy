@@ -28,6 +28,7 @@ namespace Reklamacje_Dane
         private Timer _timerPhone;
         private TextBox txtPhoneIp;
         private Button btnConnectPhone;
+        private Button btnQrPair;
         private bool _isCallPopupOpen = false;
 
         // --- UI I NAWIGACJA ---
@@ -87,16 +88,20 @@ namespace Reklamacje_Dane
 
         private void SetupPhonePanel()
         {
-            Label lblIp = new Label { Text = "IP Telefonu:", AutoSize = true, Location = new Point(this.panelTop.Width - 380, 15), ForeColor = Color.DimGray, Anchor = AnchorStyles.Top | AnchorStyles.Right, Font = new Font("Segoe UI", 9, FontStyle.Bold) };
+            Label lblIp = new Label { Text = "IP Telefonu:", AutoSize = true, Location = new Point(this.panelTop.Width - 520, 15), ForeColor = Color.DimGray, Anchor = AnchorStyles.Top | AnchorStyles.Right, Font = new Font("Segoe UI", 9, FontStyle.Bold) };
 
-            txtPhoneIp = new TextBox { Text = "10.5.0.XXX", Location = new Point(this.panelTop.Width - 300, 12), Width = 110, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            txtPhoneIp = new TextBox { Text = "10.5.0.XXX", Location = new Point(this.panelTop.Width - 430, 12), Width = 110, Anchor = AnchorStyles.Top | AnchorStyles.Right };
 
-            btnConnectPhone = new Button { Text = "Połącz", Location = new Point(this.panelTop.Width - 180, 10), Width = 80, Height = 28, BackColor = Color.SteelBlue, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Anchor = AnchorStyles.Top | AnchorStyles.Right, Cursor = Cursors.Hand };
+            btnConnectPhone = new Button { Text = "Połącz", Location = new Point(this.panelTop.Width - 300, 10), Width = 90, Height = 28, BackColor = Color.SteelBlue, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Anchor = AnchorStyles.Top | AnchorStyles.Right, Cursor = Cursors.Hand };
             btnConnectPhone.Click += (s, e) => StartPhoneMonitoring(txtPhoneIp.Text, false);
+
+            btnQrPair = new Button { Text = "QR", Location = new Point(this.panelTop.Width - 200, 10), Width = 90, Height = 28, BackColor = Color.MediumSeaGreen, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Anchor = AnchorStyles.Top | AnchorStyles.Right, Cursor = Cursors.Hand };
+            btnQrPair.Click += async (s, e) => await StartQrPairingAsync();
 
             this.panelTop.Controls.Add(lblIp);
             this.panelTop.Controls.Add(txtPhoneIp);
             this.panelTop.Controls.Add(btnConnectPhone);
+            this.panelTop.Controls.Add(btnQrPair);
         }
 
         private async Task AutoconnectPhoneAsync()
@@ -274,6 +279,63 @@ namespace Reklamacje_Dane
             catch
             {
                 return null;
+            }
+        }
+
+        private async Task StartQrPairingAsync()
+        {
+            string localIp = GetLocalIpv4Address();
+            if (string.IsNullOrWhiteSpace(localIp))
+            {
+                MessageBox.Show("Nie udało się ustalić IP komputera.", "Parowanie QR", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            const int port = 5505;
+            using (var server = new QrPairingServer(localIp, port))
+            {
+                var payload = new QrPairingPayload
+                {
+                    PcIp = localIp,
+                    PcPort = port,
+                    Token = server.Token,
+                    User = SessionManager.CurrentUserLogin ?? string.Empty,
+                    ApiBaseUrl = ResolveApiBaseUrl()
+                };
+
+                try
+                {
+                    server.Start();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Nie udało się uruchomić QR: {ex.Message}", "Parowanie QR", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                using (var qrForm = new FormQrPairing(payload, server))
+                {
+                    var result = qrForm.ShowDialog(this);
+                    if (result != DialogResult.OK || qrForm.PairingRequest == null)
+                    {
+                        return;
+                    }
+
+                    txtPhoneIp.Text = qrForm.PairingRequest.PhoneIp;
+                    _phoneClient = new PhoneClient(qrForm.PairingRequest.PhoneIp);
+                    bool paired = await _phoneClient.PairAsync(qrForm.PairingRequest.PairingCode);
+                    if (!paired)
+                    {
+                        MessageBox.Show("Nie udało się sparować telefonu po QR. Sprawdź kod i spróbuj ponownie.", "Parowanie QR", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    string apiBaseUrl = ResolveApiBaseUrl();
+                    string userName = SessionManager.CurrentUserLogin ?? string.Empty;
+                    await _phoneClient.ConfigureAsync(qrForm.PairingRequest.PairingCode, apiBaseUrl, userName);
+
+                    StartPhoneMonitoring(qrForm.PairingRequest.PhoneIp, quiet: true);
+                }
             }
         }
 

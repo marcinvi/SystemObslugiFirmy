@@ -15,6 +15,7 @@ namespace Reklamacje_Dane
         private TextBox txtKodParowania;
         private Button btnParuj;
         private Button btnTestPolaczenia;
+        private Button btnQrPair;
         private Label lblStatus;
         private Label lblInstrukcja;
         private Label lblIpLabel;
@@ -34,7 +35,7 @@ namespace Reklamacje_Dane
             this.SuspendLayout();
 
             // Form settings
-            this.ClientSize = new Size(500, 380);
+            this.ClientSize = new Size(500, 430);
             this.Text = "Parowanie z telefonem Android";
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -137,6 +138,20 @@ namespace Reklamacje_Dane
             btnParuj.FlatAppearance.BorderSize = 0;
             btnParuj.Click += BtnParuj_Click;
 
+            // Button QR
+            btnQrPair = new Button
+            {
+                Location = new Point(20, 375),
+                Size = new Size(460, 35),
+                Text = "📷 PARUJ PRZEZ QR",
+                Font = new Font(this.Font.FontFamily, 10F, FontStyle.Bold),
+                BackColor = Color.SteelBlue,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnQrPair.FlatAppearance.BorderSize = 0;
+            btnQrPair.Click += BtnQrPair_Click;
+
             // Add controls
             this.Controls.Add(lblInstrukcja);
             this.Controls.Add(lblIpLabel);
@@ -147,6 +162,7 @@ namespace Reklamacje_Dane
             this.Controls.Add(progressBar);
             this.Controls.Add(lblStatus);
             this.Controls.Add(btnParuj);
+            this.Controls.Add(btnQrPair);
 
             this.ResumeLayout(false);
         }
@@ -211,24 +227,38 @@ namespace Reklamacje_Dane
             string ip = txtIpTelefonu.Text.Trim();
             string kod = txtKodParowania.Text.Trim();
 
+            await TryPairAndConfigureAsync(ip, kod, showErrors: true);
+        }
+
+        private async Task TryPairAndConfigureAsync(string ip, string kod, bool showErrors)
+        {
             if (string.IsNullOrEmpty(ip))
             {
-                UpdateStatus("⚠️ Wpisz adres IP telefonu!", Color.Orange);
-                txtIpTelefonu.Focus();
+                if (showErrors)
+                {
+                    UpdateStatus("⚠️ Wpisz adres IP telefonu!", Color.Orange);
+                    txtIpTelefonu.Focus();
+                }
                 return;
             }
 
             if (string.IsNullOrEmpty(kod))
             {
-                UpdateStatus("⚠️ Wpisz kod parowania z aplikacji Android!", Color.Orange);
-                txtKodParowania.Focus();
+                if (showErrors)
+                {
+                    UpdateStatus("⚠️ Wpisz kod parowania z aplikacji Android!", Color.Orange);
+                    txtKodParowania.Focus();
+                }
                 return;
             }
 
             if (kod.Length != 6)
             {
-                UpdateStatus("⚠️ Kod parowania musi mieć 6 znaków!", Color.Orange);
-                txtKodParowania.Focus();
+                if (showErrors)
+                {
+                    UpdateStatus("⚠️ Kod parowania musi mieć 6 znaków!", Color.Orange);
+                    txtKodParowania.Focus();
+                }
                 return;
             }
 
@@ -247,16 +277,21 @@ namespace Reklamacje_Dane
                     Properties.Settings.Default.PhoneIP = ip;
                     Properties.Settings.Default.Save();
 
+                    await ConfigurePhoneAsync(phoneClient, kod);
+
                     UpdateStatus("✅ SPAROWANO POMYŚLNIE!", Color.Green);
 
-                    MessageBox.Show(
-                        "Telefon został pomyślnie sparowany!\n\n" +
-                        $"IP telefonu: {ip}\n" +
-                        "Możesz teraz wysyłać SMS i dzwonić z poziomu aplikacji.",
-                        "Sukces",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information
-                    );
+                    if (showErrors)
+                    {
+                        MessageBox.Show(
+                            "Telefon został pomyślnie sparowany!\n\n" +
+                            $"IP telefonu: {ip}\n" +
+                            "Możesz teraz wysyłać SMS i dzwonić z poziomu aplikacji.",
+                            "Sukces",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information
+                        );
+                    }
 
                     PhoneIp = ip;
                     this.DialogResult = DialogResult.OK;
@@ -272,23 +307,130 @@ namespace Reklamacje_Dane
             catch (Exception ex)
             {
                 UpdateStatus($"❌ Błąd: {ex.Message}", Color.Red);
-                
-                MessageBox.Show(
-                    $"Błąd podczas parowania:\n\n{ex.Message}\n\n" +
-                    "Sprawdź czy:\n" +
-                    "• Telefon jest w tej samej sieci Wi-Fi\n" +
-                    "• Aplikacja ENA jest uruchomiona\n" +
-                    "• Kod parowania jest poprawny",
-                    "Błąd",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
+
+                if (showErrors)
+                {
+                    MessageBox.Show(
+                        $"Błąd podczas parowania:\n\n{ex.Message}\n\n" +
+                        "Sprawdź czy:\n" +
+                        "• Telefon jest w tej samej sieci Wi-Fi\n" +
+                        "• Aplikacja ENA jest uruchomiona\n" +
+                        "• Kod parowania jest poprawny",
+                        "Błąd",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
+                }
             }
             finally
             {
                 progressBar.Visible = false;
                 SetControlsEnabled(true);
             }
+        }
+
+        private async void BtnQrPair_Click(object sender, EventArgs e)
+        {
+            string localIp = GetLocalIpv4Address();
+            if (string.IsNullOrWhiteSpace(localIp))
+            {
+                UpdateStatus("❌ Nie udało się ustalić IP komputera.", Color.Red);
+                return;
+            }
+
+            const int port = 5505;
+            using (var server = new QrPairingServer(localIp, port))
+            {
+                var payload = new QrPairingPayload
+                {
+                    PcIp = localIp,
+                    PcPort = port,
+                    Token = server.Token,
+                    User = SessionManager.CurrentUserLogin ?? string.Empty,
+                    ApiBaseUrl = ResolveApiBaseUrl()
+                };
+
+                try
+                {
+                    server.Start();
+                }
+                catch (Exception ex)
+                {
+                    UpdateStatus($"❌ Błąd uruchomienia QR: {ex.Message}", Color.Red);
+                    return;
+                }
+
+                using (var qrForm = new FormQrPairing(payload, server))
+                {
+                    var result = qrForm.ShowDialog(this);
+                    if (result == DialogResult.OK && qrForm.PairingRequest != null)
+                    {
+                        txtIpTelefonu.Text = qrForm.PairingRequest.PhoneIp;
+                        txtKodParowania.Text = qrForm.PairingRequest.PairingCode;
+                        await TryPairAndConfigureAsync(qrForm.PairingRequest.PhoneIp, qrForm.PairingRequest.PairingCode, showErrors: false);
+                    }
+                }
+            }
+        }
+
+        private async Task ConfigurePhoneAsync(PhoneClient phoneClient, string pairingCode)
+        {
+            if (phoneClient == null || string.IsNullOrWhiteSpace(pairingCode))
+            {
+                return;
+            }
+
+            string apiBaseUrl = ResolveApiBaseUrl();
+            string userName = SessionManager.CurrentUserLogin ?? string.Empty;
+            await phoneClient.ConfigureAsync(pairingCode, apiBaseUrl, userName);
+        }
+
+        private static string ResolveApiBaseUrl()
+        {
+            string baseUrl = global::System.Configuration.ConfigurationManager.AppSettings["ReklamacjeApiBaseUrl"];
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                baseUrl = "http://localhost:5000";
+            }
+
+            string localIp = GetLocalIpv4Address();
+            if (string.IsNullOrWhiteSpace(localIp))
+            {
+                return baseUrl;
+            }
+
+            if (baseUrl.Contains("localhost"))
+            {
+                return baseUrl.Replace("localhost", localIp);
+            }
+
+            if (baseUrl.Contains("127.0.0.1"))
+            {
+                return baseUrl.Replace("127.0.0.1", localIp);
+            }
+
+            return baseUrl;
+        }
+
+        private static string GetLocalIpv4Address()
+        {
+            try
+            {
+                var host = global::System.Net.Dns.GetHostEntry(global::System.Net.Dns.GetHostName());
+                foreach (var address in host.AddressList)
+                {
+                    if (address.AddressFamily == global::System.Net.Sockets.AddressFamily.InterNetwork &&
+                        !global::System.Net.IPAddress.IsLoopback(address))
+                    {
+                        return address.ToString();
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+            return null;
         }
 
         private void UpdateStatus(string text, Color color)
