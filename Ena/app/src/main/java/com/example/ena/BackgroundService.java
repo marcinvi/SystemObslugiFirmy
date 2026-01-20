@@ -112,12 +112,16 @@ public class BackgroundService extends Service {
             String uri = session.getUri();
             Map<String, String> parms = session.getParms();
             String pairingCode = PairingManager.getOrCreateCode(getApplicationContext());
+            boolean isPaired = PairingManager.isPaired(getApplicationContext());
+            if (isPaired) {
+                PairingManager.touchLastSeen(getApplicationContext());
+            }
 
             if (uri.equals("/pair/status")) {
                 String user = PairingManager.getPairedUser(getApplicationContext());
                 String apiBaseUrl = ApiConfig.getBaseUrl(getApplicationContext());
                 PairingStatus status = new PairingStatus(
-                        PairingManager.isPaired(getApplicationContext()),
+                        isPaired,
                         user,
                         apiBaseUrl
                 );
@@ -128,6 +132,7 @@ public class BackgroundService extends Service {
                 String code = parms.get("code");
                 if (PairingManager.verifyCode(getApplicationContext(), code)) {
                     PairingManager.setPaired(getApplicationContext(), true);
+                    PairingManager.touchLastSeen(getApplicationContext());
                     String user = PairingManager.getPairedUser(getApplicationContext());
                     String apiBaseUrl = ApiConfig.getBaseUrl(getApplicationContext());
                     PairingStatus status = new PairingStatus(true, user, apiBaseUrl);
@@ -150,12 +155,13 @@ public class BackgroundService extends Service {
                     PairingManager.setPairedUser(getApplicationContext(), user);
                 }
                 PairingManager.setPaired(getApplicationContext(), true);
+                PairingManager.touchLastSeen(getApplicationContext());
                 PairingStatus status = new PairingStatus(true, PairingManager.getPairedUser(getApplicationContext()),
                         ApiConfig.getBaseUrl(getApplicationContext()));
                 return newFixedLengthResponse(Response.Status.OK, "application/json", new Gson().toJson(status));
             }
 
-            if (!PairingManager.isPaired(getApplicationContext())) {
+            if (!isPaired) {
                 return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain",
                         "Telefon nie jest sparowany. Kod: " + pairingCode);
             }

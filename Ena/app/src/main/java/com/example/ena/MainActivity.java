@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import androidx.activity.result.ActivityResultLauncher;
 
 public class MainActivity extends AppCompatActivity {
+    private static final long PAIRING_STALE_MS = TimeUnit.MINUTES.toMillis(2);
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
@@ -107,14 +108,40 @@ public class MainActivity extends AppCompatActivity {
         }
         if (PairingManager.isPaired(this)) {
             String user = PairingManager.getPairedUser(this);
-            if (user == null || user.isEmpty()) {
-                hintLabel.setText("Telefon sparowany z aplikacją. Możesz korzystać z funkcji systemu.");
+            long lastSeen = PairingManager.getLastSeen(this);
+            long now = System.currentTimeMillis();
+            boolean active = lastSeen > 0 && now - lastSeen <= PAIRING_STALE_MS;
+            if (active) {
+                if (user == null || user.isEmpty()) {
+                    hintLabel.setText("Telefon sparowany z aplikacją. Połączenie aktywne.");
+                } else {
+                    hintLabel.setText("Telefon sparowany z użytkownikiem: " + user + ". Połączenie aktywne.");
+                }
             } else {
-                hintLabel.setText("Telefon sparowany z użytkownikiem: " + user + ".");
+                String staleSuffix = lastSeen > 0 ? " Ostatni kontakt: " + formatStaleDuration(now - lastSeen) + "." : "";
+                if (user == null || user.isEmpty()) {
+                    hintLabel.setText("Telefon sparowany, ale brak połączenia z komputerem." + staleSuffix);
+                } else {
+                    hintLabel.setText("Telefon sparowany z użytkownikiem: " + user + ", ale brak połączenia z komputerem." + staleSuffix);
+                }
             }
         } else {
             hintLabel.setText("Hej! Jestem gotowy do pracy! Zeskanuj kod z aplikacji na Windows :)");
         }
+    }
+
+    private String formatStaleDuration(long diffMs) {
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(diffMs);
+        if (minutes <= 0) {
+            return "przed chwilą";
+        }
+        if (minutes == 1) {
+            return "1 minutę temu";
+        }
+        if (minutes < 5) {
+            return minutes + " minuty temu";
+        }
+        return minutes + " minut temu";
     }
 
     private void startQrScan() {
