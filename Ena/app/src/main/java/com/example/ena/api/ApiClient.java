@@ -117,8 +117,13 @@ public class ApiClient {
                     return;
                 }
                 String body = response.body() != null ? response.body().string() : "";
-                T data = GSON.fromJson(body, type);
-                callback.onSuccess(data);
+                ApiResponse<T> apiResponse = GSON.fromJson(body, type);
+                if (apiResponse == null || !apiResponse.isSuccess() || apiResponse.getData() == null) {
+                    String message = apiResponse != null ? apiResponse.getMessage() : "Brak danych z API";
+                    callback.onError(message != null ? message : "Brak danych z API");
+                    return;
+                }
+                callback.onSuccess(apiResponse.getData());
             }
         });
     }
@@ -144,7 +149,13 @@ public class ApiClient {
                     return;
                 }
                 String body = response.body() != null ? response.body().string() : "";
-                T data = GSON.fromJson(body, type);
+                ApiResponse<T> apiResponse = GSON.fromJson(body, type);
+                if (apiResponse == null || !apiResponse.isSuccess() || apiResponse.getData() == null) {
+                    String message = apiResponse != null ? apiResponse.getMessage() : "Brak danych z API";
+                    callback.onError(message != null ? message : "Brak danych z API");
+                    return;
+                }
+                T data = apiResponse.getData();
                 ApiConfig.setBaseUrl(context, fallback);
                 callback.onSuccess(data);
             }
@@ -177,20 +188,20 @@ public class ApiClient {
         });
     }
 
-    public void fetchReturns(String query, ApiCallback<List<ReturnListItemDto>> callback) {
-        Type type = new TypeToken<List<ReturnListItemDto>>() {
+    public void fetchReturns(String query, ApiCallback<PaginatedResponse<ReturnListItemDto>> callback) {
+        Type type = new TypeToken<ApiResponse<PaginatedResponse<ReturnListItemDto>>>() {
         }.getType();
         get("api/returns" + query, type, callback);
     }
 
-    public void fetchAssignedReturns(String query, ApiCallback<List<ReturnListItemDto>> callback) {
-        Type type = new TypeToken<List<ReturnListItemDto>>() {
+    public void fetchAssignedReturns(String query, ApiCallback<PaginatedResponse<ReturnListItemDto>> callback) {
+        Type type = new TypeToken<ApiResponse<PaginatedResponse<ReturnListItemDto>>>() {
         }.getType();
         get("api/returns/assigned" + query, type, callback);
     }
 
     public void fetchReturnDetails(int id, ApiCallback<ReturnDetailsDto> callback) {
-        Type type = new TypeToken<ReturnDetailsDto>() {
+        Type type = new TypeToken<ApiResponse<ReturnDetailsDto>>() {
         }.getType();
         get("api/returns/" + id, type, callback);
     }
@@ -204,13 +215,13 @@ public class ApiClient {
     }
 
     public void fetchSummary(ApiCallback<ReturnSummaryResponse> callback) {
-        Type type = new TypeToken<ReturnSummaryResponse>() {
+        Type type = new TypeToken<ApiResponse<ReturnSummaryResponse>>() {
         }.getType();
         get("api/returns/summary", type, callback);
     }
 
     public void fetchMessages(ApiCallback<List<MessageDto>> callback) {
-        Type type = new TypeToken<List<MessageDto>>() {
+        Type type = new TypeToken<ApiResponse<List<MessageDto>>>() {
         }.getType();
         get("api/messages", type, callback);
     }

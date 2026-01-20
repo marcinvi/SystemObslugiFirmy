@@ -539,7 +539,9 @@ namespace Reklamacje_Dane
             {
                 return;
             }
-            _ = _phoneClient.DisconnectAsync();
+            // Nie rozparowuj telefonu automatycznie przy zamknięciu aplikacji.
+            // Połączenie zostanie uznane za nieaktywne po wygaśnięciu "last seen".
+            _phoneClient = null;
         }
     }
 }

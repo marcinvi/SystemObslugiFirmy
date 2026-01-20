@@ -46,7 +46,7 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         holder.txtProduct.setText(item.getProductName() != null ? item.getProductName() : "Brak produktu");
         holder.txtBuyer.setText(item.getBuyerName() != null ? item.getBuyerName() : "");
         String statusWew = item.getStatusWewnetrzny() != null ? item.getStatusWewnetrzny() : "";
-        String statusAll = item.getStatusAllegro() != null ? item.getStatusAllegro() : "";
+        String statusAll = item.getStatusAllegro() != null ? translateStatus(item.getStatusAllegro()) : "";
         String status = statusWew;
         if (!statusAll.isEmpty()) {
             status = status.isEmpty() ? statusAll : status + " / " + statusAll;
@@ -72,6 +72,23 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
             txtProduct = itemView.findViewById(R.id.txtProduct);
             txtBuyer = itemView.findViewById(R.id.txtBuyer);
             txtStatus = itemView.findViewById(R.id.txtStatus);
+        }
+    }
+
+    private String translateStatus(String status) {
+        switch (status) {
+            case "DELIVERED":
+                return "Dostarczono";
+            case "IN_TRANSIT":
+                return "W drodze";
+            case "READY_FOR_PICKUP":
+                return "Gotowy do odbioru";
+            case "CREATED":
+                return "Utworzono";
+            case "COMMISSION_REFUNDED":
+                return "Zwrócono prowizję";
+            default:
+                return status;
         }
     }
 }
