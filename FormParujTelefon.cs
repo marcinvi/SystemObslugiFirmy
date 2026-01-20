@@ -339,37 +339,34 @@ namespace Reklamacje_Dane
             }
 
             const int port = 5505;
-            using (var server = new QrPairingServer(localIp, port))
+            using var server = new QrPairingServer(localIp, port);
+
+            var payload = new QrPairingPayload
             {
-                var payload = new QrPairingPayload
-                {
-                    PcIp = localIp,
-                    PcPort = port,
-                    Token = server.Token,
-                    User = SessionManager.CurrentUserLogin ?? string.Empty,
-                    ApiBaseUrl = ResolveApiBaseUrl()
-                };
+                PcIp = localIp,
+                PcPort = port,
+                Token = server.Token,
+                User = SessionManager.CurrentUserLogin ?? string.Empty,
+                ApiBaseUrl = ResolveApiBaseUrl()
+            };
 
-                try
-                {
-                    server.Start();
-                }
-                catch (Exception ex)
-                {
-                    UpdateStatus($"❌ Błąd uruchomienia QR: {ex.Message}", Color.Red);
-                    return;
-                }
+            try
+            {
+                server.Start();
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"❌ Błąd uruchomienia QR: {ex.Message}", Color.Red);
+                return;
+            }
 
-                using (var qrForm = new FormQrPairing(payload, server))
-                {
-                    var result = qrForm.ShowDialog(this);
-                    if (result == DialogResult.OK && qrForm.PairingRequest != null)
-                    {
-                        txtIpTelefonu.Text = qrForm.PairingRequest.PhoneIp;
-                        txtKodParowania.Text = qrForm.PairingRequest.PairingCode;
-                        await TryPairAndConfigureAsync(qrForm.PairingRequest.PhoneIp, qrForm.PairingRequest.PairingCode, showErrors: false);
-                    }
-                }
+            using var qrForm = new FormQrPairing(payload, server);
+            var result = qrForm.ShowDialog(this);
+            if (result == DialogResult.OK && qrForm.PairingRequest != null)
+            {
+                txtIpTelefonu.Text = qrForm.PairingRequest.PhoneIp;
+                txtKodParowania.Text = qrForm.PairingRequest.PairingCode;
+                await TryPairAndConfigureAsync(qrForm.PairingRequest.PhoneIp, qrForm.PairingRequest.PairingCode, showErrors: false);
             }
         }
 

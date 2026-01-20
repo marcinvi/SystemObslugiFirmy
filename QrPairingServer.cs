@@ -75,26 +75,24 @@ namespace Reklamacje_Dane
 
             try
             {
-                using (var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding))
+                using var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
+                string body = reader.ReadToEnd();
+                var payload = JsonConvert.DeserializeObject<QrPairingRequest>(body);
+
+                if (payload == null || string.IsNullOrWhiteSpace(payload.Token) || payload.Token != Token)
                 {
-                    string body = reader.ReadToEnd();
-                    var payload = JsonConvert.DeserializeObject<QrPairingRequest>(body);
-
-                    if (payload == null || string.IsNullOrWhiteSpace(payload.Token) || payload.Token != Token)
-                    {
-                        WriteResponse(context, HttpStatusCode.Forbidden, "Niepoprawny token parowania");
-                        return;
-                    }
-
-                    if (string.IsNullOrWhiteSpace(payload.PhoneIp) || string.IsNullOrWhiteSpace(payload.PairingCode))
-                    {
-                        WriteResponse(context, HttpStatusCode.BadRequest, "Brak danych parowania");
-                        return;
-                    }
-
-                    WriteResponse(context, HttpStatusCode.OK, "OK");
-                    PairingReceived?.Invoke(payload);
+                    WriteResponse(context, HttpStatusCode.Forbidden, "Niepoprawny token parowania");
+                    return;
                 }
+
+                if (string.IsNullOrWhiteSpace(payload.PhoneIp) || string.IsNullOrWhiteSpace(payload.PairingCode))
+                {
+                    WriteResponse(context, HttpStatusCode.BadRequest, "Brak danych parowania");
+                    return;
+                }
+
+                WriteResponse(context, HttpStatusCode.OK, "OK");
+                PairingReceived?.Invoke(payload);
             }
             catch (Exception ex)
             {
