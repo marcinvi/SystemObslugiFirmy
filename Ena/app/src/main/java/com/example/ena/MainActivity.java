@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 import androidx.activity.result.ActivityResultLauncher;
 
 public class MainActivity extends AppCompatActivity {
-    private static final long PAIRING_STALE_MS = TimeUnit.SECONDS.toMillis(5);
+    private static final long PAIRING_STALE_MS = TimeUnit.MINUTES.toMillis(2);
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
@@ -134,17 +134,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String formatStaleDuration(long diffMs) {
-        long seconds = TimeUnit.MILLISECONDS.toSeconds(diffMs);
-        if (seconds < 60) {
-            if (seconds <= 1) {
-                return "1 sekundę temu";
-            }
-            if (seconds < 5) {
-                return seconds + " sekundy temu";
-            }
-            return seconds + " sekund temu";
-        }
         long minutes = TimeUnit.MILLISECONDS.toMinutes(diffMs);
+        if (minutes <= 0) {
+            return "przed chwilą";
+        }
         if (minutes == 1) {
             return "1 minutę temu";
         }
