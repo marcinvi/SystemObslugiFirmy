@@ -32,6 +32,7 @@ public class ApiClient {
         .readTimeout(10, TimeUnit.SECONDS)
         .writeTimeout(10, TimeUnit.SECONDS)
         .build();
+    private static final OkHttpClient UNSAFE_TLS_CLIENT = buildUnsafeTlsClient();
     private static final Gson GSON = new GsonBuilder()
         .registerTypeAdapter(OffsetDateTime.class, new OffsetDateTimeAdapter())
         .create();
@@ -99,7 +100,8 @@ public class ApiClient {
 
     private void executeSendWithFallback(String url, String path, String method, RequestBody body, ApiCallback<Void> callback) {
         Request request = buildRequest(url).method(method, body).build();
-        CLIENT.newCall(request).enqueue(new Callback() {
+        OkHttpClient client = selectClient(url);
+        client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.e("ApiClient", "Request failed: " + url, e);
@@ -122,7 +124,8 @@ public class ApiClient {
 
     private <T> void executeGetWithFallback(String url, String path, Type type, ApiCallback<T> callback) {
         Request request = buildRequest(url).get().build();
-        CLIENT.newCall(request).enqueue(new Callback() {
+        OkHttpClient client = selectClient(url);
+        client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.e("ApiClient", "Request failed: " + url, e);
@@ -159,7 +162,8 @@ public class ApiClient {
             if (fallbackUrl != null) {
                 Log.d("ApiClient", "Trying fallback URL: " + fallbackUrl);
                 Request request = buildRequest(fallbackUrl).get().build();
-                CLIENT.newCall(request).enqueue(new Callback() {
+                OkHttpClient client = selectClient(fallbackUrl);
+                client.newCall(request).enqueue(new Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {
                         Log.e("ApiClient", "Fallback also failed", e);
@@ -242,7 +246,8 @@ public class ApiClient {
         Log.d("ApiClient", "Trying candidate: " + candidateUrl);
         
         Request request = buildRequest(fullUrl).get().build();
-        CLIENT.newCall(request).enqueue(new Callback() {
+        OkHttpClient client = selectClient(fullUrl);
+        client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 // Ta próba nie powiodła się - próbujemy następną
@@ -297,7 +302,8 @@ public class ApiClient {
             return;
         }
         Request fallbackRequest = buildRequest(fallbackUrl).method(method, body).build();
-        CLIENT.newCall(fallbackRequest).enqueue(new Callback() {
+        OkHttpClient client = selectClient(fallbackUrl);
+        client.newCall(fallbackRequest).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 callback.onError(originalError.getMessage());
