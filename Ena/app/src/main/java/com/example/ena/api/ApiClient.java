@@ -12,14 +12,9 @@ import java.lang.reflect.Type;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.security.SecureRandom;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateException;
-import java.security.SecureRandom;
-import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
@@ -30,9 +25,10 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.security.SecureRandom;
 
 public class ApiClient {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
@@ -83,7 +79,7 @@ public class ApiClient {
             sslContext.init(null, trustAllCerts, new SecureRandom());
 
             // Create an ssl socket factory with our all-trusting manager
-            final javax.net.ssl.SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
             OkHttpClient.Builder builder = new OkHttpClient.Builder();
             builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0]);
@@ -96,13 +92,6 @@ public class ApiClient {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private OkHttpClient selectClient(String url) {
-        if (url != null && url.startsWith("https://")) {
-            return UNSAFE_TLS_CLIENT;
-        }
-        return CLIENT;
     }
 
     private String buildUrl(String path) {
@@ -387,7 +376,8 @@ public class ApiClient {
         }
         Log.w("ApiClient", "TLS trust error, retrying over HTTP: " + httpUrl);
         Request request = buildRequest(httpUrl).method(method, body).build();
-        CLIENT.newCall(request).enqueue(new Callback() {
+        OkHttpClient client = selectClient(httpUrl);
+        client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 retrySendWithFallback(path, method, body, callback, originalError);
@@ -420,7 +410,8 @@ public class ApiClient {
         }
         Log.w("ApiClient", "TLS trust error, retrying over HTTP: " + httpUrl);
         Request request = buildRequest(httpUrl).get().build();
-        CLIENT.newCall(request).enqueue(new Callback() {
+        OkHttpClient client = selectClient(httpUrl);
+        client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 retryGetWithFallback(path, type, callback, originalError);
@@ -572,37 +563,5 @@ public class ApiClient {
         }
     }
 
-    private static OkHttpClient buildUnsafeTlsClient() {
-        try {
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                new X509TrustManager() {
-                    @Override
-                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
-                    }
-
-                    @Override
-                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
-                    }
-
-                    @Override
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return new java.security.cert.X509Certificate[]{};
-                    }
-                }
-            };
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, trustAllCerts, new SecureRandom());
-            SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-
-            return new OkHttpClient.Builder()
-                .sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0])
-                .hostnameVerifier((hostname, session) -> true)
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
-                .writeTimeout(10, TimeUnit.SECONDS)
-                .build();
-        } catch (Exception e) {
-            return CLIENT;
-        }
-    }
+    
 }
