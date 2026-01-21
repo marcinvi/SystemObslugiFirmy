@@ -48,6 +48,8 @@ builder.Services.AddSwaggerGen(options =>
 
 // Configure Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var serverVersionString = builder.Configuration["DatabaseSettings:ServerVersion"] ?? "10.6.14-MariaDB";
+var serverVersion = ServerVersion.Parse(serverVersionString);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
