@@ -543,11 +543,8 @@ public class ApiClient {
             return CLIENT;
         }
         String host = parsed.host();
-        String scheme = parsed.scheme();
-        if (isLocalNetworkHost(host)) {
-            if ("http".equals(scheme)) {
-                return LOCAL_HTTP_CLIENT;
-            }
+        boolean isHttps = "https".equals(parsed.scheme());
+        if (isHttps && isLocalNetworkHost(host)) {
             return UNSAFE_TLS_CLIENT;
         }
         return CLIENT;
