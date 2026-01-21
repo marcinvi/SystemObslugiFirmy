@@ -29,6 +29,10 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.security.SecureRandom;
 
 public class ApiClient {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
@@ -52,6 +56,53 @@ public class ApiClient {
 
     public ApiClient(Context context) {
         this.context = context.getApplicationContext();
+    }
+
+    private static OkHttpClient buildUnsafeTlsClient() {
+        try {
+            // Create a trust manager that doesn't validate certificate chains
+            final TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    @Override
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+                    }
+
+                    @Override
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+                    }
+
+                    @Override
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return new java.security.cert.X509Certificate[]{};
+                    }
+                }
+            };
+
+            // Install the all-trusting trust manager
+            final SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+
+            // Create an ssl socket factory with our all-trusting manager
+            final javax.net.ssl.SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+            OkHttpClient.Builder builder = new OkHttpClient.Builder();
+            builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0]);
+            builder.hostnameVerifier((hostname, session) -> true);
+            builder.connectTimeout(5, TimeUnit.SECONDS);
+            builder.readTimeout(10, TimeUnit.SECONDS);
+            builder.writeTimeout(10, TimeUnit.SECONDS);
+
+            return builder.build();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private OkHttpClient selectClient(String url) {
+        if (url != null && url.startsWith("https://")) {
+            return UNSAFE_TLS_CLIENT;
+        }
+        return CLIENT;
     }
 
     private String buildUrl(String path) {
