@@ -1,10 +1,8 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReklamacjeAPI.DTOs;
 
 namespace ReklamacjeAPI.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/warehouse")]
 public class WarehouseController : ControllerBase

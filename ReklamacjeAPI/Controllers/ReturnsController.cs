@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Text;
@@ -8,7 +7,6 @@ using System.Linq;
 
 namespace ReklamacjeAPI.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/returns")]
 public class ReturnsController : ControllerBase

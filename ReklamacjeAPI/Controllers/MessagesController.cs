@@ -1,11 +1,9 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReklamacjeAPI.DTOs;
 using ReklamacjeAPI.Services;
 
 namespace ReklamacjeAPI.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/messages")]
 public class MessagesController : ControllerBase

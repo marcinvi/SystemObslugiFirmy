@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReklamacjeAPI.Data;
@@ -109,11 +108,14 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<LoginResponse>.SuccessResponse(response));
     }
 
-    [Authorize]
     [HttpPost("logout")]
     public async Task<ActionResult<ApiResponse<object>>> Logout()
     {
         var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+        if (userId == 0)
+        {
+            return Ok(ApiResponse<object>.SuccessResponse(null, "Autoryzacja wyłączona - brak aktywnej sesji."));
+        }
 
         // Revoke all refresh tokens for this user
         var tokens = await _context.RefreshTokens
@@ -130,13 +132,24 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<object>.SuccessResponse(null, "Wylogowano pomyślnie"));
     }
 
-    [Authorize]
     [HttpGet("validate")]
     public ActionResult<ApiResponse<UserDto>> Validate()
     {
         var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
         var displayName = User.FindFirst("DisplayName")?.Value ?? "";
         var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+        if (userId == 0)
+        {
+            return Ok(ApiResponse<UserDto>.SuccessResponse(new UserDto
+            {
+                Id = 0,
+                Login = "anonymous",
+                NazwaWyswietlana = "Anonim",
+                Email = null,
+                Aktywny = true
+            }, "Autoryzacja wyłączona"));
+        }
 
         var userDto = new UserDto
         {

@@ -1,5 +1,3 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReklamacjeAPI.DTOs;
 using ReklamacjeAPI.Services;
@@ -8,7 +6,6 @@ namespace ReklamacjeAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class FilesController : ControllerBase
 {
     private readonly IFileService _fileService;
@@ -20,8 +17,7 @@ public class FilesController : ControllerBase
 
     private int GetCurrentUserId()
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return int.Parse(userIdClaim ?? "0");
+        return 0;
     }
 
     [HttpPost("upload")]
@@ -81,8 +77,7 @@ public class FilesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
     {
-        var userId = GetCurrentUserId();
-        var result = await _fileService.DeleteFileAsync(id, userId);
+        var result = await _fileService.DeleteFileAsync(id, GetCurrentUserId());
 
         if (!result)
         {
