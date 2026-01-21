@@ -1,7 +1,4 @@
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ReklamacjeAPI.Data;
 using ReklamacjeAPI.Services;
@@ -54,32 +51,6 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-// Configure JWT Authentication
-var jwtSecret = builder.Configuration["JwtSettings:Secret"] 
-    ?? throw new InvalidOperationException("JWT Secret not configured");
-var jwtIssuer = builder.Configuration["JwtSettings:Issuer"];
-var jwtAudience = builder.Configuration["JwtSettings:Audience"];
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer,
-        ValidAudience = jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-        ClockSkew = TimeSpan.Zero // No tolerance for expiration
-    };
-});
-
 // Configure CORS
 builder.Services.AddCors(options =>
 {
@@ -97,6 +68,7 @@ builder.Services.AddScoped<IZgloszeniaService, ZgloszeniaService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IDzialanieService, DzialanieService>();
 builder.Services.AddScoped<ReturnsService>();
+builder.Services.AddScoped<MessagesService>();
 
 var app = builder.Build();
 
@@ -114,9 +86,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
-
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapControllers();
 
