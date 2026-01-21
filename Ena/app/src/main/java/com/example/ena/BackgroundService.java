@@ -154,7 +154,11 @@ public class BackgroundService extends Service {
                     return newFixedLengthResponse(Response.Status.FORBIDDEN, "text/plain", "Niepoprawny kod parowania");
                 }
                 if (apiBaseUrl != null && !apiBaseUrl.trim().isEmpty()) {
-                    ApiConfig.setBaseUrl(getApplicationContext(), apiBaseUrl.trim());
+                    String cleanUrl = apiBaseUrl.trim();
+                    ApiConfig.setBaseUrl(getApplicationContext(), cleanUrl);
+                    // POPRAWKA: Ustawiamy fallback URL na ten sam co base URL
+                    ApiConfig.setFallbackBaseUrl(getApplicationContext(), cleanUrl);
+                    Log.d("EnaServer", "Configured API URLs: base=" + cleanUrl + ", fallback=" + cleanUrl);
                 }
                 if (user != null) {
                     PairingManager.setPairedUser(getApplicationContext(), user);

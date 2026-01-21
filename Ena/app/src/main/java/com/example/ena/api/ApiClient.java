@@ -4,10 +4,13 @@ import android.content.Context;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import android.util.Log;
 import com.example.ena.PairingManager;
+import com.example.ena.NetworkUtils;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -16,10 +19,15 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-    private static final OkHttpClient CLIENT = new OkHttpClient();
+    private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .build();
     private static final Gson GSON = new GsonBuilder()
         .registerTypeAdapter(OffsetDateTime.class, new OffsetDateTimeAdapter())
         .create();
@@ -38,7 +46,9 @@ public class ApiClient {
 
     private String buildUrl(String path) {
         String base = ApiConfig.getBaseUrl(context);
-        return buildUrlWithBase(base, path);
+        String url = buildUrlWithBase(base, path);
+        Log.d("ApiClient", "Building URL: base='" + base + "', path='" + path + "', result='" + url + "'");
+        return url;
     }
 
     private String buildUrlWithBase(String base, String path) {
@@ -88,6 +98,7 @@ public class ApiClient {
         CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
+                Log.e("ApiClient", "Request failed: " + url, e);
                 retrySendWithFallback(path, method, body, callback, e);
             }
 
@@ -107,6 +118,7 @@ public class ApiClient {
         CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
+                Log.e("ApiClient", "Request failed: " + url, e);
                 retryGetWithFallback(path, type, callback, e);
             }
 
@@ -129,41 +141,146 @@ public class ApiClient {
     }
 
     private <T> void retryGetWithFallback(String path, Type type, ApiCallback<T> callback, IOException originalError) {
+        // Próbujemy z fallback URL
         String fallback = ApiConfig.getFallbackBaseUrl(context);
-        String fallbackUrl = buildUrlWithBase(fallback, path);
-        if (fallbackUrl == null) {
+        
+        if (fallback != null && !fallback.isEmpty()) {
+            String fallbackUrl = buildUrlWithBase(fallback, path);
+            if (fallbackUrl != null) {
+                Log.d("ApiClient", "Trying fallback URL: " + fallbackUrl);
+                Request request = buildRequest(fallbackUrl).get().build();
+                CLIENT.newCall(request).enqueue(new Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        Log.e("ApiClient", "Fallback also failed", e);
+                        // Fallback też nie działa - próbujemy automatyczne wykrywanie
+                        tryAutoDiscovery(path, type, callback, originalError);
+                    }
+
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        if (!response.isSuccessful()) {
+                            tryAutoDiscovery(path, type, callback, originalError);
+                            return;
+                        }
+                        String body = response.body() != null ? response.body().string() : "";
+                        ApiResponse<T> apiResponse = GSON.fromJson(body, type);
+                        if (apiResponse == null || !apiResponse.isSuccess() || apiResponse.getData() == null) {
+                            String message = apiResponse != null ? apiResponse.getMessage() : "Brak danych z API";
+                            callback.onError(message != null ? message : "Brak danych z API");
+                            return;
+                        }
+                        // Sukces - aktualizujemy base URL
+                        ApiConfig.setBaseUrl(context, fallback);
+                        Log.d("ApiClient", "Fallback succeeded, updated base URL to: " + fallback);
+                        callback.onSuccess(apiResponse.getData());
+                    }
+                });
+                return;
+            }
+        }
+        
+        // Brak fallback - próbujemy automatyczne wykrywanie
+        tryAutoDiscovery(path, type, callback, originalError);
+    }
+
+    private <T> void tryAutoDiscovery(String path, Type type, ApiCallback<T> callback, IOException originalError) {
+        Log.d("ApiClient", "Starting auto-discovery...");
+        
+        // Pobieramy lokalny IP telefonu
+        String phoneIp = getLocalIpAddress();
+        if (phoneIp == null) {
             callback.onError(originalError.getMessage());
             return;
         }
-        Request request = buildRequest(fallbackUrl).get().build();
+        
+        // Wyciągamy segment sieci (np. 192.168.1)
+        String networkPrefix = phoneIp.substring(0, phoneIp.lastIndexOf('.'));
+        Log.d("ApiClient", "Network prefix: " + networkPrefix);
+        
+        // Próbujemy najczęstsze IP w sieci lokalnej
+        List<String> candidateIps = new ArrayList<>();
+        candidateIps.add(networkPrefix + ".1");   // Router/Gateway
+        candidateIps.add(networkPrefix + ".100"); // Często używane przez komputery
+        candidateIps.add(networkPrefix + ".101");
+        candidateIps.add(networkPrefix + ".102");
+        candidateIps.add(networkPrefix + ".103");
+        candidateIps.add(networkPrefix + ".104");
+        candidateIps.add(networkPrefix + ".105");
+        candidateIps.add(networkPrefix + ".106");
+        
+        tryNextCandidate(candidateIps, 0, path, type, callback, originalError);
+    }
+
+    private <T> void tryNextCandidate(List<String> candidates, int index, String path, Type type, 
+                                       ApiCallback<T> callback, IOException originalError) {
+        if (index >= candidates.size()) {
+            // Wszystkie próby wyczerpane
+            callback.onError("Nie znaleziono działającego serwera API. " + originalError.getMessage());
+            return;
+        }
+        
+        String candidateIp = candidates.get(index);
+        String candidateUrl = "http://" + candidateIp + ":50875";
+        String fullUrl = buildUrlWithBase(candidateUrl, path);
+        
+        if (fullUrl == null) {
+            tryNextCandidate(candidates, index + 1, path, type, callback, originalError);
+            return;
+        }
+        
+        Log.d("ApiClient", "Trying candidate: " + candidateUrl);
+        
+        Request request = buildRequest(fullUrl).get().build();
         CLIENT.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                callback.onError(originalError.getMessage());
+                // Ta próba nie powiodła się - próbujemy następną
+                tryNextCandidate(candidates, index + 1, path, type, callback, originalError);
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    callback.onError("HTTP " + response.code());
+                    // Ta próba nie powiodła się - próbujemy następną
+                    tryNextCandidate(candidates, index + 1, path, type, callback, originalError);
                     return;
                 }
+                
                 String body = response.body() != null ? response.body().string() : "";
                 ApiResponse<T> apiResponse = GSON.fromJson(body, type);
                 if (apiResponse == null || !apiResponse.isSuccess() || apiResponse.getData() == null) {
-                    String message = apiResponse != null ? apiResponse.getMessage() : "Brak danych z API";
-                    callback.onError(message != null ? message : "Brak danych z API");
+                    // Ta próba nie powiodła się - próbujemy następną
+                    tryNextCandidate(candidates, index + 1, path, type, callback, originalError);
                     return;
                 }
-                T data = apiResponse.getData();
-                ApiConfig.setBaseUrl(context, fallback);
-                callback.onSuccess(data);
+                
+                // SUKCES! Znaleźliśmy działający serwer
+                ApiConfig.setBaseUrl(context, candidateUrl);
+                ApiConfig.setFallbackBaseUrl(context, candidateUrl);
+                Log.d("ApiClient", "Auto-discovery succeeded! New API URL: " + candidateUrl);
+                callback.onSuccess(apiResponse.getData());
             }
         });
     }
 
+    private String getLocalIpAddress() {
+        String ip = NetworkUtils.getIPAddress(true);
+        if (ip == null || ip.isEmpty()) {
+            Log.e("ApiClient", "Failed to get local IP");
+            return null;
+        }
+        return ip;
+    }
+
     private void retrySendWithFallback(String path, String method, RequestBody body, ApiCallback<Void> callback, IOException originalError) {
         String fallback = ApiConfig.getFallbackBaseUrl(context);
+        
+        if (fallback == null || fallback.isEmpty()) {
+            callback.onError(originalError.getMessage());
+            return;
+        }
+        
         String fallbackUrl = buildUrlWithBase(fallback, path);
         if (fallbackUrl == null) {
             callback.onError(originalError.getMessage());
