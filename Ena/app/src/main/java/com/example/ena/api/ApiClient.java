@@ -12,8 +12,12 @@ import java.lang.reflect.Type;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.security.cert.CertPathValidatorException;
+import java.security.cert.CertificateException;
+import javax.net.ssl.SSLHandshakeException;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -99,6 +103,9 @@ public class ApiClient {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.e("ApiClient", "Request failed: " + url, e);
+                if (tryCleartextFallback(url, path, method, body, callback, e)) {
+                    return;
+                }
                 retrySendWithFallback(path, method, body, callback, e);
             }
 
@@ -119,6 +126,9 @@ public class ApiClient {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.e("ApiClient", "Request failed: " + url, e);
+                if (tryCleartextFallback(url, path, type, callback, e)) {
+                    return;
+                }
                 retryGetWithFallback(path, type, callback, e);
             }
 
@@ -303,6 +313,114 @@ public class ApiClient {
                 callback.onSuccess(null);
             }
         });
+    }
+
+    private boolean tryCleartextFallback(String url, String path, String method, RequestBody body, ApiCallback<Void> callback, IOException originalError) {
+        if (!isTlsTrustError(originalError)) {
+            return false;
+        }
+        String httpUrl = toHttpUrl(url);
+        if (httpUrl == null || httpUrl.equals(url)) {
+            return false;
+        }
+        Log.w("ApiClient", "TLS trust error, retrying over HTTP: " + httpUrl);
+        Request request = buildRequest(httpUrl).method(method, body).build();
+        CLIENT.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                retrySendWithFallback(path, method, body, callback, originalError);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                if (!response.isSuccessful()) {
+                    retrySendWithFallback(path, method, body, callback, originalError);
+                    return;
+                }
+                String baseUrl = extractBaseUrl(httpUrl);
+                if (baseUrl != null) {
+                    ApiConfig.setBaseUrl(context, baseUrl);
+                    ApiConfig.setFallbackBaseUrl(context, baseUrl);
+                }
+                callback.onSuccess(null);
+            }
+        });
+        return true;
+    }
+
+    private <T> boolean tryCleartextFallback(String url, String path, Type type, ApiCallback<T> callback, IOException originalError) {
+        if (!isTlsTrustError(originalError)) {
+            return false;
+        }
+        String httpUrl = toHttpUrl(url);
+        if (httpUrl == null || httpUrl.equals(url)) {
+            return false;
+        }
+        Log.w("ApiClient", "TLS trust error, retrying over HTTP: " + httpUrl);
+        Request request = buildRequest(httpUrl).get().build();
+        CLIENT.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                retryGetWithFallback(path, type, callback, originalError);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    retryGetWithFallback(path, type, callback, originalError);
+                    return;
+                }
+                String body = response.body() != null ? response.body().string() : "";
+                ApiResponse<T> apiResponse = GSON.fromJson(body, type);
+                if (apiResponse == null || !apiResponse.isSuccess() || apiResponse.getData() == null) {
+                    retryGetWithFallback(path, type, callback, originalError);
+                    return;
+                }
+                String baseUrl = extractBaseUrl(httpUrl);
+                if (baseUrl != null) {
+                    ApiConfig.setBaseUrl(context, baseUrl);
+                    ApiConfig.setFallbackBaseUrl(context, baseUrl);
+                }
+                callback.onSuccess(apiResponse.getData());
+            }
+        });
+        return true;
+    }
+
+    private boolean isTlsTrustError(IOException error) {
+        if (error instanceof SSLHandshakeException) {
+            return true;
+        }
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof CertPathValidatorException || current instanceof CertificateException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        String message = error.getMessage();
+        return message != null && message.contains("Trust anchor");
+    }
+
+    private String toHttpUrl(String url) {
+        if (url == null) {
+            return null;
+        }
+        if (url.startsWith("https://")) {
+            return "http://" + url.substring("https://".length());
+        }
+        return url;
+    }
+
+    private String extractBaseUrl(String url) {
+        HttpUrl parsed = HttpUrl.parse(url);
+        if (parsed == null) {
+            return null;
+        }
+        int port = parsed.port();
+        boolean isDefaultPort = (parsed.scheme().equals("http") && port == 80)
+            || (parsed.scheme().equals("https") && port == 443);
+        return parsed.scheme() + "://" + parsed.host() + (isDefaultPort ? "" : ":" + port);
     }
 
     public void fetchReturns(String query, ApiCallback<PaginatedResponse<ReturnListItemDto>> callback) {
