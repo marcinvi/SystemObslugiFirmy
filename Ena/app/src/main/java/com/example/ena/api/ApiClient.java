@@ -37,6 +37,13 @@ public class ApiClient {
         .readTimeout(10, TimeUnit.SECONDS)
         .writeTimeout(10, TimeUnit.SECONDS)
         .build();
+    private static final OkHttpClient LOCAL_HTTP_CLIENT = new OkHttpClient.Builder()
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .build();
     private static final OkHttpClient UNSAFE_TLS_CLIENT = buildUnsafeTlsClient();
     private static final Gson GSON = new GsonBuilder()
         .registerTypeAdapter(OffsetDateTime.class, new OffsetDateTimeAdapter())
@@ -158,6 +165,10 @@ public class ApiClient {
 
             @Override
             public void onResponse(Call call, Response response) {
+                if (response.isRedirect()) {
+                    callback.onError("Serwer wymusza HTTPS. Wyłącz przekierowanie lub ustaw HTTP na serwerze API.");
+                    return;
+                }
                 if (!response.isSuccessful()) {
                     callback.onError("HTTP " + response.code());
                     return;
@@ -182,6 +193,10 @@ public class ApiClient {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                if (response.isRedirect()) {
+                    callback.onError("Serwer wymusza HTTPS. Wyłącz przekierowanie lub ustaw HTTP na serwerze API.");
+                    return;
+                }
                 if (!response.isSuccessful()) {
                     callback.onError("HTTP " + response.code());
                     return;
@@ -356,6 +371,10 @@ public class ApiClient {
 
             @Override
             public void onResponse(Call call, Response response) {
+                if (response.isRedirect()) {
+                    callback.onError("Serwer wymusza HTTPS. Wyłącz przekierowanie lub ustaw HTTP na serwerze API.");
+                    return;
+                }
                 if (!response.isSuccessful()) {
                     callback.onError("HTTP " + response.code());
                     return;
@@ -419,6 +438,10 @@ public class ApiClient {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                if (response.isRedirect()) {
+                    callback.onError("Serwer wymusza HTTPS. Wyłącz przekierowanie lub ustaw HTTP na serwerze API.");
+                    return;
+                }
                 if (!response.isSuccessful()) {
                     retryGetWithFallback(path, type, callback, originalError);
                     return;
