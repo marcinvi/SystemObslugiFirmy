@@ -86,12 +86,13 @@ Write-Host "  Starting API..." -ForegroundColor Cyan
 Write-Host "==================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "API will be available at:" -ForegroundColor Yellow
-Write-Host "  - HTTP:  http://localhost:5000" -ForegroundColor White
+Write-Host "  - HTTP:  http://localhost:5000 (or http://<LAN-IP>:5000 from mobile)" -ForegroundColor White
 Write-Host "  - HTTPS: https://localhost:5001" -ForegroundColor White
 Write-Host "  - Swagger: http://localhost:5000" -ForegroundColor White
 Write-Host ""
 Write-Host "Press Ctrl+C to stop" -ForegroundColor Gray
 Write-Host ""
 
-# Run the API
+# Run the API (bind to all interfaces for mobile access)
+$env:ASPNETCORE_URLS = "http://0.0.0.0:5000;https://0.0.0.0:5001"
 dotnet run

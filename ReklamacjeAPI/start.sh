@@ -92,12 +92,12 @@ echo -e "${CYAN}  Starting API...${NC}"
 echo -e "${CYAN}==================================${NC}"
 echo ""
 echo -e "${YELLOW}API will be available at:${NC}"
-echo "  - HTTP:  http://localhost:5000"
+echo "  - HTTP:  http://localhost:5000 (or http://<LAN-IP>:5000 from mobile)"
 echo "  - HTTPS: https://localhost:5001"
 echo "  - Swagger: http://localhost:5000"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
 echo ""
 
-# Run the API
-dotnet run
+# Run the API (bind to all interfaces for mobile access)
+ASPNETCORE_URLS="http://0.0.0.0:5000;https://0.0.0.0:5001" dotnet run
