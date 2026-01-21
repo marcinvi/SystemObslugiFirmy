@@ -376,7 +376,8 @@ public class ApiClient {
         }
         Log.w("ApiClient", "TLS trust error, retrying over HTTP: " + httpUrl);
         Request request = buildRequest(httpUrl).method(method, body).build();
-        CLIENT.newCall(request).enqueue(new Callback() {
+        OkHttpClient client = selectClient(httpUrl);
+        client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 retrySendWithFallback(path, method, body, callback, originalError);
@@ -409,7 +410,8 @@ public class ApiClient {
         }
         Log.w("ApiClient", "TLS trust error, retrying over HTTP: " + httpUrl);
         Request request = buildRequest(httpUrl).get().build();
-        CLIENT.newCall(request).enqueue(new Callback() {
+        OkHttpClient client = selectClient(httpUrl);
+        client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 retryGetWithFallback(path, type, callback, originalError);
