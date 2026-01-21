@@ -51,7 +51,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 var serverVersionString = builder.Configuration["DatabaseSettings:ServerVersion"] ?? "10.6.14-MariaDB";
 var serverVersion = ServerVersion.Parse(serverVersionString);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, serverVersion));
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 // Configure CORS
 builder.Services.AddCors(options =>
