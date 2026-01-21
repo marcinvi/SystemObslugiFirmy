@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReklamacjeAPI.Data;
@@ -8,7 +7,6 @@ using ReklamacjeAPI.Services;
 
 namespace ReklamacjeAPI.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ZgloszeniaController : ControllerBase
