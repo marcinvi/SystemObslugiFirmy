@@ -53,7 +53,7 @@ namespace Reklamacje_Dane
             try
             {
                 // ##### POPRAWKA: Użycie poprawnych nazw kolumn z bazy danych #####
-                const string query = "INSERT INTO Uzytkownicy (Login, Hasło, \"Nazwa Wyświetlana\", Rola) VALUES (@login, @haslo, @nazwaWyswietlana, @rola)";
+                const string query = "INSERT INTO Uzytkownicy (Login, `Hasło`, `Nazwa Wyświetlana`, Rola) VALUES (@login, @haslo, @nazwaWyswietlana, @rola)";
 
                 await _dbService.ExecuteNonQueryAsync(
                     query,
