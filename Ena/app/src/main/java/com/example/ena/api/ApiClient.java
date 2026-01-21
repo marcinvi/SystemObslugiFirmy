@@ -14,7 +14,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.security.cert.CertPathValidatorException;
 import java.security.cert.CertificateException;
+import java.security.SecureRandom;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
@@ -465,5 +470,88 @@ public class ApiClient {
         Type type = new TypeToken<ApiResponse<List<MessageDto>>>() {
         }.getType();
         get("api/messages", type, callback);
+    }
+
+    private OkHttpClient selectClient(String url) {
+        HttpUrl parsed = HttpUrl.parse(url);
+        if (parsed == null) {
+            return CLIENT;
+        }
+        String host = parsed.host();
+        if (isLocalNetworkHost(host)) {
+            return UNSAFE_TLS_CLIENT;
+        }
+        return CLIENT;
+    }
+
+    private boolean isLocalNetworkHost(String host) {
+        if (host == null) {
+            return false;
+        }
+        if ("localhost".equals(host) || "::1".equals(host)) {
+            return true;
+        }
+        String[] parts = host.split("\\.");
+        if (parts.length != 4) {
+            return false;
+        }
+        int first = parseOctet(parts[0]);
+        int second = parseOctet(parts[1]);
+        if (first < 0 || second < 0) {
+            return false;
+        }
+        if (first == 10) {
+            return true;
+        }
+        if (first == 127) {
+            return true;
+        }
+        if (first == 192 && second == 168) {
+            return true;
+        }
+        return first == 172 && second >= 16 && second <= 31;
+    }
+
+    private int parseOctet(String value) {
+        try {
+            int parsed = Integer.parseInt(value);
+            return (parsed >= 0 && parsed <= 255) ? parsed : -1;
+        } catch (NumberFormatException ex) {
+            return -1;
+        }
+    }
+
+    private static OkHttpClient buildUnsafeTlsClient() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    @Override
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+                    }
+
+                    @Override
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+                    }
+
+                    @Override
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return new java.security.cert.X509Certificate[]{};
+                    }
+                }
+            };
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+            SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+            return new OkHttpClient.Builder()
+                .sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0])
+                .hostnameVerifier((hostname, session) -> true)
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .build();
+        } catch (Exception e) {
+            return CLIENT;
+        }
     }
 }
