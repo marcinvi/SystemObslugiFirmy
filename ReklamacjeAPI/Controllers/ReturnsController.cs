@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using System.Text;
 using ReklamacjeAPI.DTOs;
 using ReklamacjeAPI.Services;
 using System.Linq;
@@ -39,8 +41,13 @@ public class ReturnsController : ControllerBase
         [FromQuery] string? statusAllegro = null,
         [FromQuery] string? search = null)
     {
-        var login = Request.Headers["X-User"].FirstOrDefault();
-        var userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+        var userId = GetUserIdFromClaims();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+        }
+
         if (!userId.HasValue)
         {
             return Ok(ApiResponse<PaginatedResponse<ReturnListItemDto>>.SuccessResponse(
@@ -62,6 +69,18 @@ public class ReturnsController : ControllerBase
         return Ok(ApiResponse<ReturnDetailsDto>.SuccessResponse(data));
     }
 
+    [HttpGet("lookup")]
+    public async Task<ActionResult<ApiResponse<ReturnDetailsDto>>> GetReturnByCode([FromQuery] string code)
+    {
+        var data = await _returnsService.GetReturnByCodeAsync(code);
+        if (data == null)
+        {
+            return NotFound(ApiResponse<ReturnDetailsDto>.ErrorResponse("Return not found."));
+        }
+
+        return Ok(ApiResponse<ReturnDetailsDto>.SuccessResponse(data));
+    }
+
     [HttpPatch("{id:int}/warehouse")]
     public async Task<ActionResult<ApiResponse<object>>> UpdateWarehouse(int id, [FromBody] ReturnWarehouseUpdateRequest request)
     {
@@ -74,16 +93,21 @@ public class ReturnsController : ControllerBase
     }
 
     [HttpPost("{id:int}/forward-to-sales")]
-    public ActionResult<ApiResponse<object>> ForwardToSales(int id, [FromBody] ReturnForwardToSalesRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> ForwardToSales(int id, [FromBody] ReturnForwardToSalesRequest request)
     {
-        return StatusCode(501, ApiResponse<object>.ErrorResponse(
-            "Forward-to-sales endpoint not implemented yet."));
+        var success = await _returnsService.ForwardToSalesAsync(id, request, GetUserDisplayName());
+        if (!success)
+        {
+            return NotFound(ApiResponse<object>.ErrorResponse("Return not found."));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { id }));
     }
 
     [HttpPatch("{id:int}/decision")]
     public async Task<ActionResult<ApiResponse<ReturnDecisionResponse>>> SaveDecision(int id, [FromBody] ReturnDecisionRequest request)
     {
-        var response = await _returnsService.SaveDecisionAsync(id, request);
+        var response = await _returnsService.SaveDecisionAsync(id, request, GetUserDisplayName());
         if (response == null)
         {
             return BadRequest(ApiResponse<ReturnDecisionResponse>.ErrorResponse("Nie udało się zapisać decyzji."));
@@ -92,59 +116,133 @@ public class ReturnsController : ControllerBase
     }
 
     [HttpPost("manual")]
-    public ActionResult<ApiResponse<object>> CreateManualReturn([FromBody] ReturnManualCreateRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> CreateManualReturn([FromBody] ReturnManualCreateRequest request)
     {
-        return StatusCode(501, ApiResponse<object>.ErrorResponse(
-            "Manual return creation endpoint not implemented yet."));
+        var userId = GetUserIdFromClaims();
+        if (!userId.HasValue)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
+        }
+        if (request.WybraniHandlowcy.Count == 0)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak wybranych handlowców."));
+        }
+
+        var newId = await _returnsService.CreateManualReturnAsync(request, userId.Value, GetUserDisplayName());
+        if (!newId.HasValue)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się utworzyć zwrotu ręcznego."));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { id = newId.Value }));
     }
 
     [HttpPatch("{id:int}/archive")]
-    public ActionResult<ApiResponse<object>> ArchiveReturn(int id)
+    public async Task<ActionResult<ApiResponse<object>>> ArchiveReturn(int id)
     {
-        return StatusCode(501, ApiResponse<object>.ErrorResponse(
-            "Archive endpoint not implemented yet."));
+        var success = await _returnsService.ArchiveReturnAsync(id, GetUserDisplayName());
+        if (!success)
+        {
+            return NotFound(ApiResponse<object>.ErrorResponse("Return not found."));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { id }));
     }
 
     [HttpGet("{id:int}/actions")]
-    public ActionResult<ApiResponse<List<ReturnActionDto>>> GetActions(int id)
+    public async Task<ActionResult<ApiResponse<List<ReturnActionDto>>>> GetActions(int id)
     {
-        return StatusCode(501, ApiResponse<List<ReturnActionDto>>.ErrorResponse(
-            "Return actions endpoint not implemented yet."));
+        var actions = await _returnsService.GetActionsAsync(id);
+        return Ok(ApiResponse<List<ReturnActionDto>>.SuccessResponse(actions));
     }
 
     [HttpPost("{id:int}/actions")]
-    public ActionResult<ApiResponse<ReturnActionDto>> AddAction(int id, [FromBody] ReturnActionCreateRequest request)
+    public async Task<ActionResult<ApiResponse<ReturnActionDto>>> AddAction(int id, [FromBody] ReturnActionCreateRequest request)
     {
-        return StatusCode(501, ApiResponse<ReturnActionDto>.ErrorResponse(
-            "Add action endpoint not implemented yet."));
+        var action = await _returnsService.AddActionAsync(id, GetUserDisplayName(), request);
+        if (action == null)
+        {
+            return NotFound(ApiResponse<ReturnActionDto>.ErrorResponse("Return not found."));
+        }
+
+        return Ok(ApiResponse<ReturnActionDto>.SuccessResponse(action));
     }
 
     [HttpGet("summary")]
-    public ActionResult<ApiResponse<ReturnSummaryResponse>> GetSummary(
+    public async Task<ActionResult<ApiResponse<ReturnSummaryResponse>>> GetSummary(
         [FromQuery] int? handlowiecId = null,
         [FromQuery] string? status = null,
         [FromQuery] DateTime? dateFrom = null,
         [FromQuery] DateTime? dateTo = null)
     {
-        return StatusCode(501, ApiResponse<ReturnSummaryResponse>.ErrorResponse(
-            "Summary endpoint not implemented yet."));
+        var summary = await _returnsService.GetSummaryAsync(handlowiecId, status, dateFrom, dateTo);
+        return Ok(ApiResponse<ReturnSummaryResponse>.SuccessResponse(summary));
     }
 
     [HttpGet("summary/export")]
-    public ActionResult ExportSummary(
+    public async Task<ActionResult> ExportSummary(
         [FromQuery] int? handlowiecId = null,
         [FromQuery] string? status = null,
         [FromQuery] DateTime? dateFrom = null,
         [FromQuery] DateTime? dateTo = null)
     {
-        return StatusCode(501, ApiResponse<object>.ErrorResponse(
-            "Summary export endpoint not implemented yet."));
+        var summary = await _returnsService.GetSummaryAsync(handlowiecId, status, dateFrom, dateTo);
+
+        var csvBuilder = new StringBuilder();
+        csvBuilder.AppendLine("Numer Zwrotu;Produkt;Kto przyjął;Kto podjął decyzję;Jaka decyzja;Uwagi Magazynu;Uwagi Handlowca;Jaki status");
+
+        foreach (var item in summary.Items)
+        {
+            csvBuilder.AppendLine(string.Join(";", new[]
+            {
+                item.NumerZwrotu,
+                item.Produkt,
+                item.KtoPrzyjal,
+                item.KtoPodjalDecyzje,
+                item.JakaDecyzja,
+                item.UwagiMagazynu,
+                item.UwagiHandlowca,
+                item.Status
+            }.Select(value => value.Replace(";", ","))));
+        }
+
+        var fileName = $"zwroty_podsumowanie_{DateTime.Now:yyyyMMdd_HHmm}.csv";
+        return File(Encoding.UTF8.GetBytes(csvBuilder.ToString()), "text/csv", fileName);
     }
 
     [HttpPost("{id:int}/forward-to-complaints")]
-    public ActionResult<ApiResponse<object>> ForwardToComplaints(int id, [FromBody] ForwardToComplaintRequest request)
+    public async Task<ActionResult<ApiResponse<object>>> ForwardToComplaints(int id, [FromBody] ForwardToComplaintRequest request)
     {
-        return StatusCode(501, ApiResponse<object>.ErrorResponse(
-            "Forward-to-complaints endpoint not implemented yet."));
+        if (request.ReturnId != 0 && request.ReturnId != id)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Niezgodny identyfikator zwrotu."));
+        }
+
+        var userId = GetUserIdFromClaims();
+        if (!userId.HasValue)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
+        }
+
+        var complaintId = await _returnsService.ForwardToComplaintsAsync(id, request, userId.Value);
+        if (!complaintId.HasValue)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się przekazać do reklamacji."));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { id, complaintId }));
+    }
+
+    private int? GetUserIdFromClaims()
+    {
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return int.TryParse(claim, out var id) ? id : null;
+    }
+
+    private string GetUserDisplayName()
+    {
+        return User.FindFirst("DisplayName")?.Value
+            ?? User.Identity?.Name
+            ?? "System";
     }
 }

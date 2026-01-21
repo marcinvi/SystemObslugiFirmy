@@ -97,6 +97,7 @@ builder.Services.AddScoped<IZgloszeniaService, ZgloszeniaService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IDzialanieService, DzialanieService>();
 builder.Services.AddScoped<ReturnsService>();
+builder.Services.AddScoped<MessagesService>();
 
 var app = builder.Build();
 
