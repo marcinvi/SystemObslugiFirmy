@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,6 +17,9 @@ import com.example.ena.api.ReturnDecisionRequest;
 import com.example.ena.api.ReturnDetailsDto;
 import com.example.ena.api.ReturnForwardToSalesRequest;
 import com.example.ena.api.ReturnWarehouseUpdateRequest;
+import com.example.ena.api.StatusDto;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ReturnDetailActivity extends AppCompatActivity {
     public static final String EXTRA_RETURN_ID = "return_id";
@@ -26,6 +30,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private Button btnDecision;
     private int returnId;
     private ReturnDetailsDto details;
+    private final List<StatusDto> stanProduktuStatuses = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,13 +93,22 @@ public class ReturnDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Brak danych zwrotu", Toast.LENGTH_SHORT).show();
             return;
         }
+        ensureStatusesLoaded(this::showWarehouseDialogInternal);
+    }
+
+    private void showWarehouseDialogInternal() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
 
-        EditText editStan = new EditText(this);
-        editStan.setHint("Stan produktu ID");
-        editStan.setInputType(InputType.TYPE_CLASS_NUMBER);
-        layout.addView(editStan);
+        TextView labelStan = new TextView(this);
+        labelStan.setText("Stan produktu");
+        layout.addView(labelStan);
+
+        Spinner spinnerStan = buildStatusSpinner();
+        if (spinnerStan == null) {
+            return;
+        }
+        layout.addView(spinnerStan);
 
         EditText editUwagi = new EditText(this);
         editUwagi.setHint("Uwagi magazynu");
@@ -109,7 +123,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
             .setTitle("Aktualizacja magazynu")
             .setView(layout)
             .setPositiveButton("Zapisz", (dialog, which) -> {
-                int stanId = parseInt(editStan.getText().toString(), 0);
+                int stanId = getSelectedStatusId(spinnerStan);
+                if (stanId <= 0) {
+                    Toast.makeText(this, "Wybierz stan produktu.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 String uwagi = editUwagi.getText().toString();
                 int przyjetyId = parseInt(editPrzyjetyPrzez.getText().toString(), 0);
                 
