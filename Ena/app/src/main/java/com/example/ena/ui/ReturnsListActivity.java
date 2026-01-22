@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
@@ -25,6 +26,8 @@ import com.example.ena.R;
 import com.example.ena.api.ApiClient;
 import com.example.ena.api.PaginatedResponse;
 import com.example.ena.api.ReturnListItemDto;
+import com.example.ena.api.ReturnSyncRequest;
+import com.example.ena.api.ReturnSyncResponse;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanIntentResult;
 import com.journeyapps.barcodescanner.ScanOptions;
@@ -54,6 +57,7 @@ public class ReturnsListActivity extends AppCompatActivity {
     private Button btnFilterWDrodze;
     private Button btnFilterWszystkie;
     private Button btnRefresh;
+    private Button btnSync;
     private Button btnScanCode;
     private String mode;
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
@@ -84,6 +88,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnFilterWDrodze = findViewById(R.id.btnFilterWDrodze);
         btnFilterWszystkie = findViewById(R.id.btnFilterWszystkie);
         btnRefresh = findViewById(R.id.btnRefresh);
+        btnSync = findViewById(R.id.btnSync);
         btnScanCode = findViewById(R.id.btnScanCode);
 
         if ("sales".equals(mode)) {
@@ -101,6 +106,11 @@ public class ReturnsListActivity extends AppCompatActivity {
         setupSearch();
         btnRefresh.setOnClickListener(v -> loadReturns());
         btnScanCode.setOnClickListener(v -> startCodeScan());
+        if ("sales".equals(mode)) {
+            btnSync.setVisibility(View.GONE);
+        } else {
+            btnSync.setOnClickListener(v -> syncReturns());
+        }
         loadReturns();
     }
 
@@ -287,6 +297,41 @@ public class ReturnsListActivity extends AppCompatActivity {
             intent.putExtra(ReturnDetailActivity.EXTRA_RETURN_ID, returnId);
         }
         startActivity(intent);
+    }
+
+    private void syncReturns() {
+        progressBar.setVisibility(View.VISIBLE);
+        btnSync.setEnabled(false);
+        ApiClient client = new ApiClient(this);
+        ReturnSyncRequest request = new ReturnSyncRequest(null, null);
+        client.syncReturns(request, new ApiClient.ApiCallback<ReturnSyncResponse>() {
+            @Override
+            public void onSuccess(ReturnSyncResponse data) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    btnSync.setEnabled(true);
+                    String message = "Synchronizacja zakończona.";
+                    if (data != null) {
+                        message = "Synchronizacja: " + data.getReturnsProcessed() + " zwrotów (konta: "
+                                + data.getAccountsProcessed() + ").";
+                        if (data.getErrors() != null && !data.getErrors().isEmpty()) {
+                            message += " Błędy: " + TextUtils.join("; ", data.getErrors());
+                        }
+                    }
+                    Toast.makeText(ReturnsListActivity.this, message, Toast.LENGTH_LONG).show();
+                    loadReturns();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    btnSync.setEnabled(true);
+                    Toast.makeText(ReturnsListActivity.this, "Błąd synchronizacji: " + message, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
 
     private void setActiveFilter(Button activeButton) {

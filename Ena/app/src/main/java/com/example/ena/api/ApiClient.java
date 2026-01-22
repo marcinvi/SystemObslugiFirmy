@@ -127,6 +127,13 @@ public class ApiClient {
         executeSendWithFallback(url, path, method, body, callback);
     }
 
+    private <T> void sendJsonWithResponse(String path, Object payload, String method, Type type, ApiCallback<T> callback) {
+        String url = buildUrl(path);
+        if (url == null) { callback.onError("Brak adresu API."); return; }
+        RequestBody body = RequestBody.create(GSON.toJson(payload), JSON);
+        executeSendWithResponseWithFallback(url, path, method, body, type, callback);
+    }
+
     private <T> void executeGetWithFallback(String url, String path, Type type, ApiCallback<T> callback) {
         Request request = buildRequest(url).get().build();
         selectClient(url).newCall(request).enqueue(new Callback() {
@@ -148,6 +155,20 @@ public class ApiClient {
             @Override public void onResponse(Call call, Response response) {
                 if (response.isSuccessful()) callback.onSuccess(null);
                 else retrySendWithFallback(path, method, body, callback, new IOException("HTTP " + response.code()));
+            }
+        });
+    }
+
+    private <T> void executeSendWithResponseWithFallback(String url, String path, String method, RequestBody body, Type type, ApiCallback<T> callback) {
+        Request request = buildRequest(url).method(method, body).build();
+        selectClient(url).newCall(request).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) { retrySendWithResponseWithFallback(path, method, body, type, callback, e); }
+            @Override public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    handleResponse(response, type, callback);
+                } else {
+                    retrySendWithResponseWithFallback(path, method, body, type, callback, new IOException("HTTP " + response.code()));
+                }
             }
         });
     }
@@ -190,6 +211,20 @@ public class ApiClient {
                 @Override public void onFailure(Call call, IOException e) { callback.onError(error.getMessage()); }
                 @Override public void onResponse(Call call, Response response) {
                     if (response.isSuccessful()) { ApiConfig.setBaseUrl(context, fallback); callback.onSuccess(null); }
+                    else callback.onError(error.getMessage());
+                }
+            });
+        } else callback.onError(error.getMessage());
+    }
+
+    private <T> void retrySendWithResponseWithFallback(String path, String method, RequestBody body, Type type, ApiCallback<T> callback, IOException error) {
+        String fallback = ApiConfig.getFallbackBaseUrl(context);
+        if (fallback != null && !fallback.isEmpty()) {
+            String url = fallback + (path.startsWith("/") ? "" : "/") + path;
+            selectClient(url).newCall(buildRequest(url).method(method, body).build()).enqueue(new Callback() {
+                @Override public void onFailure(Call call, IOException e) { callback.onError(error.getMessage()); }
+                @Override public void onResponse(Call call, Response response) throws IOException {
+                    if (response.isSuccessful()) { ApiConfig.setBaseUrl(context, fallback); handleResponse(response, type, callback); }
                     else callback.onError(error.getMessage());
                 }
             });
@@ -302,6 +337,11 @@ public class ApiClient {
     public void fetchSummary(ApiCallback<ReturnSummaryResponse> callback) {
         Type type = new TypeToken<ApiResponse<ReturnSummaryResponse>>(){}.getType();
         get("api/returns/summary", type, callback);
+    }
+
+    public void syncReturns(ReturnSyncRequest payload, ApiCallback<ReturnSyncResponse> callback) {
+        Type type = new TypeToken<ApiResponse<ReturnSyncResponse>>(){}.getType();
+        sendJsonWithResponse("api/returns/sync", payload, "POST", type, callback);
     }
 
     public void fetchMessages(ApiCallback<List<MessageDto>> callback) {

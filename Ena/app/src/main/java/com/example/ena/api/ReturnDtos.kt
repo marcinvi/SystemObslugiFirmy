@@ -78,6 +78,20 @@ data class ReturnForwardToWarehouseRequest(
     val komentarz: String?,
 )
 
+data class ReturnSyncRequest(
+    val accountId: Int?,
+    val daysBack: Int?,
+)
+
+data class ReturnSyncResponse(
+    val accountsProcessed: Int,
+    val returnsFetched: Int,
+    val returnsProcessed: Int,
+    val startedAt: OffsetDateTime,
+    val finishedAt: OffsetDateTime,
+    val errors: List<String>,
+)
+
 data class ReturnManualCreateRequest(
     val numerListu: String,
     val produkt: String?,

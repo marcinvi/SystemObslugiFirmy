@@ -79,6 +79,13 @@ public class ReturnsController : ControllerBase
         return Ok(ApiResponse<ReturnDetailsDto>.SuccessResponse(data));
     }
 
+    [HttpPost("sync")]
+    public async Task<ActionResult<ApiResponse<ReturnSyncResponse>>> SyncReturns([FromBody] ReturnSyncRequest? request)
+    {
+        var result = await _returnsService.SyncReturnsFromAllegroAsync(request, GetUserDisplayName());
+        return Ok(ApiResponse<ReturnSyncResponse>.SuccessResponse(result));
+    }
+
     [HttpPatch("{id:int}/warehouse")]
     public async Task<ActionResult<ApiResponse<object>>> UpdateWarehouse(int id, [FromBody] ReturnWarehouseUpdateRequest request)
     {
