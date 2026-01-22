@@ -125,6 +125,13 @@ public class ReturnsController : ControllerBase
         return Ok(ApiResponse<ReturnDecisionResponse>.SuccessResponse(response));
     }
 
+    [HttpPost("{id:int}/forward-to-warehouse")]
+    public async Task<ActionResult<ApiResponse<object>>> ForwardToWarehouse(int id, [FromBody] ReturnForwardToWarehouseRequest request)
+    {
+        var updated = await _returnsService.ForwardToWarehouseAsync(id, request, GetUserDisplayName());
+        return Ok(ApiResponse<object>.SuccessResponse(new { id, statusUpdated = updated }));
+    }
+
     [HttpGet("manual/meta")]
     public async Task<ActionResult<ApiResponse<ReturnManualMetaDto>>> GetManualReturnMeta()
     {

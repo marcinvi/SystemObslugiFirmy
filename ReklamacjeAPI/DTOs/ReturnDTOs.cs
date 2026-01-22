@@ -38,6 +38,8 @@ public class ReturnDetailsDto
     public string? OfferId { get; set; }
     public int? Quantity { get; set; }
     public string? Reason { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public string? AllegroAccountName { get; set; }
     public string? UwagiMagazynu { get; set; }
     public int? StanProduktuId { get; set; }
     public string? StanProduktuName { get; set; }
@@ -77,6 +79,11 @@ public class ReturnDecisionResponse
     public string StatusWewnetrzny { get; set; } = string.Empty;
     public string DecyzjaHandlowca { get; set; } = string.Empty;
     public DateTime DataDecyzji { get; set; }
+}
+
+public class ReturnForwardToWarehouseRequest
+{
+    public string? Komentarz { get; set; }
 }
 
 public class ReturnManualCreateRequest

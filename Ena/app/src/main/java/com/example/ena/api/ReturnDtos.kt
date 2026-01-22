@@ -38,6 +38,8 @@ data class ReturnDetailsDto(
     val offerId: String?,
     val quantity: Int?,
     val reason: String?,
+    val invoiceNumber: String?,
+    val allegroAccountName: String?,
     val uwagiMagazynu: String?,
     val stanProduktuId: Int?,
     val stanProduktuName: String?,
@@ -68,6 +70,10 @@ data class ReturnDecisionResponse(
     val statusWewnetrzny: String,
     val decyzjaHandlowca: String,
     val dataDecyzji: OffsetDateTime,
+)
+
+data class ReturnForwardToWarehouseRequest(
+    val komentarz: String?,
 )
 
 data class ReturnManualCreateRequest(

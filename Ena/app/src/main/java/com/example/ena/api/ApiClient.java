@@ -252,6 +252,15 @@ public class ApiClient {
         get("api/returns/statuses?type=" + encoded, type, callback);
     }
 
+    public void fetchReturnActions(int id, ApiCallback<List<ReturnActionDto>> callback) {
+        Type type = new TypeToken<ApiResponse<List<ReturnActionDto>>>(){}.getType();
+        get("api/returns/" + id + "/actions", type, callback);
+    }
+
+    public void addReturnAction(int id, ReturnActionCreateRequest payload, ApiCallback<Void> callback) {
+        sendJson("api/returns/" + id + "/actions", payload, "POST", callback);
+    }
+
     public void fetchManualReturnMeta(ApiCallback<ManualReturnMetaDto> callback) {
         Type type = new TypeToken<ApiResponse<ManualReturnMetaDto>>(){}.getType();
         get("api/returns/manual/meta", type, callback);
@@ -267,6 +276,14 @@ public class ApiClient {
 
     public void submitDecision(int id, ReturnDecisionRequest payload, ApiCallback<Void> callback) {
         sendJson("api/returns/" + id + "/decision", payload, "PATCH", callback);
+    }
+
+    public void forwardToComplaints(int id, ForwardToComplaintRequest payload, ApiCallback<Void> callback) {
+        sendJson("api/returns/" + id + "/forward-to-complaints", payload, "POST", callback);
+    }
+
+    public void forwardToWarehouse(int id, ReturnForwardToWarehouseRequest payload, ApiCallback<Void> callback) {
+        sendJson("api/returns/" + id + "/forward-to-warehouse", payload, "POST", callback);
     }
 
     public void fetchSummary(ApiCallback<ReturnSummaryResponse> callback) {
