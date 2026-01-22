@@ -94,6 +94,19 @@ public class ReturnManualCreateRequest
     public List<int> WybraniHandlowcy { get; set; } = new();
 }
 
+public class ManualReturnRecipientDto
+{
+    public int Id { get; set; }
+    public string NazwaWyswietlana { get; set; } = string.Empty;
+}
+
+public class ReturnManualMetaDto
+{
+    public List<ManualReturnRecipientDto> Handlowcy { get; set; } = new();
+    public List<string> Produkty { get; set; } = new();
+    public List<string> Przewoznicy { get; set; } = new();
+}
+
 public class ReturnActionDto
 {
     public int Id { get; set; }

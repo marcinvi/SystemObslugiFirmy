@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dodaj zwrot ręczny"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <ProgressBar
+            android:id="@+id/progressManual"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Dane nadawcy" />
+
+        <EditText
+            android:id="@+id/editBuyerName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Imię i nazwisko *"
+            android:inputType="textPersonName" />
+
+        <EditText
+            android:id="@+id/editBuyerStreet"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Ulica"
+            android:inputType="textPostalAddress" />
+
+        <EditText
+            android:id="@+id/editBuyerZip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Kod pocztowy"
+            android:inputType="text" />
+
+        <EditText
+            android:id="@+id/editBuyerCity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Miasto"
+            android:inputType="text" />
+
+        <EditText
+            android:id="@+id/editBuyerPhone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Telefon"
+            android:inputType="phone" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Dane zwrotu" />
+
+        <EditText
+            android:id="@+id/editWaybill"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Numer listu przewozowego *"
+            android:inputType="text" />
+
+        <AutoCompleteTextView
+            android:id="@+id/editCarrier"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Przewoźnik"
+            android:inputType="text" />
+
+        <AutoCompleteTextView
+            android:id="@+id/editProduct"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Produkt"
+            android:inputType="text" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Stan produktu" />
+
+        <Spinner
+            android:id="@+id/spinnerStanProduktu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <EditText
+            android:id="@+id/editNotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Uwagi magazynu"
+            android:inputType="textMultiLine"
+            android:minLines="3" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Odbiorcy (handlowcy)" />
+
+        <CheckBox
+            android:id="@+id/chkAllSales"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Wszyscy handlowcy" />
+
+        <LinearLayout
+            android:id="@+id/layoutHandlowcy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnCancelManual"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Anuluj" />
+
+            <Button
+                android:id="@+id/btnSaveManual"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Zapisz i przekaż" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
