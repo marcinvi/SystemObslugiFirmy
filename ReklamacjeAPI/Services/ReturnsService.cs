@@ -451,13 +451,13 @@ public class ReturnsService
 
         try
         {
-            var statusDocelowyId = await GetStatusIdAsync(connection, "Oczekuje na decyzję handlowca", "StatusWewnetrzny");
+            var statusDocelowyId = await GetStatusIdAsync(connection, "Oczekuje na decyzję handlowca", "StatusWewnetrzny", transaction);
             if (!statusDocelowyId.HasValue)
             {
                 return null;
             }
 
-            var uwagiColumn = await ResolveUwagiMagazynuColumnAsync(connection);
+            var uwagiColumn = await ResolveUwagiMagazynuColumnAsync(connection, transaction);
             var referenceNumber = await GenerateNewReferenceNumberAsync(connection, transaction);
 
             var insertQuery = $@"
@@ -518,7 +518,7 @@ public class ReturnsService
                 }
 
                 var returnId = Convert.ToInt32(newIdObj);
-                var readColumn = await ResolveCzyPrzeczytanaColumnAsync(connection);
+                var readColumn = await ResolveCzyPrzeczytanaColumnAsync(connection, transaction);
 
                 foreach (var handlowiecId in request.WybraniHandlowcy)
                 {
@@ -986,10 +986,10 @@ public class ReturnsService
         return await GetReturnDetailsAsync(Convert.ToInt32(idObj));
     }
 
-    private async Task<int?> GetStatusIdAsync(MySqlConnection connection, string name, string type)
+    private async Task<int?> GetStatusIdAsync(MySqlConnection connection, string name, string type, MySqlTransaction? transaction = null)
     {
         const string query = "SELECT Id FROM Statusy WHERE Nazwa = @name AND TypStatusu = @type LIMIT 1";
-        await using var command = new MySqlCommand(query, connection);
+        await using var command = new MySqlCommand(query, connection, transaction);
         command.Parameters.AddWithValue("@name", name);
         command.Parameters.AddWithValue("@type", type);
         var result = await command.ExecuteScalarAsync();
@@ -1011,7 +1011,7 @@ public class ReturnsService
         return result == null ? null : Convert.ToInt32(result);
     }
 
-    private async Task<string> ResolveUwagiMagazynuColumnAsync(MySqlConnection connection)
+    private async Task<string> ResolveUwagiMagazynuColumnAsync(MySqlConnection connection, MySqlTransaction? transaction = null)
     {
         if (!string.IsNullOrWhiteSpace(_uwagiMagazynuColumn))
         {
@@ -1025,7 +1025,7 @@ public class ReturnsService
               AND TABLE_NAME = 'AllegroCustomerReturns'
               AND COLUMN_NAME IN ('UwagiMagazynu', 'UwagiMagazyn')
             LIMIT 1";
-        await using var command = new MySqlCommand(query, connection);
+        await using var command = new MySqlCommand(query, connection, transaction);
         var result = await command.ExecuteScalarAsync();
         _uwagiMagazynuColumn = result?.ToString() ?? "UwagiMagazynu";
         return _uwagiMagazynuColumn;
@@ -1243,7 +1243,7 @@ public class ReturnsService
         return $"R/{nextId:D3}/{monthYear}";
     }
 
-    private async Task<string> ResolveCzyPrzeczytanaColumnAsync(MySqlConnection connection)
+    private async Task<string> ResolveCzyPrzeczytanaColumnAsync(MySqlConnection connection, MySqlTransaction? transaction = null)
     {
         const string query = @"
             SELECT COLUMN_NAME
@@ -1253,7 +1253,7 @@ public class ReturnsService
               AND COLUMN_NAME IN ('CzyPrzeczytana', 'CzyOdczytana')
             LIMIT 1";
 
-        await using var command = new MySqlCommand(query, connection);
+        await using var command = new MySqlCommand(query, connection, transaction);
         var result = await command.ExecuteScalarAsync();
         return result?.ToString() ?? "CzyPrzeczytana";
     }
