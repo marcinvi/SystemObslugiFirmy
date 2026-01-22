@@ -256,4 +256,10 @@ public class ApiClient {
         Type type = new TypeToken<ApiResponse<List<MessageDto>>>(){}.getType();
         get("api/messages", type, callback);
     }
+
+    public void fetchStatuses(String typeValue, ApiCallback<List<StatusDto>> callback) {
+        Type type = new TypeToken<ApiResponse<List<StatusDto>>>(){}.getType();
+        String encoded = typeValue == null ? "" : URLEncoder.encode(typeValue, StandardCharsets.UTF_8);
+        get("api/returns/statuses?type=" + encoded, type, callback);
+    }
 }
