@@ -1,7 +1,6 @@
 package com.example.ena.api;
 
 import android.content.Context;
-import android.util.Log;
 import com.example.ena.NetworkUtils;
 import com.example.ena.PairingManager;
 import com.google.gson.Gson;
@@ -9,15 +8,14 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.security.SecureRandom;
-import java.time.OffsetDateTime;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import okhttp3.Call;
@@ -74,7 +72,9 @@ public class ApiClient {
                     .followRedirects(true)
                     .followSslRedirects(true)
                     .build();
-        } catch (Exception e) { throw new RuntimeException(e); }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private OkHttpClient selectClient(String url) {
@@ -92,7 +92,9 @@ public class ApiClient {
             int f = Integer.parseInt(parts[0]);
             int s = Integer.parseInt(parts[1]);
             return (f == 10) || (f == 192 && s == 168) || (f == 172 && s >= 16 && s <= 31);
-        } catch (Exception e) { return false; }
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     // --- FUNDAMENTALNE METODY WYKONAWCZE ---
@@ -233,6 +235,12 @@ public class ApiClient {
         Type type = new TypeToken<ApiResponse<ReturnDetailsDto>>(){}.getType();
         String encoded = code == null ? "" : URLEncoder.encode(code, StandardCharsets.UTF_8);
         get("api/returns/lookup?code=" + encoded, type, callback);
+    }
+
+    public void fetchReturnStatuses(String typeValue, ApiCallback<List<StatusDto>> callback) {
+        Type type = new TypeToken<ApiResponse<List<StatusDto>>>(){}.getType();
+        String encoded = typeValue == null ? "" : URLEncoder.encode(typeValue, StandardCharsets.UTF_8);
+        get("api/returns/statuses?type=" + encoded, type, callback);
     }
 
     public void submitWarehouseUpdate(int id, ReturnWarehouseUpdateRequest payload, ApiCallback<Void> callback) {
