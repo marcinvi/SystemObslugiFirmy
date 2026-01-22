@@ -84,6 +84,17 @@ data class ReturnManualCreateRequest(
     val wybraniHandlowcy: List<Int>,
 )
 
+data class ManualReturnRecipientDto(
+    val id: Int,
+    val nazwaWyswietlana: String,
+)
+
+data class ManualReturnMetaDto(
+    val handlowcy: List<ManualReturnRecipientDto>,
+    val produkty: List<String>,
+    val przewoznicy: List<String>,
+)
+
 data class ReturnActionDto(
     val id: Int,
     val returnId: Int,

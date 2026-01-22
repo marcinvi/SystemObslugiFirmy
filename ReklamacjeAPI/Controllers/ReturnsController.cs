@@ -125,6 +125,13 @@ public class ReturnsController : ControllerBase
         return Ok(ApiResponse<ReturnDecisionResponse>.SuccessResponse(response));
     }
 
+    [HttpGet("manual/meta")]
+    public async Task<ActionResult<ApiResponse<ReturnManualMetaDto>>> GetManualReturnMeta()
+    {
+        var data = await _returnsService.GetManualReturnMetaAsync();
+        return Ok(ApiResponse<ReturnManualMetaDto>.SuccessResponse(data));
+    }
+
     [HttpPost("manual")]
     public async Task<ActionResult<ApiResponse<object>>> CreateManualReturn([FromBody] ReturnManualCreateRequest request)
     {

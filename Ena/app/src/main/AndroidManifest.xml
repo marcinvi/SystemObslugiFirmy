@@ -33,6 +33,7 @@
         </activity>
         <activity android:name=".ui.ReturnsListActivity" android:exported="false" />
         <activity android:name=".ui.ReturnDetailActivity" android:exported="false" />
+        <activity android:name=".ui.ManualReturnActivity" android:exported="false" />
         <activity android:name=".ui.SummaryActivity" android:exported="false" />
         <activity android:name=".ui.MessagesActivity" android:exported="false" />
         <activity android:name=".ui.SettingsActivity" android:exported="false" />

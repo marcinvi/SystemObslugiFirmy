@@ -15,6 +15,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -31,6 +32,8 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import androidx.activity.result.ActivityResultLauncher;
 
 public class ReturnsListActivity extends AppCompatActivity {
@@ -311,9 +314,10 @@ public class ReturnsListActivity extends AppCompatActivity {
         if (code.isEmpty()) {
             return;
         }
+        String coreCode = extractCoreWaybill(code);
         searchHandler.removeCallbacksAndMessages(null);
-        editSearch.setText(code);
-        findReturnByCode(code);
+        editSearch.setText(coreCode);
+        findReturnByCode(coreCode);
     }
 
     private void findReturnByCode(String code) {
@@ -336,7 +340,11 @@ public class ReturnsListActivity extends AppCompatActivity {
                         return;
                     }
                     if (count == 0) {
-                        Toast.makeText(ReturnsListActivity.this, "Brak zwrotu dla kodu: " + code, Toast.LENGTH_LONG).show();
+                        if ("sales".equals(mode)) {
+                            Toast.makeText(ReturnsListActivity.this, "Brak zwrotu dla kodu: " + code, Toast.LENGTH_LONG).show();
+                        } else {
+                            showManualReturnPrompt(code);
+                        }
                     }
                 });
             }
@@ -356,6 +364,36 @@ public class ReturnsListActivity extends AppCompatActivity {
         } else {
             client.fetchReturns(query, callback);
         }
+    }
+
+    private void showManualReturnPrompt(String code) {
+        new AlertDialog.Builder(this)
+            .setTitle("Nie znaleziono zwrotu")
+            .setMessage("Nie znaleziono zwrotu dla numeru listu: " + code + ".\n\nCzy chcesz dodać nowy zwrot ręcznie?")
+            .setPositiveButton("Dodaj ręcznie", (dialog, which) -> openManualReturnForm(code))
+            .setNegativeButton("Anuluj", null)
+            .show();
+    }
+
+    private void openManualReturnForm(String waybill) {
+        Intent intent = new Intent(this, ManualReturnActivity.class);
+        intent.putExtra(ManualReturnActivity.EXTRA_WAYBILL, waybill);
+        startActivity(intent);
+    }
+
+    private String extractCoreWaybill(String scannedText) {
+        if (scannedText == null || scannedText.trim().isEmpty()) {
+            return "";
+        }
+        Matcher dpdMatch = Pattern.compile("^%.{7}([a-zA-Z0-9]{14})").matcher(scannedText);
+        if (dpdMatch.find()) {
+            return dpdMatch.group(1);
+        }
+        Matcher genericMatch = Pattern.compile("[a-zA-Z0-9]{10,}").matcher(scannedText);
+        if (genericMatch.find()) {
+            return genericMatch.group();
+        }
+        return scannedText.replaceAll("[^a-zA-Z0-9]", "");
     }
 
     private String encode(@Nullable String value) {

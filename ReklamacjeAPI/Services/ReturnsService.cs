@@ -638,6 +638,71 @@ public class ReturnsService
         return results;
     }
 
+    public async Task<ReturnManualMetaDto> GetManualReturnMetaAsync()
+    {
+        var handlowcy = new List<ManualReturnRecipientDto>();
+        await using (var connection = DbConnectionFactory.CreateDefaultConnection(_configuration))
+        {
+            await connection.OpenAsync();
+            const string query = @"
+                SELECT Id, `Nazwa Wyświetlana` AS NazwaWyswietlana
+                FROM Uzytkownicy
+                WHERE Rola = 'Handlowiec'
+                ORDER BY `Nazwa Wyświetlana`";
+            await using var command = new MySqlCommand(query, connection);
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                handlowcy.Add(new ManualReturnRecipientDto
+                {
+                    Id = Convert.ToInt32(reader["Id"]),
+                    NazwaWyswietlana = reader["NazwaWyswietlana"]?.ToString() ?? string.Empty
+                });
+            }
+        }
+
+        var produkty = new List<string>();
+        var przewoznicy = new List<string>();
+        await using (var connection = DbConnectionFactory.CreateMagazynConnection(_configuration))
+        {
+            await connection.OpenAsync();
+            const string productQuery = @"
+                SELECT DISTINCT ProductName
+                FROM AllegroCustomerReturns
+                WHERE ProductName IS NOT NULL AND TRIM(ProductName) != ''
+                ORDER BY ProductName";
+            await using (var command = new MySqlCommand(productQuery, connection))
+            await using (var reader = await command.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    produkty.Add(reader["ProductName"]?.ToString() ?? string.Empty);
+                }
+            }
+
+            const string carrierQuery = @"
+                SELECT DISTINCT CarrierName
+                FROM AllegroCustomerReturns
+                WHERE CarrierName IS NOT NULL AND TRIM(CarrierName) != ''
+                ORDER BY CarrierName";
+            await using (var command = new MySqlCommand(carrierQuery, connection))
+            await using (var reader = await command.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    przewoznicy.Add(reader["CarrierName"]?.ToString() ?? string.Empty);
+                }
+            }
+        }
+
+        return new ReturnManualMetaDto
+        {
+            Handlowcy = handlowcy,
+            Produkty = produkty,
+            Przewoznicy = przewoznicy
+        };
+    }
+
     private async Task<string> GetUserDisplayNameByIdAsync(int userId)
     {
         await using var connection = DbConnectionFactory.CreateDefaultConnection(_configuration);
