@@ -142,6 +142,12 @@ data class WarehouseIntakeRequest(
     val czesci: List<String>,
 )
 
+data class StatusDto(
+    val id: Int,
+    val nazwa: String,
+    val typ: String,
+)
+
 data class ForwardToComplaintRequest(
     val returnId: Int,
     val powodKlienta: String?,

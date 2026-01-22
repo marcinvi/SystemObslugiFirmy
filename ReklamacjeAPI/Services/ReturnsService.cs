@@ -491,12 +491,70 @@ public class ReturnsService
         }
     }
 
-    public async Task<bool> ForwardToSalesAsync(int returnId, ReturnForwardToSalesRequest request, string userDisplayName)
+    public async Task<bool> ForwardToSalesAsync(int returnId, ReturnForwardToSalesRequest request, int senderId, string userDisplayName)
     {
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
         var uwagiColumn = await ResolveUwagiMagazynuColumnAsync(connection);
         var statusDocelowyId = await GetStatusIdAsync(connection, "Oczekuje na decyzję handlowca", "StatusWewnetrzny");
+        var readColumn = await ResolveCzyPrzeczytanaColumnAsync(connection);
+
+        const string returnQuery = @"
+            SELECT Id, ReferenceNumber, AllegroAccountId
+            FROM AllegroCustomerReturns
+            WHERE Id = @id
+            LIMIT 1";
+        await using var returnCommand = new MySqlCommand(returnQuery, connection);
+        returnCommand.Parameters.AddWithValue("@id", returnId);
+        await using var returnReader = await returnCommand.ExecuteReaderAsync();
+        if (!await returnReader.ReadAsync())
+        {
+            return false;
+        }
+
+        var referenceNumber = returnReader["ReferenceNumber"]?.ToString() ?? $"ZWROT-{returnId}";
+        var accountId = returnReader["AllegroAccountId"] == DBNull.Value
+            ? (int?)null
+            : Convert.ToInt32(returnReader["AllegroAccountId"]);
+        await returnReader.CloseAsync();
+
+        if (!accountId.HasValue)
+        {
+            return false;
+        }
+
+        const string opiekunQuery = "SELECT OpiekunId FROM AllegroAccountOpiekun WHERE AllegroAccountId = @id LIMIT 1";
+        await using var opiekunCommand = new MySqlCommand(opiekunQuery, connection);
+        opiekunCommand.Parameters.AddWithValue("@id", accountId.Value);
+        var opiekunIdObj = await opiekunCommand.ExecuteScalarAsync();
+        if (opiekunIdObj == null || opiekunIdObj == DBNull.Value)
+        {
+            return false;
+        }
+
+        var opiekunId = Convert.ToInt32(opiekunIdObj);
+        var odbiorcaId = opiekunId;
+
+        const string delegacjaQuery = @"
+            SELECT ZastepcaId
+            FROM Delegacje
+            WHERE UzytkownikId = @opiekunId
+              AND CURDATE() BETWEEN DataOd AND DataDo
+              AND CzyAktywna = 1
+            LIMIT 1";
+        await using var delegacjaCommand = new MySqlCommand(delegacjaQuery, connection);
+        delegacjaCommand.Parameters.AddWithValue("@opiekunId", opiekunId);
+        var zastepcaIdObj = await delegacjaCommand.ExecuteScalarAsync();
+        if (zastepcaIdObj != null && zastepcaIdObj != DBNull.Value)
+        {
+            odbiorcaId = Convert.ToInt32(zastepcaIdObj);
+        }
+
+        var opiekunName = await GetUserDisplayNameByIdAsync(opiekunId);
+        var odbiorcaName = await GetUserDisplayNameByIdAsync(odbiorcaId);
+        var odbiorcaLabel = odbiorcaId != opiekunId
+            ? $"{odbiorcaName} (zastępstwo za {opiekunName})"
+            : opiekunName;
 
         var query = $@"
             UPDATE AllegroCustomerReturns
@@ -514,11 +572,62 @@ public class ReturnsService
         var updated = await command.ExecuteNonQueryAsync() > 0;
         if (updated)
         {
+            var messageCommand = new MySqlCommand($@"
+                INSERT INTO Wiadomosci (NadawcaId, OdbiorcaId, Tresc, DataWyslania, DotyczyZwrotuId, {readColumn})
+                VALUES (@nadawcaId, @odbiorcaId, @tresc, @data, @zwrotId, 0)", connection);
+            messageCommand.Parameters.AddWithValue("@nadawcaId", senderId);
+            messageCommand.Parameters.AddWithValue("@odbiorcaId", odbiorcaId);
+            messageCommand.Parameters.AddWithValue("@tresc", $"Zwrot {referenceNumber} oczekuje na Twoją decyzję.");
+            messageCommand.Parameters.AddWithValue("@data", DateTime.Now);
+            messageCommand.Parameters.AddWithValue("@zwrotId", returnId);
+            await messageCommand.ExecuteNonQueryAsync();
+
             await AddReturnActionInternalAsync(connection, returnId, userDisplayName,
-                "Zwrot przekazany do decyzji handlowca.");
+                $"Zwrot przekazany do decyzji handlowca ({odbiorcaLabel}).");
+
+            await AddMagazynDziennikAsync(connection, returnId, userDisplayName,
+                $"Przekazano do decyzji handlowca: {odbiorcaLabel}.", null);
         }
 
         return updated;
+    }
+
+    public async Task<List<StatusDto>> GetStatusesAsync(string type)
+    {
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+        const string query = @"
+            SELECT Id, Nazwa, TypStatusu
+            FROM Statusy
+            WHERE TypStatusu = @type
+            ORDER BY Nazwa";
+        await using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@type", type);
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var results = new List<StatusDto>();
+        while (await reader.ReadAsync())
+        {
+            results.Add(new StatusDto
+            {
+                Id = Convert.ToInt32(reader["Id"]),
+                Nazwa = reader["Nazwa"]?.ToString() ?? string.Empty,
+                Typ = reader["TypStatusu"]?.ToString() ?? string.Empty
+            });
+        }
+
+        return results;
+    }
+
+    private async Task<string> GetUserDisplayNameByIdAsync(int userId)
+    {
+        await using var connection = DbConnectionFactory.CreateDefaultConnection(_configuration);
+        await connection.OpenAsync();
+        const string query = "SELECT `Nazwa Wyświetlana` FROM Uzytkownicy WHERE Id = @id LIMIT 1";
+        await using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@id", userId);
+        var result = await command.ExecuteScalarAsync();
+        return result?.ToString() ?? $"Użytkownik {userId}";
     }
 
     public async Task<bool> ArchiveReturnAsync(int returnId, string userDisplayName)
