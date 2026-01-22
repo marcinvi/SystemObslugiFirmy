@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -227,8 +229,18 @@ public class ApiClient {
         get("api/returns/" + id, type, callback);
     }
 
+    public void fetchReturnByCode(String code, ApiCallback<ReturnDetailsDto> callback) {
+        Type type = new TypeToken<ApiResponse<ReturnDetailsDto>>(){}.getType();
+        String encoded = code == null ? "" : URLEncoder.encode(code, StandardCharsets.UTF_8);
+        get("api/returns/lookup?code=" + encoded, type, callback);
+    }
+
     public void submitWarehouseUpdate(int id, ReturnWarehouseUpdateRequest payload, ApiCallback<Void> callback) {
         sendJson("api/returns/" + id + "/warehouse", payload, "PATCH", callback);
+    }
+
+    public void forwardToSales(int id, ReturnForwardToSalesRequest payload, ApiCallback<Void> callback) {
+        sendJson("api/returns/" + id + "/forward-to-sales", payload, "POST", callback);
     }
 
     public void submitDecision(int id, ReturnDecisionRequest payload, ApiCallback<Void> callback) {
