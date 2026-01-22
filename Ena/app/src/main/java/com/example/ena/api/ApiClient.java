@@ -132,7 +132,11 @@ public class ApiClient {
         selectClient(url).newCall(request).enqueue(new Callback() {
             @Override public void onFailure(Call call, IOException e) { retryGetWithFallback(path, type, callback, e); }
             @Override public void onResponse(Call call, Response response) throws IOException {
-                handleResponse(response, type, callback, () -> retryGetWithFallback(path, type, callback, new IOException("HTTP " + response.code())));
+                if (response.isSuccessful()) {
+                    handleResponse(response, type, callback);
+                } else {
+                    callback.onError("Błąd serwera (HTTP " + response.code() + ")");
+                }
             }
         });
     }
@@ -148,8 +152,7 @@ public class ApiClient {
         });
     }
 
-    private <T> void handleResponse(Response response, Type type, ApiCallback<T> callback, Runnable onFail) throws IOException {
-        if (!response.isSuccessful()) { onFail.run(); return; }
+    private <T> void handleResponse(Response response, Type type, ApiCallback<T> callback) throws IOException {
         String body = response.body() != null ? response.body().string() : "";
         ApiResponse<T> apiRes = GSON.fromJson(body, type);
         if (apiRes == null || !apiRes.isSuccess()) {
@@ -168,8 +171,12 @@ public class ApiClient {
             selectClient(url).newCall(buildRequest(url).get().build()).enqueue(new Callback() {
                 @Override public void onFailure(Call call, IOException e) { tryAutoDiscovery(path, type, callback, error); }
                 @Override public void onResponse(Call call, Response response) throws IOException {
-                    if (response.isSuccessful()) { ApiConfig.setBaseUrl(context, fallback); handleResponse(response, type, callback, null); }
-                    else tryAutoDiscovery(path, type, callback, error);
+                    if (response.isSuccessful()) {
+                        ApiConfig.setBaseUrl(context, fallback);
+                        handleResponse(response, type, callback);
+                    } else {
+                        callback.onError("Błąd serwera (HTTP " + response.code() + ")");
+                    }
                 }
             });
         } else tryAutoDiscovery(path, type, callback, error);
@@ -191,8 +198,10 @@ public class ApiClient {
 
     private <T> void tryAutoDiscovery(String path, Type type, ApiCallback<T> callback, IOException error) {
         String ip = NetworkUtils.getIPAddress(true);
-        if (ip == null) { callback.onError(error.getMessage()); return; }
-        String prefix = ip.substring(0, ip.lastIndexOf('.'));
+        if (ip == null || ip.isEmpty()) { callback.onError(error.getMessage()); return; }
+        int lastDot = ip.lastIndexOf('.');
+        if (lastDot <= 0) { callback.onError(error.getMessage()); return; }
+        String prefix = ip.substring(0, lastDot);
         List<String> ips = new ArrayList<>();
         ips.add(prefix + ".106"); ips.add(prefix + ".1");
         for (int i = 100; i <= 105; i++) ips.add(prefix + "." + i);
@@ -208,7 +217,7 @@ public class ApiClient {
             @Override public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
                     ApiConfig.setBaseUrl(context, base); ApiConfig.setFallbackBaseUrl(context, base);
-                    handleResponse(response, type, cb, null);
+                    handleResponse(response, type, cb);
                 } else tryNextCandidate(ips, idx + 1, path, type, cb, err);
             }
         });
