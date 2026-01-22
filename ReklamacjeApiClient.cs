@@ -395,6 +395,32 @@ namespace Reklamacje_Dane
             }
         }
 
+        /// <summary>
+        /// Pobiera szczegóły zwrotu
+        /// </summary>
+        public async Task<ZwrotSzczegolyApi> GetZwrotDetailsAsync(int id)
+        {
+            CheckAuthentication();
+
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_baseUrl}/api/returns/{id}");
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception($"Błąd pobierania szczegółów zwrotu: {response.StatusCode}");
+                }
+
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<ZwrotSzczegolyApi>>(responseBody);
+                return apiResponse?.Data;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Błąd podczas pobierania szczegółów zwrotu: {ex.Message}", ex);
+            }
+        }
+
         // ===== HEALTH CHECK =====
 
         /// <summary>

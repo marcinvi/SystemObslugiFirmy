@@ -300,8 +300,7 @@ namespace Reklamacje_Dane
         /// </summary>
         public async Task<List<ZwrotApi>> GetZwrotyMagazynAsync()
         {
-            var result = await _apiClient.GetZwrotyAsync("warehouse");
-            return result?.Items ?? new List<ZwrotApi>();
+            return await GetAllZwrotyAsync("warehouse");
         }
 
         /// <summary>
@@ -309,11 +308,60 @@ namespace Reklamacje_Dane
         /// </summary>
         public async Task<List<ZwrotApi>> GetZwrotyHandloweAsync()
         {
-            var result = await _apiClient.GetZwrotyAsync("sales");
-            return result?.Items ?? new List<ZwrotApi>();
+            return await GetAllZwrotyAsync("sales");
+        }
+
+        /// <summary>
+        /// Pobiera szczegóły zwrotu
+        /// </summary>
+        public async Task<ZwrotSzczegolyApi> GetZwrotDetailsAsync(int id)
+        {
+            if (!IsAuthenticated)
+            {
+                throw new InvalidOperationException("Musisz być zalogowany żeby pobierać szczegóły zwrotu");
+            }
+
+            return await _apiClient.GetZwrotDetailsAsync(id);
         }
 
         // ===== POMOCNICZE =====
+
+        private async Task<List<ZwrotApi>> GetAllZwrotyAsync(string typ)
+        {
+            if (!IsAuthenticated)
+            {
+                throw new InvalidOperationException("Musisz być zalogowany żeby synchronizować zwroty");
+            }
+
+            const int pageSize = 100;
+            var page = 1;
+            var allItems = new List<ZwrotApi>();
+
+            while (true)
+            {
+                var result = await _apiClient.GetZwrotyAsync(typ, page, pageSize);
+                if (result?.Items == null || result.Items.Count == 0)
+                {
+                    break;
+                }
+
+                allItems.AddRange(result.Items);
+
+                if (result.TotalItems > 0 && allItems.Count >= result.TotalItems)
+                {
+                    break;
+                }
+
+                if (result.Items.Count < pageSize)
+                {
+                    break;
+                }
+
+                page++;
+            }
+
+            return allItems;
+        }
 
         /// <summary>
         /// Czyści cache - wymusza ponowne pobranie danych

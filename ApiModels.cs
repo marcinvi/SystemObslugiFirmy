@@ -26,8 +26,20 @@ namespace Reklamacje_Dane
         [JsonProperty("items")]
         public List<T> Items { get; set; }
         
+        [JsonProperty("totalItems")]
+        public int TotalItems { get; set; }
+
         [JsonProperty("totalCount")]
-        public int TotalCount { get; set; }
+        private int LegacyTotalCount
+        {
+            set
+            {
+                if (TotalItems == 0)
+                {
+                    TotalItems = value;
+                }
+            }
+        }
         
         [JsonProperty("page")]
         public int Page { get; set; }
@@ -36,7 +48,19 @@ namespace Reklamacje_Dane
         public int PageSize { get; set; }
         
         [JsonProperty("totalPages")]
-        public int TotalPages { get; set; }
+        private int LegacyTotalPages
+        {
+            set
+            {
+                if (TotalItems == 0 && PageSize > 0 && value > 0)
+                {
+                    TotalItems = value * PageSize;
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling((double)TotalItems / PageSize);
     }
 
     // ===== MODELE LOGOWANIA =====
@@ -256,29 +280,140 @@ namespace Reklamacje_Dane
         [JsonProperty("id")]
         public int Id { get; set; }
         
-        [JsonProperty("nrZwrotu")]
-        public string NrZwrotu { get; set; }
-        
-        [JsonProperty("dataZwrotu")]
-        public DateTime DataZwrotu { get; set; }
-        
-        [JsonProperty("typ")]
-        public string Typ { get; set; }
-        
-        [JsonProperty("status")]
-        public string Status { get; set; }
-        
-        [JsonProperty("klient")]
-        public string Klient { get; set; }
-        
-        [JsonProperty("telefon")]
-        public string Telefon { get; set; }
-        
-        [JsonProperty("wartosc")]
-        public decimal Wartosc { get; set; }
-        
-        [JsonProperty("pozycje")]
-        public List<PozycjaZwrotuApi> Pozycje { get; set; }
+        [JsonProperty("referenceNumber")]
+        public string ReferenceNumber { get; set; }
+
+        [JsonProperty("waybill")]
+        public string Waybill { get; set; }
+
+        [JsonProperty("buyerName")]
+        public string BuyerName { get; set; }
+
+        [JsonProperty("productName")]
+        public string ProductName { get; set; }
+
+        [JsonProperty("createdAt")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonProperty("statusAllegro")]
+        public string StatusAllegro { get; set; }
+
+        [JsonProperty("statusWewnetrzny")]
+        public string StatusWewnetrzny { get; set; }
+
+        [JsonProperty("stanProduktu")]
+        public string StanProduktu { get; set; }
+
+        [JsonProperty("decyzjaHandlowca")]
+        public string DecyzjaHandlowca { get; set; }
+
+        [JsonProperty("handlowiecId")]
+        public int? HandlowiecId { get; set; }
+
+        [JsonProperty("isManual")]
+        public bool IsManual { get; set; }
+    }
+
+    public class ZwrotSzczegolyApi
+    {
+        [JsonProperty("id")]
+        public int Id { get; set; }
+
+        [JsonProperty("referenceNumber")]
+        public string ReferenceNumber { get; set; }
+
+        [JsonProperty("createdAt")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonProperty("statusWewnetrzny")]
+        public string StatusWewnetrzny { get; set; }
+
+        [JsonProperty("statusAllegro")]
+        public string StatusAllegro { get; set; }
+
+        [JsonProperty("buyerLogin")]
+        public string BuyerLogin { get; set; }
+
+        [JsonProperty("buyerName")]
+        public string BuyerName { get; set; }
+
+        [JsonProperty("buyerPhone")]
+        public string BuyerPhone { get; set; }
+
+        [JsonProperty("buyerAddress")]
+        public string BuyerAddress { get; set; }
+
+        [JsonProperty("deliveryName")]
+        public string DeliveryName { get; set; }
+
+        [JsonProperty("deliveryAddress")]
+        public string DeliveryAddress { get; set; }
+
+        [JsonProperty("deliveryPhone")]
+        public string DeliveryPhone { get; set; }
+
+        [JsonProperty("waybill")]
+        public string Waybill { get; set; }
+
+        [JsonProperty("carrierName")]
+        public string CarrierName { get; set; }
+
+        [JsonProperty("productName")]
+        public string ProductName { get; set; }
+
+        [JsonProperty("offerId")]
+        public string OfferId { get; set; }
+
+        [JsonProperty("quantity")]
+        public int? Quantity { get; set; }
+
+        [JsonProperty("reason")]
+        public string Reason { get; set; }
+
+        [JsonProperty("invoiceNumber")]
+        public string InvoiceNumber { get; set; }
+
+        [JsonProperty("allegroAccountName")]
+        public string AllegroAccountName { get; set; }
+
+        [JsonProperty("uwagiMagazynu")]
+        public string UwagiMagazynu { get; set; }
+
+        [JsonProperty("stanProduktuId")]
+        public int? StanProduktuId { get; set; }
+
+        [JsonProperty("stanProduktuName")]
+        public string StanProduktuName { get; set; }
+
+        [JsonProperty("przyjetyPrzezId")]
+        public int? PrzyjetyPrzezId { get; set; }
+
+        [JsonProperty("przyjetyPrzezName")]
+        public string PrzyjetyPrzezName { get; set; }
+
+        [JsonProperty("dataPrzyjecia")]
+        public DateTime? DataPrzyjecia { get; set; }
+
+        [JsonProperty("decyzjaHandlowcaId")]
+        public int? DecyzjaHandlowcaId { get; set; }
+
+        [JsonProperty("decyzjaHandlowcaName")]
+        public string DecyzjaHandlowcaName { get; set; }
+
+        [JsonProperty("komentarzHandlowca")]
+        public string KomentarzHandlowca { get; set; }
+
+        [JsonProperty("dataDecyzji")]
+        public DateTime? DataDecyzji { get; set; }
+
+        [JsonProperty("isManual")]
+        public bool IsManual { get; set; }
+
+        [JsonProperty("allegroReturnId")]
+        public string AllegroReturnId { get; set; }
+
+        [JsonProperty("orderId")]
+        public string OrderId { get; set; }
     }
 
     public class PozycjaZwrotuApi
