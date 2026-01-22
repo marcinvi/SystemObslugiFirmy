@@ -142,6 +142,27 @@ public class ReturnsController : ControllerBase
     [HttpPost("manual")]
     public async Task<ActionResult<ApiResponse<object>>> CreateManualReturn([FromBody] ReturnManualCreateRequest request)
     {
+        if (request == null)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak danych zwrotu ręcznego."));
+        }
+        if (string.IsNullOrWhiteSpace(request.NumerListu))
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Numer listu przewozowego jest wymagany."));
+        }
+        if (string.IsNullOrWhiteSpace(request.BuyerFullName))
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Imię i nazwisko nadawcy jest wymagane."));
+        }
+        if (request.StanProduktuId <= 0)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Stan produktu jest wymagany."));
+        }
+        if (request.WybraniHandlowcy == null || request.WybraniHandlowcy.Count == 0)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak wybranych handlowców."));
+        }
+
         var userId = GetUserIdFromClaims();
         var userDisplayName = GetUserDisplayName();
         if (!userId.HasValue)
@@ -157,11 +178,6 @@ public class ReturnsController : ControllerBase
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
         }
-        if (request.WybraniHandlowcy.Count == 0)
-        {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Brak wybranych handlowców."));
-        }
-
         var newId = await _returnsService.CreateManualReturnAsync(request, userId.Value, userDisplayName);
         if (!newId.HasValue)
         {
