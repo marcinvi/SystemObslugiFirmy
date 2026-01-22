@@ -436,6 +436,15 @@ public class ReturnsService
 
     public async Task<int?> CreateManualReturnAsync(ReturnManualCreateRequest request, int userId, string userDisplayName)
     {
+        if (string.IsNullOrWhiteSpace(request.NumerListu)
+            || string.IsNullOrWhiteSpace(request.BuyerFullName)
+            || request.StanProduktuId <= 0
+            || request.WybraniHandlowcy == null
+            || request.WybraniHandlowcy.Count == 0)
+        {
+            return null;
+        }
+
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
         await using var transaction = await connection.BeginTransactionAsync();
@@ -465,16 +474,17 @@ public class ReturnsService
                 );
                 SELECT LAST_INSERT_ID();";
 
+            var buyerFullName = request.BuyerFullName.Trim();
             var senderDetails = new
             {
-                FullName = request.BuyerFullName,
+                FullName = buyerFullName,
                 Street = request.BuyerStreet,
                 ZipCode = request.BuyerZipCode,
                 City = request.BuyerCity,
                 Phone = request.BuyerPhone
             };
 
-            var nameParts = request.BuyerFullName.Trim()
+            var nameParts = buyerFullName
                 .Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
 
             await using (var command = new MySqlCommand(insertQuery, connection, transaction))
@@ -498,7 +508,7 @@ public class ReturnsService
                 command.Parameters.AddWithValue("@Delivery_City", (object?)request.BuyerCity ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Delivery_PhoneNumber", (object?)request.BuyerPhone ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Uwagi", (object?)request.UwagiMagazynu ?? DBNull.Value);
-                command.Parameters.AddWithValue("@BuyerFullName", request.BuyerFullName);
+                command.Parameters.AddWithValue("@BuyerFullName", buyerFullName);
 
                 var newIdObj = await command.ExecuteScalarAsync();
                 if (newIdObj == null)
