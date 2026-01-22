@@ -88,6 +88,22 @@ public class ReturnForwardToWarehouseRequest
     public string? Komentarz { get; set; }
 }
 
+public class ReturnSyncRequest
+{
+    public int? AccountId { get; set; }
+    public int? DaysBack { get; set; }
+}
+
+public class ReturnSyncResponse
+{
+    public int AccountsProcessed { get; set; }
+    public int ReturnsFetched { get; set; }
+    public int ReturnsProcessed { get; set; }
+    public DateTime StartedAt { get; set; }
+    public DateTime FinishedAt { get; set; }
+    public List<string> Errors { get; set; } = new();
+}
+
 public class ReturnRefundContextDto
 {
     public string OrderId { get; set; } = string.Empty;

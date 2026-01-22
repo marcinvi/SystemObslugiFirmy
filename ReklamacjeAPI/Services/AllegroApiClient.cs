@@ -13,6 +13,7 @@ public class AllegroApiClient
     private const string ApiBaseUrl = "https://api.allegro.pl";
     private const string TokenUrl = "https://allegro.pl/auth/oauth/token";
     private const string AcceptPublicV1 = "application/vnd.allegro.public.v1+json";
+    private const string AcceptBetaV1 = "application/vnd.allegro.beta.v1+json";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -37,6 +38,29 @@ public class AllegroApiClient
     {
         var endpoint = $"{ApiBaseUrl}/order/customer-returns/{customerReturnId}/rejection";
         await SendAsync(accountId, HttpMethod.Post, endpoint, request, AcceptPublicV1);
+    }
+
+    public async Task<CustomerReturnListDto?> GetCustomerReturnsAsync(
+        int accountId,
+        int limit,
+        int offset,
+        IDictionary<string, string>? filters = null)
+    {
+        var queryParams = new Dictionary<string, string>(filters ?? new Dictionary<string, string>())
+        {
+            ["limit"] = limit.ToString(),
+            ["offset"] = offset.ToString()
+        };
+        var query = BuildQueryString(queryParams);
+        var endpoint = $"{ApiBaseUrl}/order/customer-returns?{query}";
+        return await SendAsync<CustomerReturnListDto>(accountId, HttpMethod.Get, endpoint, null, AcceptBetaV1);
+    }
+
+    public async Task<List<InvoiceDto>> GetInvoicesForOrderAsync(int accountId, string checkoutFormId)
+    {
+        var endpoint = $"{ApiBaseUrl}/order/checkout-forms/{checkoutFormId}/invoices";
+        var response = await SendAsync<InvoiceListDto>(accountId, HttpMethod.Get, endpoint, null, AcceptPublicV1);
+        return response?.Invoices ?? new List<InvoiceDto>();
     }
 
     public async Task<OrderDetailsDto?> GetOrderDetailsAsync(int accountId, string checkoutFormId)
@@ -110,6 +134,13 @@ public class AllegroApiClient
         }
 
         return JsonSerializer.Deserialize<T>(body, JsonOptions);
+    }
+
+    private static string BuildQueryString(IDictionary<string, string> parameters)
+    {
+        return string.Join("&", parameters
+            .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+            .Select(kv => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
     }
 
     private static HttpRequestMessage BuildRequest(HttpMethod method, string endpoint, object? payload, string token, string acceptHeader)
@@ -216,20 +247,35 @@ public class AllegroApiClient
         [JsonPropertyName("delivery")]
         public OrderDeliveryDto? Delivery { get; set; }
 
+        [JsonPropertyName("buyer")]
+        public OrderBuyerDto? Buyer { get; set; }
+
         [JsonPropertyName("lineItems")]
         public List<OrderLineItemDto>? LineItems { get; set; }
+
+        [JsonPropertyName("invoice")]
+        public OrderInvoiceDto? Invoice { get; set; }
+
+        [JsonPropertyName("fulfillment")]
+        public OrderFulfillmentDto? Fulfillment { get; set; }
     }
 
     public sealed class OrderPaymentDto
     {
         [JsonPropertyName("id")]
         public string? Id { get; set; }
+
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
     }
 
     public sealed class OrderDeliveryDto
     {
         [JsonPropertyName("cost")]
         public OrderCostDto? Cost { get; set; }
+
+        [JsonPropertyName("address")]
+        public OrderDeliveryAddressDto? Address { get; set; }
     }
 
     public sealed class OrderCostDto
@@ -239,6 +285,54 @@ public class AllegroApiClient
 
         [JsonPropertyName("currency")]
         public string? Currency { get; set; }
+    }
+
+    public sealed class OrderDeliveryAddressDto
+    {
+        [JsonPropertyName("firstName")]
+        public string? FirstName { get; set; }
+
+        [JsonPropertyName("lastName")]
+        public string? LastName { get; set; }
+
+        [JsonPropertyName("street")]
+        public string? Street { get; set; }
+
+        [JsonPropertyName("zipCode")]
+        public string? ZipCode { get; set; }
+
+        [JsonPropertyName("city")]
+        public string? City { get; set; }
+
+        [JsonPropertyName("phoneNumber")]
+        public string? PhoneNumber { get; set; }
+    }
+
+    public sealed class OrderBuyerDto
+    {
+        [JsonPropertyName("firstName")]
+        public string? FirstName { get; set; }
+
+        [JsonPropertyName("lastName")]
+        public string? LastName { get; set; }
+
+        [JsonPropertyName("phoneNumber")]
+        public string? PhoneNumber { get; set; }
+
+        [JsonPropertyName("address")]
+        public OrderBuyerAddressDto? Address { get; set; }
+    }
+
+    public sealed class OrderBuyerAddressDto
+    {
+        [JsonPropertyName("street")]
+        public string? Street { get; set; }
+
+        [JsonPropertyName("postCode")]
+        public string? PostCode { get; set; }
+
+        [JsonPropertyName("city")]
+        public string? City { get; set; }
     }
 
     public sealed class OrderLineItemDto
@@ -260,6 +354,129 @@ public class AllegroApiClient
     {
         [JsonPropertyName("name")]
         public string? Name { get; set; }
+    }
+
+    public sealed class OrderInvoiceDto
+    {
+        [JsonPropertyName("address")]
+        public OrderInvoiceAddressDto? Address { get; set; }
+    }
+
+    public sealed class OrderInvoiceAddressDto
+    {
+        [JsonPropertyName("company")]
+        public OrderInvoiceCompanyDto? Company { get; set; }
+
+        [JsonPropertyName("street")]
+        public string? Street { get; set; }
+
+        [JsonPropertyName("zipCode")]
+        public string? ZipCode { get; set; }
+
+        [JsonPropertyName("city")]
+        public string? City { get; set; }
+    }
+
+    public sealed class OrderInvoiceCompanyDto
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("taxId")]
+        public string? TaxId { get; set; }
+    }
+
+    public sealed class OrderFulfillmentDto
+    {
+        [JsonPropertyName("status")]
+        public string? Status { get; set; }
+    }
+
+    public sealed class CustomerReturnListDto
+    {
+        [JsonPropertyName("count")]
+        public int? Count { get; set; }
+
+        [JsonPropertyName("customerReturns")]
+        public List<CustomerReturnDto>? CustomerReturns { get; set; }
+    }
+
+    public sealed class CustomerReturnDto
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("referenceNumber")]
+        public string? ReferenceNumber { get; set; }
+
+        [JsonPropertyName("orderId")]
+        public string? OrderId { get; set; }
+
+        [JsonPropertyName("createdAt")]
+        public DateTime? CreatedAt { get; set; }
+
+        [JsonPropertyName("status")]
+        public string? Status { get; set; }
+
+        [JsonPropertyName("buyer")]
+        public CustomerReturnBuyerDto? Buyer { get; set; }
+
+        [JsonPropertyName("parcels")]
+        public List<CustomerReturnParcelDto>? Parcels { get; set; }
+
+        [JsonPropertyName("items")]
+        public List<CustomerReturnItemDto>? Items { get; set; }
+    }
+
+    public sealed class CustomerReturnBuyerDto
+    {
+        [JsonPropertyName("login")]
+        public string? Login { get; set; }
+    }
+
+    public sealed class CustomerReturnParcelDto
+    {
+        [JsonPropertyName("waybill")]
+        public string? Waybill { get; set; }
+
+        [JsonPropertyName("carrierId")]
+        public string? CarrierId { get; set; }
+    }
+
+    public sealed class CustomerReturnItemDto
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+
+        [JsonPropertyName("offerId")]
+        public string? OfferId { get; set; }
+
+        [JsonPropertyName("quantity")]
+        public int? Quantity { get; set; }
+
+        [JsonPropertyName("reason")]
+        public CustomerReturnReasonDto? Reason { get; set; }
+    }
+
+    public sealed class CustomerReturnReasonDto
+    {
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
+
+        [JsonPropertyName("userComment")]
+        public string? UserComment { get; set; }
+    }
+
+    public sealed class InvoiceListDto
+    {
+        [JsonPropertyName("invoices")]
+        public List<InvoiceDto>? Invoices { get; set; }
+    }
+
+    public sealed class InvoiceDto
+    {
+        [JsonPropertyName("invoiceNumber")]
+        public string? InvoiceNumber { get; set; }
     }
 
     private sealed class OrderEventsResponse
