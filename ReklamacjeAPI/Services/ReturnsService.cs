@@ -1113,6 +1113,11 @@ public class ReturnsService
 
     public async Task<int?> ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request, int userId)
     {
+        var opisUsterki = BuildComplaintDescription(
+            request.PowodKlienta,
+            request.UwagiMagazynu,
+            request.UwagiHandlowca,
+            request.Przekazal);
         var klient = await EnsureKlientAsync(request.DaneKlienta);
         var produkt = await EnsureProduktAsync(request.Produkt);
 
@@ -1121,7 +1126,7 @@ public class ReturnsService
             NrZgloszenia = await GenerateZgloszenieNumberAsync(),
             IdKlienta = klient.Id,
             IdProduktu = produkt?.Id,
-            Usterka = request.PowodKlienta,
+            Usterka = opisUsterki,
             Priorytet = "Normalny",
             PrzypisanyDo = null,
             StatusOgolny = "Nowe",
@@ -1832,6 +1837,36 @@ public class ReturnsService
 
         var nextNumber = lastZgloszenie != null ? lastZgloszenie.Id + 1 : 1;
         return $"R/{nextNumber}/{DateTime.UtcNow.Year}";
+    }
+
+    private static string BuildComplaintDescription(
+        string? powodKlienta,
+        string? uwagiMagazynu,
+        string? uwagiHandlowca,
+        string? przekazal)
+    {
+        var sb = new StringBuilder();
+        if (!string.IsNullOrWhiteSpace(powodKlienta))
+        {
+            sb.AppendLine($"Powód klienta: {powodKlienta}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(uwagiMagazynu))
+        {
+            sb.AppendLine($"Uwagi magazynu: {uwagiMagazynu}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(uwagiHandlowca))
+        {
+            sb.AppendLine($"Uwagi handlowca: {uwagiHandlowca}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(przekazal))
+        {
+            sb.AppendLine($"Przekazał: {przekazal}");
+        }
+
+        return sb.ToString().Trim();
     }
 
     private sealed record AllegroAccountInfo(int Id, string Name);

@@ -134,6 +134,13 @@ ALTER TABLE Klienci ADD INDEX idx_telefon (Telefon);
 ALTER TABLE Klienci ADD INDEX idx_email (Email);
 ```
 
+### Dodaj brakujące kolumny w `Klienci` (jeśli masz błąd `Unknown column 'Adres'`)
+
+```sql
+-- Uruchom skrypt naprawczy
+SOURCE fix_klienci_missing_columns.sql;
+```
+
 ### Utwórz testowego użytkownika:
 
 ```sql
