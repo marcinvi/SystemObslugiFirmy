@@ -737,7 +737,7 @@ public class ReturnsService
         };
     }
 
-    private async Task<string> GetUserDisplayNameByIdAsync(int userId)
+    public async Task<string> GetUserDisplayNameByIdAsync(int userId)
     {
         await using var connection = DbConnectionFactory.CreateDefaultConnection(_configuration);
         await connection.OpenAsync();

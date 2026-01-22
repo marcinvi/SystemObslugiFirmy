@@ -143,6 +143,16 @@ public class ReturnsController : ControllerBase
     public async Task<ActionResult<ApiResponse<object>>> CreateManualReturn([FromBody] ReturnManualCreateRequest request)
     {
         var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
         if (!userId.HasValue)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
@@ -152,7 +162,7 @@ public class ReturnsController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak wybranych handlowców."));
         }
 
-        var newId = await _returnsService.CreateManualReturnAsync(request, userId.Value, GetUserDisplayName());
+        var newId = await _returnsService.CreateManualReturnAsync(request, userId.Value, userDisplayName);
         if (!newId.HasValue)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się utworzyć zwrotu ręcznego."));
