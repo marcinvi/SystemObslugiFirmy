@@ -93,10 +93,22 @@ public class ReturnsController : ControllerBase
     [HttpPost("{id:int}/forward-to-sales")]
     public async Task<ActionResult<ApiResponse<object>>> ForwardToSales(int id, [FromBody] ReturnForwardToSalesRequest request)
     {
-        var success = await _returnsService.ForwardToSalesAsync(id, request, GetUserDisplayName());
+        var userId = GetUserIdFromClaims();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+        }
+
+        if (!userId.HasValue)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
+        }
+
+        var success = await _returnsService.ForwardToSalesAsync(id, request, userId.Value, GetUserDisplayName());
         if (!success)
         {
-            return NotFound(ApiResponse<object>.ErrorResponse("Return not found."));
+            return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się przekazać zwrotu do handlowca."));
         }
 
         return Ok(ApiResponse<object>.SuccessResponse(new { id }));
@@ -175,6 +187,18 @@ public class ReturnsController : ControllerBase
     {
         var summary = await _returnsService.GetSummaryAsync(handlowiecId, status, dateFrom, dateTo);
         return Ok(ApiResponse<ReturnSummaryResponse>.SuccessResponse(summary));
+    }
+
+    [HttpGet("statuses")]
+    public async Task<ActionResult<ApiResponse<List<StatusDto>>>> GetStatuses([FromQuery] string type)
+    {
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            return BadRequest(ApiResponse<List<StatusDto>>.ErrorResponse("Brak typu statusu."));
+        }
+
+        var data = await _returnsService.GetStatusesAsync(type);
+        return Ok(ApiResponse<List<StatusDto>>.SuccessResponse(data));
     }
 
     [HttpGet("summary/export")]
