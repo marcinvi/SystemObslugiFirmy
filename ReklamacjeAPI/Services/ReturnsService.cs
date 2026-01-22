@@ -184,6 +184,20 @@ public class ReturnsService
         string? buyerCity = reader["Delivery_City"] as string ?? reader["Buyer_City"] as string;
         string buyerAddress = string.Join(" ", new[] { buyerStreet, buyerZip, buyerCity }.Where(s => !string.IsNullOrWhiteSpace(s)));
 
+        string? buyerStreetRaw = reader["Buyer_Street"] as string;
+        string? buyerZipRaw = reader["Buyer_ZipCode"] as string;
+        string? buyerCityRaw = reader["Buyer_City"] as string;
+        string buyerAddressRaw = string.Join(" ", new[] { buyerStreetRaw, buyerZipRaw, buyerCityRaw }
+            .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        string? deliveryStreet = reader["Delivery_Street"] as string;
+        string? deliveryZip = reader["Delivery_ZipCode"] as string;
+        string? deliveryCity = reader["Delivery_City"] as string;
+        string deliveryAddress = string.Join(" ", new[] { deliveryStreet, deliveryZip, deliveryCity }
+            .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        string? deliveryName = BuildName(reader["Delivery_FirstName"] as string, reader["Delivery_LastName"] as string);
+
         string buyerFullName = GetOptionalString(reader, "BuyerFullName")
             ?? BuildName(reader["Buyer_FirstName"] as string, reader["Buyer_LastName"] as string);
 
@@ -209,6 +223,11 @@ public class ReturnsService
                 : buyerFullName,
             BuyerPhone = reader["Buyer_PhoneNumber"] as string ?? reader["Delivery_PhoneNumber"] as string,
             BuyerAddress = string.IsNullOrWhiteSpace(buyerAddress) ? null : buyerAddress,
+            BuyerAddressRaw = string.IsNullOrWhiteSpace(buyerAddressRaw) ? null : buyerAddressRaw,
+            BuyerPhoneRaw = reader["Buyer_PhoneNumber"] as string,
+            DeliveryName = string.IsNullOrWhiteSpace(deliveryName) ? null : deliveryName,
+            DeliveryAddress = string.IsNullOrWhiteSpace(deliveryAddress) ? null : deliveryAddress,
+            DeliveryPhone = reader["Delivery_PhoneNumber"] as string,
             Waybill = reader["Waybill"] as string,
             CarrierName = reader["CarrierName"] as string,
             ProductName = reader["ProductName"] as string,

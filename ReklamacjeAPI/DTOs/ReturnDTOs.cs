@@ -27,6 +27,11 @@ public class ReturnDetailsDto
     public string BuyerName { get; set; } = string.Empty;
     public string? BuyerPhone { get; set; }
     public string? BuyerAddress { get; set; }
+    public string? BuyerAddressRaw { get; set; }
+    public string? BuyerPhoneRaw { get; set; }
+    public string? DeliveryName { get; set; }
+    public string? DeliveryAddress { get; set; }
+    public string? DeliveryPhone { get; set; }
     public string? Waybill { get; set; }
     public string? CarrierName { get; set; }
     public string? ProductName { get; set; }
