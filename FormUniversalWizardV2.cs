@@ -1200,7 +1200,7 @@ namespace Reklamacje_Dane
                                    IFNULL(DataPrzekazania,'') AS DataPrzekazania
                             FROM NiezarejestrowaneZwrotyReklamacyjne
                             WHERE IFNULL(CzyZarejestrowane,0)=0
-                            ORDER BY datetime(DataPrzekazania) DESC", con))
+                            ORDER BY STR_TO_DATE(NULLIF(DataPrzekazania,''), '%Y-%m-%d %H:%i:%s') DESC, Id DESC", con))
                         using (var rd = await cmd.ExecuteReaderAsync())
                         {
                             while (await rd.ReadAsync())
