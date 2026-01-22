@@ -7,7 +7,7 @@ namespace ReklamacjeAPI.Models;
 public class Klient
 {
     [Key]
-    [Column("IdKlienta")]
+    [Column("Id")]
     public int Id { get; set; }
 
     [Required]
