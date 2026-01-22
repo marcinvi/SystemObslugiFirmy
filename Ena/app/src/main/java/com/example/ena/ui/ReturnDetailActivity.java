@@ -14,6 +14,7 @@ import com.example.ena.R;
 import com.example.ena.api.ApiClient;
 import com.example.ena.api.ReturnDecisionRequest;
 import com.example.ena.api.ReturnDetailsDto;
+import com.example.ena.api.ReturnForwardToSalesRequest;
 import com.example.ena.api.ReturnWarehouseUpdateRequest;
 
 public class ReturnDetailActivity extends AppCompatActivity {
@@ -21,6 +22,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
     private TextView txtDetailContent;
     private Button btnWarehouseUpdate;
+    private Button btnForwardToSales;
     private Button btnDecision;
     private int returnId;
     private ReturnDetailsDto details;
@@ -33,9 +35,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
         returnId = getIntent().getIntExtra(EXTRA_RETURN_ID, 0);
         txtDetailContent = findViewById(R.id.txtDetailContent);
         btnWarehouseUpdate = findViewById(R.id.btnWarehouseUpdate);
+        btnForwardToSales = findViewById(R.id.btnForwardToSales);
         btnDecision = findViewById(R.id.btnDecision);
 
         btnWarehouseUpdate.setOnClickListener(v -> showWarehouseDialog());
+        btnForwardToSales.setOnClickListener(v -> showForwardDialog());
         btnDecision.setOnClickListener(v -> showDecisionDialog());
 
         loadDetails();
@@ -152,6 +156,53 @@ public class ReturnDetailActivity extends AppCompatActivity {
             .show();
     }
 
+    private void showForwardDialog() {
+        if (details == null) {
+            Toast.makeText(this, "Brak danych zwrotu", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (details.isManual()) {
+            Toast.makeText(this, "Zwrot ręczny - skontaktuj się z handlowcem bezpośrednio.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        EditText editStan = new EditText(this);
+        editStan.setHint("Stan produktu ID");
+        editStan.setInputType(InputType.TYPE_CLASS_NUMBER);
+        if (details.getStanProduktuId() != null) {
+            editStan.setText(String.valueOf(details.getStanProduktuId()));
+        }
+        layout.addView(editStan);
+
+        EditText editUwagi = new EditText(this);
+        editUwagi.setHint("Uwagi magazynu");
+        if (details.getUwagiMagazynu() != null) {
+            editUwagi.setText(details.getUwagiMagazynu());
+        }
+        layout.addView(editUwagi);
+
+        new AlertDialog.Builder(this)
+            .setTitle("Przekaż do handlowca")
+            .setView(layout)
+            .setPositiveButton("Przekaż", (dialog, which) -> {
+                int stanId = parseInt(editStan.getText().toString(), 0);
+                if (stanId <= 0) {
+                    Toast.makeText(this, "Podaj poprawny stan produktu ID.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String uwagi = editUwagi.getText().toString().trim();
+                ReturnForwardToSalesRequest req = new ReturnForwardToSalesRequest(
+                        stanId,
+                        uwagi.isEmpty() ? null : uwagi
+                );
+                submitForwardToSales(req);
+            })
+            .setNegativeButton("Anuluj", null)
+            .show();
+    }
+
     private void submitWarehouse(ReturnWarehouseUpdateRequest req) {
         btnWarehouseUpdate.setEnabled(false);
         ApiClient client = new ApiClient(this);
@@ -169,6 +220,29 @@ public class ReturnDetailActivity extends AppCompatActivity {
             public void onError(String message) {
                 runOnUiThread(() -> {
                     btnWarehouseUpdate.setEnabled(true);
+                    Toast.makeText(ReturnDetailActivity.this, "Błąd: " + message, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void submitForwardToSales(ReturnForwardToSalesRequest req) {
+        btnForwardToSales.setEnabled(false);
+        ApiClient client = new ApiClient(this);
+        client.forwardToSales(returnId, req, new ApiClient.ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void data) {
+                runOnUiThread(() -> {
+                    btnForwardToSales.setEnabled(true);
+                    Toast.makeText(ReturnDetailActivity.this, "Przekazano do handlowca", Toast.LENGTH_SHORT).show();
+                    loadDetails();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    btnForwardToSales.setEnabled(true);
                     Toast.makeText(ReturnDetailActivity.this, "Błąd: " + message, Toast.LENGTH_LONG).show();
                 });
             }

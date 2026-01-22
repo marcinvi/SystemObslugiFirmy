@@ -1,5 +1,6 @@
 package com.example.ena.ui;
 
+import android.Manifest;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -14,6 +15,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -22,13 +24,18 @@ import com.example.ena.R;
 import com.example.ena.api.ApiClient;
 import com.example.ena.api.PaginatedResponse;
 import com.example.ena.api.ReturnListItemDto;
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanIntentResult;
+import com.journeyapps.barcodescanner.ScanOptions;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import androidx.activity.result.ActivityResultLauncher;
 
 public class ReturnsListActivity extends AppCompatActivity {
     public static final String EXTRA_MODE = "mode";
+    private static final int CAMERA_PERMISSION_REQUEST = 2001;
 
     private ReturnListAdapter adapter;
     private ProgressBar progressBar;
@@ -43,11 +50,15 @@ public class ReturnsListActivity extends AppCompatActivity {
     private Button btnFilterWDrodze;
     private Button btnFilterWszystkie;
     private Button btnRefresh;
+    private Button btnScanCode;
     private String mode;
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private String currentStatusWewnetrzny;
     private String currentStatusAllegro;
     private boolean deliveredOnly;
+
+    private final ActivityResultLauncher<ScanOptions> scanLauncher =
+            registerForActivityResult(new ScanContract(), this::handleScanResult);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +78,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnFilterWDrodze = findViewById(R.id.btnFilterWDrodze);
         btnFilterWszystkie = findViewById(R.id.btnFilterWszystkie);
         btnRefresh = findViewById(R.id.btnRefresh);
+        btnScanCode = findViewById(R.id.btnScanCode);
 
         if ("sales".equals(mode)) {
             txtHeader.setText("Handlowiec - moje zwroty");
@@ -82,6 +94,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         setupFilters();
         setupSearch();
         btnRefresh.setOnClickListener(v -> loadReturns());
+        btnScanCode.setOnClickListener(v -> startCodeScan());
         loadReturns();
     }
 
@@ -217,8 +230,12 @@ public class ReturnsListActivity extends AppCompatActivity {
     }
 
     private void openDetails(ReturnListItemDto item) {
+        openDetailsById(item.getId());
+    }
+
+    private void openDetailsById(int returnId) {
         Intent intent = new Intent(this, ReturnDetailActivity.class);
-        intent.putExtra(ReturnDetailActivity.EXTRA_RETURN_ID, item.getId());
+        intent.putExtra(ReturnDetailActivity.EXTRA_RETURN_ID, returnId);
         startActivity(intent);
     }
 
@@ -270,6 +287,75 @@ public class ReturnsListActivity extends AppCompatActivity {
         if ("Utworzono".equals(status)) return "CREATED";
         if ("Zwrócono prowizję".equals(status)) return "COMMISSION_REFUNDED";
         return status;
+    }
+
+    private void startCodeScan() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.CAMERA }, CAMERA_PERMISSION_REQUEST);
+            return;
+        }
+        ScanOptions options = new ScanOptions();
+        options.setPrompt("Zeskanuj kod kreskowy lub QR");
+        options.setBeepEnabled(true);
+        options.setOrientationLocked(true);
+        options.setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES);
+        scanLauncher.launch(options);
+    }
+
+    private void handleScanResult(ScanIntentResult result) {
+        if (result.getContents() == null) {
+            return;
+        }
+        String code = result.getContents().trim();
+        if (code.isEmpty()) {
+            return;
+        }
+        searchHandler.removeCallbacksAndMessages(null);
+        editSearch.setText(code);
+        findReturnByCode(code);
+    }
+
+    private void findReturnByCode(String code) {
+        progressBar.setVisibility(View.VISIBLE);
+        ApiClient client = new ApiClient(this);
+        String query = "?page=1&pageSize=100&search=" + encode(code);
+        ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>> callback = new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
+            @Override
+            public void onSuccess(PaginatedResponse<ReturnListItemDto> data) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    List<ReturnListItemDto> items = data != null ? data.getItems() : null;
+                    adapter.setItems(items);
+                    int count = items == null ? 0 : items.size();
+                    txtCount.setText("Wyświetlono: " + count);
+                    txtEmpty.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
+
+                    if (count == 1) {
+                        openDetails(items.get(0));
+                        return;
+                    }
+                    if (count == 0) {
+                        Toast.makeText(ReturnsListActivity.this, "Brak zwrotu dla kodu: " + code, Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    Toast.makeText(ReturnsListActivity.this, "Nie znaleziono zwrotu: " + message, Toast.LENGTH_LONG).show();
+                    loadReturns();
+                });
+            }
+        };
+
+        if ("sales".equals(mode)) {
+            client.fetchAssignedReturns(query, callback);
+        } else {
+            client.fetchReturns(query, callback);
+        }
     }
 
     private String encode(@Nullable String value) {

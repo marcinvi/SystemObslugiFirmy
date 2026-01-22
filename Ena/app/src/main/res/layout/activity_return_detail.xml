@@ -33,6 +33,13 @@
             android:text="Zapisz magazyn" />
 
         <Button
+            android:id="@+id/btnForwardToSales"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Przekaż do handlowca" />
+
+        <Button
             android:id="@+id/btnDecision"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
