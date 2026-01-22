@@ -183,22 +183,16 @@ public class ReturnDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Zwrot ręczny - skontaktuj się z handlowcem bezpośrednio.", Toast.LENGTH_LONG).show();
             return;
         }
-        ensureStatusesLoaded(this::showForwardDialogInternal);
-    }
-
-    private void showForwardDialogInternal() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
 
-        TextView labelStan = new TextView(this);
-        labelStan.setText("Stan produktu");
-        layout.addView(labelStan);
-
-        Spinner spinnerStan = buildStatusSpinner();
-        if (spinnerStan == null) {
-            return;
+        EditText editStan = new EditText(this);
+        editStan.setHint("Stan produktu ID");
+        editStan.setInputType(InputType.TYPE_CLASS_NUMBER);
+        if (details.getStanProduktuId() != null) {
+            editStan.setText(String.valueOf(details.getStanProduktuId()));
         }
-        layout.addView(spinnerStan);
+        layout.addView(editStan);
 
         EditText editUwagi = new EditText(this);
         editUwagi.setHint("Uwagi magazynu");
@@ -211,9 +205,9 @@ public class ReturnDetailActivity extends AppCompatActivity {
             .setTitle("Przekaż do handlowca")
             .setView(layout)
             .setPositiveButton("Przekaż", (dialog, which) -> {
-                int stanId = getSelectedStatusId(spinnerStan);
+                int stanId = parseInt(editStan.getText().toString(), 0);
                 if (stanId <= 0) {
-                    Toast.makeText(this, "Wybierz stan produktu.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Podaj poprawny stan produktu ID.", Toast.LENGTH_SHORT).show();
                     return;
                 }
                 String uwagi = editUwagi.getText().toString().trim();
@@ -225,79 +219,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
             })
             .setNegativeButton("Anuluj", null)
             .show();
-    }
-
-    private void ensureStatusesLoaded(Runnable onReady) {
-        if (!stanProduktuStatuses.isEmpty()) {
-            onReady.run();
-            return;
-        }
-        ApiClient client = new ApiClient(this);
-        client.fetchReturnStatuses("StanProduktu", new ApiClient.ApiCallback<List<StatusDto>>() {
-            @Override
-            public void onSuccess(List<StatusDto> data) {
-                runOnUiThread(() -> {
-                    stanProduktuStatuses.clear();
-                    if (data != null) {
-                        stanProduktuStatuses.addAll(data);
-                    }
-                    if (stanProduktuStatuses.isEmpty()) {
-                        Toast.makeText(ReturnDetailActivity.this, "Brak statusów produktu.", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    onReady.run();
-                });
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> Toast.makeText(ReturnDetailActivity.this, "Błąd statusów: " + message, Toast.LENGTH_LONG).show());
-            }
-        });
-    }
-
-    private Spinner buildStatusSpinner() {
-        if (stanProduktuStatuses.isEmpty()) {
-            Toast.makeText(this, "Brak statusów produktu.", Toast.LENGTH_SHORT).show();
-            return null;
-        }
-        List<String> names = new ArrayList<>();
-        for (StatusDto status : stanProduktuStatuses) {
-            names.add(status.getNazwa());
-        }
-        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
-                this,
-                android.R.layout.simple_spinner_item,
-                names
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        Spinner spinner = new Spinner(this);
-        spinner.setAdapter(adapter);
-        int selectedIndex = findStatusIndex(details != null ? details.getStanProduktuId() : null);
-        if (selectedIndex >= 0) {
-            spinner.setSelection(selectedIndex);
-        }
-        return spinner;
-    }
-
-    private int getSelectedStatusId(Spinner spinner) {
-        int position = spinner.getSelectedItemPosition();
-        if (position < 0 || position >= stanProduktuStatuses.size()) {
-            return 0;
-        }
-        return stanProduktuStatuses.get(position).getId();
-    }
-
-    private int findStatusIndex(Integer statusId) {
-        if (statusId == null) {
-            return stanProduktuStatuses.isEmpty() ? -1 : 0;
-        }
-        for (int i = 0; i < stanProduktuStatuses.size(); i++) {
-            if (stanProduktuStatuses.get(i).getId() == statusId) {
-                return i;
-            }
-        }
-        return stanProduktuStatuses.isEmpty() ? -1 : 0;
     }
 
     private void submitWarehouse(ReturnWarehouseUpdateRequest req) {

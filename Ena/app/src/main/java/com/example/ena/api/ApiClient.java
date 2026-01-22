@@ -235,12 +235,6 @@ public class ApiClient {
         get("api/returns/lookup?code=" + encoded, type, callback);
     }
 
-    public void fetchReturnStatuses(String typeValue, ApiCallback<List<StatusDto>> callback) {
-        Type type = new TypeToken<ApiResponse<List<StatusDto>>>(){}.getType();
-        String encoded = typeValue == null ? "" : URLEncoder.encode(typeValue, StandardCharsets.UTF_8);
-        get("api/returns/statuses?type=" + encoded, type, callback);
-    }
-
     public void submitWarehouseUpdate(int id, ReturnWarehouseUpdateRequest payload, ApiCallback<Void> callback) {
         sendJson("api/returns/" + id + "/warehouse", payload, "PATCH", callback);
     }
