@@ -341,6 +341,11 @@ public class ReturnsController : ControllerBase
         var userId = GetUserIdFromClaims();
         if (!userId.HasValue)
         {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+        }
+        if (!userId.HasValue)
+        {
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
         }
 
