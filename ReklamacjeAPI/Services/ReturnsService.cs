@@ -70,7 +70,10 @@ public class ReturnsService
 
         if (handlowiecId.HasValue)
         {
-            conditions.Add("acr.HandlowiecOpiekunId = @handlowiecId");
+            conditions.Add(@"(
+                acr.HandlowiecOpiekunId = @handlowiecId
+                OR acr.Id IN (SELECT DotyczyZwrotuId FROM Wiadomosci WHERE OdbiorcaId = @handlowiecId)
+            )");
             parameters.Add(new MySqlParameter("@handlowiecId", handlowiecId.Value));
         }
 
@@ -204,6 +207,9 @@ public class ReturnsService
         var przyjetyPrzezId = GetNullableInt(reader, "PrzyjetyPrzezId");
         var przyjetyPrzezName = await GetUserDisplayNameAsync(przyjetyPrzezId);
 
+        var allegroAccountId = GetNullableInt(reader, "AllegroAccountId");
+        var allegroAccountName = await GetAllegroAccountNameAsync(allegroAccountId);
+
         var reason = GetOptionalString(reader, "ReturnReasonComment");
         if (string.IsNullOrWhiteSpace(reason))
         {
@@ -234,6 +240,8 @@ public class ReturnsService
             OfferId = reader["OfferId"] as string,
             Quantity = GetNullableInt(reader, "Quantity"),
             Reason = reason,
+            InvoiceNumber = GetOptionalString(reader, "InvoiceNumber"),
+            AllegroAccountName = allegroAccountName,
             UwagiMagazynu = reader["UwagiMagazynuResolved"] as string,
             StanProduktuId = GetNullableInt(reader, "StanProduktuId"),
             StanProduktuName = reader["StanProduktuName"] as string,
@@ -342,6 +350,32 @@ public class ReturnsService
             DecyzjaHandlowca = decyzjaHandlowca,
             DataDecyzji = decisionTimestamp
         };
+    }
+
+    public async Task<bool> ForwardToWarehouseAsync(int id, ReturnForwardToWarehouseRequest request, string userDisplayName)
+    {
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        var statusId = await FindWarehouseStatusIdAsync(connection);
+        if (statusId.HasValue)
+        {
+            await using var updateCommand = new MySqlCommand(@"
+                UPDATE AllegroCustomerReturns
+                SET StatusWewnetrznyId = @statusId
+                WHERE Id = @id", connection);
+            updateCommand.Parameters.AddWithValue("@statusId", statusId.Value);
+            updateCommand.Parameters.AddWithValue("@id", id);
+            await updateCommand.ExecuteNonQueryAsync();
+        }
+
+        var actionContent = string.IsNullOrWhiteSpace(request.Komentarz)
+            ? "Przekazano do Magazynu."
+            : $"Przekazano do Magazynu. Komentarz: {request.Komentarz}";
+
+        await AddReturnActionInternalAsync(connection, id, userDisplayName, actionContent);
+
+        return statusId.HasValue;
     }
 
     public async Task<List<ReturnActionDto>> GetActionsAsync(int returnId)
@@ -1048,6 +1082,60 @@ public class ReturnsService
         command.Parameters.AddWithValue("@id", userId.Value);
         var result = await command.ExecuteScalarAsync();
         return result?.ToString();
+    }
+
+    private async Task<string?> GetAllegroAccountNameAsync(int? accountId)
+    {
+        if (!accountId.HasValue)
+        {
+            return null;
+        }
+
+        await using var connection = DbConnectionFactory.CreateDefaultConnection(_configuration);
+        await connection.OpenAsync();
+        await using var command = new MySqlCommand("SELECT AccountName FROM AllegroAccounts WHERE Id = @id LIMIT 1", connection);
+        command.Parameters.AddWithValue("@id", accountId.Value);
+        var result = await command.ExecuteScalarAsync();
+        return result?.ToString();
+    }
+
+    private async Task<int?> FindWarehouseStatusIdAsync(MySqlConnection connection)
+    {
+        var candidates = new[]
+        {
+            "Przekazano do magazynu",
+            "Do Magazynu",
+            "Oczekuje na działania magazynu",
+            "Oczekuje na magazyn",
+            "W magazynie"
+        };
+
+        foreach (var name in candidates)
+        {
+            var id = await GetStatusIdByExactNameAsync(connection, name);
+            if (id.HasValue)
+            {
+                return id;
+            }
+        }
+
+        return await GetStatusIdByLikeAsync(connection, "%magaz%");
+    }
+
+    private static async Task<int?> GetStatusIdByExactNameAsync(MySqlConnection connection, string name)
+    {
+        await using var command = new MySqlCommand("SELECT Id FROM Statusy WHERE Nazwa = @name LIMIT 1", connection);
+        command.Parameters.AddWithValue("@name", name);
+        var result = await command.ExecuteScalarAsync();
+        return result == null ? null : Convert.ToInt32(result);
+    }
+
+    private static async Task<int?> GetStatusIdByLikeAsync(MySqlConnection connection, string pattern)
+    {
+        await using var command = new MySqlCommand("SELECT Id FROM Statusy WHERE LOWER(Nazwa) LIKE LOWER(@pattern) LIMIT 1", connection);
+        command.Parameters.AddWithValue("@pattern", pattern);
+        var result = await command.ExecuteScalarAsync();
+        return result == null ? null : Convert.ToInt32(result);
     }
 
     private async Task<Dictionary<int, string>> GetUserDisplayNamesAsync(List<int> userIds)

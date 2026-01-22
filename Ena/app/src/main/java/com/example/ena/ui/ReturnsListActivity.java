@@ -32,6 +32,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.IntConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import androidx.activity.result.ActivityResultLauncher;
@@ -59,6 +60,8 @@ public class ReturnsListActivity extends AppCompatActivity {
     private String currentStatusWewnetrzny;
     private String currentStatusAllegro;
     private boolean deliveredOnly;
+    private int pendingCount;
+    private int completedCount;
 
     private final ActivityResultLauncher<ScanOptions> scanLauncher =
             registerForActivityResult(new ScanContract(), this::handleScanResult);
@@ -102,6 +105,10 @@ public class ReturnsListActivity extends AppCompatActivity {
     }
 
     private void setupFilters() {
+        if ("sales".equals(mode)) {
+            setupSalesFilters();
+            return;
+        }
         List<String> statuses = Arrays.asList(
                 "Wszystkie",
                 "Dostarczono",
@@ -175,6 +182,37 @@ public class ReturnsListActivity extends AppCompatActivity {
         deliveredOnly = true;
     }
 
+    private void setupSalesFilters() {
+        spinnerStatusAllegro.setVisibility(View.GONE);
+        btnFilterOczekujace.setVisibility(View.GONE);
+        btnFilterWDrodze.setVisibility(View.GONE);
+        btnFilterWszystkie.setVisibility(View.GONE);
+
+        btnFilterNaDecyzje.setText("Nowe sprawy");
+        btnFilterPoDecyzji.setText("Zakończone");
+
+        btnFilterNaDecyzje.setOnClickListener(v -> {
+            deliveredOnly = false;
+            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterNaDecyzje);
+            loadReturns();
+        });
+        btnFilterPoDecyzji.setOnClickListener(v -> {
+            deliveredOnly = false;
+            currentStatusWewnetrzny = "Zakończony";
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterPoDecyzji);
+            loadReturns();
+        });
+
+        setActiveFilter(btnFilterNaDecyzje);
+        currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+        currentStatusAllegro = null;
+        deliveredOnly = false;
+        updateSalesCounts();
+    }
+
     private void setupSearch() {
         editSearch.addTextChangedListener(new TextWatcher() {
             @Override
@@ -211,6 +249,9 @@ public class ReturnsListActivity extends AppCompatActivity {
                     }
                     int count = items == null ? 0 : items.size();
                     txtCount.setText("Wyświetlono: " + count);
+                    if ("sales".equals(mode)) {
+                        updateSalesCounts();
+                    }
                 });
             }
 
@@ -237,8 +278,14 @@ public class ReturnsListActivity extends AppCompatActivity {
     }
 
     private void openDetailsById(int returnId) {
-        Intent intent = new Intent(this, ReturnDetailActivity.class);
-        intent.putExtra(ReturnDetailActivity.EXTRA_RETURN_ID, returnId);
+        Intent intent;
+        if ("sales".equals(mode)) {
+            intent = new Intent(this, SalesReturnDetailActivity.class);
+            intent.putExtra(SalesReturnDetailActivity.EXTRA_RETURN_ID, returnId);
+        } else {
+            intent = new Intent(this, ReturnDetailActivity.class);
+            intent.putExtra(ReturnDetailActivity.EXTRA_RETURN_ID, returnId);
+        }
         startActivity(intent);
     }
 
@@ -281,6 +328,34 @@ public class ReturnsListActivity extends AppCompatActivity {
         }
 
         return sb.toString();
+    }
+
+    private void updateSalesCounts() {
+        ApiClient client = new ApiClient(this);
+        fetchSalesCount(client, "Oczekuje na decyzję handlowca", count -> {
+            pendingCount = count;
+            btnFilterNaDecyzje.setText("Nowe sprawy (" + pendingCount + ")");
+        });
+        fetchSalesCount(client, "Zakończony", count -> {
+            completedCount = count;
+            btnFilterPoDecyzji.setText("Zakończone (" + completedCount + ")");
+        });
+    }
+
+    private void fetchSalesCount(ApiClient client, String status, IntConsumer callback) {
+        String query = "?page=1&pageSize=1&statusWewnetrzny=" + encode(status);
+        client.fetchAssignedReturns(query, new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
+            @Override
+            public void onSuccess(PaginatedResponse<ReturnListItemDto> data) {
+                int total = data != null ? data.getTotalItems() : 0;
+                runOnUiThread(() -> callback.accept(total));
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> callback.accept(0));
+            }
+        });
     }
 
     private String translateStatusToApi(String status) {
