@@ -94,7 +94,7 @@ SELECT
     u.NazwaWyswietlana AS Przypisany,
     z.DataZgloszenia
 FROM Zgloszenia z
-LEFT JOIN Klienci k ON z.IdKlienta = k.IdKlienta
+LEFT JOIN Klienci k ON z.IdKlienta = k.Id
 LEFT JOIN Produkty p ON z.IdProduktu = p.IdProduktu
 LEFT JOIN Uzytkownicy u ON z.IdUzytkownikaPrzypisany = u.IdUzytkownika
 ORDER BY z.DataZgloszenia DESC
