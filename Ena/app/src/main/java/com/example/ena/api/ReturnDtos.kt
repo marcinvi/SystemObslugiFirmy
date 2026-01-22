@@ -51,6 +51,8 @@ data class ReturnDetailsDto(
     val komentarzHandlowca: String?,
     val dataDecyzji: OffsetDateTime?,
     val isManual: Boolean,
+    val allegroReturnId: String?,
+    val orderId: String?,
 )
 
 data class ReturnWarehouseUpdateRequest(

@@ -286,6 +286,19 @@ public class ApiClient {
         sendJson("api/returns/" + id + "/forward-to-warehouse", payload, "POST", callback);
     }
 
+    public void fetchRefundContext(int id, ApiCallback<ReturnRefundContextDto> callback) {
+        Type type = new TypeToken<ApiResponse<ReturnRefundContextDto>>(){}.getType();
+        get("api/returns/" + id + "/refund-context", type, callback);
+    }
+
+    public void rejectReturn(int id, RejectCustomerReturnRequest payload, ApiCallback<Void> callback) {
+        sendJson("api/returns/" + id + "/reject", payload, "POST", callback);
+    }
+
+    public void refundPayment(int id, PaymentRefundRequest payload, ApiCallback<Void> callback) {
+        sendJson("api/returns/" + id + "/refund", payload, "POST", callback);
+    }
+
     public void fetchSummary(ApiCallback<ReturnSummaryResponse> callback) {
         Type type = new TypeToken<ApiResponse<ReturnSummaryResponse>>(){}.getType();
         get("api/returns/summary", type, callback);

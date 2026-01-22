@@ -12,12 +12,14 @@ public class ReturnsService
 {
     private readonly IConfiguration _configuration;
     private readonly ApplicationDbContext _context;
+    private readonly AllegroApiClient _allegroApiClient;
     private string? _uwagiMagazynuColumn;
 
-    public ReturnsService(IConfiguration configuration, ApplicationDbContext context)
+    public ReturnsService(IConfiguration configuration, ApplicationDbContext context, AllegroApiClient allegroApiClient)
     {
         _configuration = configuration;
         _context = context;
+        _allegroApiClient = allegroApiClient;
     }
 
     public async Task<PaginatedResponse<ReturnListItemDto>> GetReturnsAsync(
@@ -254,7 +256,9 @@ public class ReturnsService
             DecyzjaHandlowcaName = reader["DecyzjaHandlowca"] as string,
             KomentarzHandlowca = reader["KomentarzHandlowca"] as string,
             DataDecyzji = reader["DataDecyzji"] as DateTime?,
-            IsManual = GetOptionalBool(reader, "IsManual")
+            IsManual = GetOptionalBool(reader, "IsManual"),
+            AllegroReturnId = reader["AllegroReturnId"] as string,
+            OrderId = reader["OrderId"] as string
         };
     }
 
@@ -432,6 +436,114 @@ public class ReturnsService
             Uzytkownik = userDisplayName,
             Tresc = request.Tresc
         };
+    }
+
+    public async Task<ReturnRefundContextDto?> GetRefundContextAsync(int returnId)
+    {
+        var info = await GetReturnAllegroInfoAsync(returnId);
+        if (info == null || info.AllegroAccountId == null || string.IsNullOrWhiteSpace(info.OrderId))
+        {
+            return null;
+        }
+
+        var orderDetails = await _allegroApiClient.GetOrderDetailsAsync(info.AllegroAccountId.Value, info.OrderId);
+        if (orderDetails == null || string.IsNullOrWhiteSpace(orderDetails.Payment?.Id))
+        {
+            return null;
+        }
+
+        var context = new ReturnRefundContextDto
+        {
+            OrderId = info.OrderId,
+            PaymentId = orderDetails.Payment?.Id ?? string.Empty
+        };
+
+        if (orderDetails.LineItems != null)
+        {
+            foreach (var item in orderDetails.LineItems)
+            {
+                if (string.IsNullOrWhiteSpace(item.Id))
+                {
+                    continue;
+                }
+
+                context.LineItems.Add(new RefundLineItemContextDto
+                {
+                    Id = item.Id,
+                    Name = item.Offer?.Name ?? "Nieznany produkt",
+                    Quantity = item.Quantity,
+                    Price = new RefundValueDto
+                    {
+                        Amount = item.Price?.Amount ?? "0.00",
+                        Currency = item.Price?.Currency ?? "PLN"
+                    }
+                });
+            }
+        }
+
+        if (orderDetails.Delivery?.Cost != null && !string.IsNullOrWhiteSpace(orderDetails.Delivery.Cost.Amount))
+        {
+            context.Delivery = new RefundValueDto
+            {
+                Amount = orderDetails.Delivery.Cost.Amount ?? "0.00",
+                Currency = orderDetails.Delivery.Cost.Currency ?? "PLN"
+            };
+        }
+
+        return context;
+    }
+
+    public async Task<bool> RejectReturnAsync(int returnId, RejectCustomerReturnRequestDto request, string userDisplayName)
+    {
+        var info = await GetReturnAllegroInfoAsync(returnId);
+        if (info == null || info.AllegroAccountId == null || string.IsNullOrWhiteSpace(info.AllegroReturnId))
+        {
+            return false;
+        }
+
+        await _allegroApiClient.RejectCustomerReturnAsync(info.AllegroAccountId.Value, info.AllegroReturnId, request);
+
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        var reason = request.Rejection?.Reason;
+        var actionText = $"[API] Odrzucono zwrot w Allegro. Powód: {request.Rejection?.Code}";
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            actionText += $", Uzasadnienie: {reason}";
+        }
+
+        await AddReturnActionInternalAsync(connection, returnId, userDisplayName, actionText);
+        return true;
+    }
+
+    public async Task<bool> RefundPaymentAsync(int returnId, PaymentRefundRequestDto request, string userDisplayName)
+    {
+        var info = await GetReturnAllegroInfoAsync(returnId);
+        if (info == null || info.AllegroAccountId == null)
+        {
+            return false;
+        }
+
+        if (request.Payment == null || string.IsNullOrWhiteSpace(request.Payment.Id))
+        {
+            return false;
+        }
+
+        await _allegroApiClient.RefundPaymentAsync(info.AllegroAccountId.Value, request);
+
+        var refundAmount = CalculateRefundAmount(request);
+        var actionText = $"[API] Zlecono zwrot wpłaty w Allegro na kwotę {refundAmount:C}.";
+        if (!string.IsNullOrWhiteSpace(request.SellerComment))
+        {
+            actionText += $" Komentarz: {request.SellerComment}";
+        }
+
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+        await AddReturnActionInternalAsync(connection, returnId, userDisplayName, actionText);
+
+        return true;
     }
 
     public async Task<int?> CreateManualReturnAsync(ReturnManualCreateRequest request, int userId, string userDisplayName)
@@ -1180,6 +1292,64 @@ public class ReturnsService
         return output;
     }
 
+    private async Task<ReturnAllegroInfo?> GetReturnAllegroInfoAsync(int returnId)
+    {
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        const string query = @"
+            SELECT AllegroAccountId, AllegroReturnId, OrderId, ReferenceNumber
+            FROM AllegroCustomerReturns
+            WHERE Id = @id
+            LIMIT 1";
+
+        await using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@id", returnId);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
+        return new ReturnAllegroInfo(
+            returnId,
+            reader["AllegroAccountId"] == DBNull.Value ? null : Convert.ToInt32(reader["AllegroAccountId"]),
+            reader["AllegroReturnId"] as string,
+            reader["OrderId"] as string,
+            reader["ReferenceNumber"]?.ToString());
+    }
+
+    private static decimal CalculateRefundAmount(PaymentRefundRequestDto request)
+    {
+        decimal total = 0;
+        if (request.LineItems != null)
+        {
+            foreach (var item in request.LineItems)
+            {
+                if (item?.Value?.Amount == null)
+                {
+                    continue;
+                }
+
+                if (decimal.TryParse(item.Value.Amount.Replace(',', '.'), System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out var amount))
+                {
+                    total += amount;
+                }
+            }
+        }
+
+        if (request.Delivery?.Amount != null
+            && decimal.TryParse(request.Delivery.Amount.Replace(',', '.'), System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var deliveryAmount))
+        {
+            total += deliveryAmount;
+        }
+
+        return total;
+    }
+
     private async Task<int?> AddReturnActionInternalAsync(MySqlConnection connection, int returnId, string userDisplayName, string content, MySqlTransaction? transaction = null)
     {
         var query = @"INSERT INTO ZwrotDzialania (ZwrotId, Data, Uzytkownik, Tresc) VALUES (@zwrotId, @data, @uzytkownik, @tresc)";
@@ -1413,4 +1583,11 @@ public class ReturnsService
         var nextNumber = lastZgloszenie != null ? lastZgloszenie.Id + 1 : 1;
         return $"R/{nextNumber}/{DateTime.UtcNow.Year}";
     }
+
+    private sealed record ReturnAllegroInfo(
+        int ReturnId,
+        int? AllegroAccountId,
+        string? AllegroReturnId,
+        string? OrderId,
+        string? ReferenceNumber);
 }

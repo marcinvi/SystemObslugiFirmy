@@ -242,6 +242,30 @@
                     android:layout_marginTop="12dp"
                     android:text="Przekaż do magazynu"
                     android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnOdrzucZwrot"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Odrzuć zwrot"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/btnZwrotWplaty"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="Zwrot wpłaty"
+                        android:visibility="gone" />
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout

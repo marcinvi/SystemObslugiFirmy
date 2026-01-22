@@ -10,6 +10,7 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.Intent;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -26,6 +27,8 @@ import com.example.ena.api.ReturnActionDto;
 import com.example.ena.api.ReturnDecisionRequest;
 import com.example.ena.api.ReturnDetailsDto;
 import com.example.ena.api.ReturnForwardToWarehouseRequest;
+import com.example.ena.api.RejectCustomerReturnRequest;
+import com.example.ena.api.ReturnRejectionDto;
 import com.example.ena.api.StatusDto;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -54,6 +57,8 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private Button btnWyslijDecyzje;
     private Button btnAnuluj;
     private Button btnPrzekazDoMagazynu;
+    private Button btnOdrzucZwrot;
+    private Button btnZwrotWplaty;
     private ProgressBar progressBar;
 
     private ReturnActionAdapter actionAdapter;
@@ -85,6 +90,8 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         btnWyslijDecyzje = findViewById(R.id.btnWyslijDecyzje);
         btnAnuluj = findViewById(R.id.btnAnuluj);
         btnPrzekazDoMagazynu = findViewById(R.id.btnPrzekazDoMagazynu);
+        btnOdrzucZwrot = findViewById(R.id.btnOdrzucZwrot);
+        btnZwrotWplaty = findViewById(R.id.btnZwrotWplaty);
         progressBar = findViewById(R.id.progressDetail);
 
         RecyclerView listActions = findViewById(R.id.listActions);
@@ -96,6 +103,8 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         btnWyslijDecyzje.setOnClickListener(v -> confirmSubmitDecision());
         btnDodajDzialanie.setOnClickListener(v -> submitAction());
         btnPrzekazDoMagazynu.setOnClickListener(v -> promptForwardToWarehouse());
+        btnOdrzucZwrot.setOnClickListener(v -> showRejectDialog());
+        btnZwrotWplaty.setOnClickListener(v -> openRefundPayment());
 
         loadDecyzje();
         loadDetails();
@@ -152,6 +161,10 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         preselectDecision(details.getDecyzjaHandlowcaId());
 
         btnPrzekazDoMagazynu.setVisibility(details.isManual() ? View.VISIBLE : View.GONE);
+        boolean hasAllegroReturn = details.getAllegroReturnId() != null && !details.getAllegroReturnId().isEmpty();
+        boolean hasOrderId = details.getOrderId() != null && !details.getOrderId().isEmpty();
+        btnOdrzucZwrot.setVisibility(hasAllegroReturn ? View.VISIBLE : View.GONE);
+        btnZwrotWplaty.setVisibility(hasOrderId ? View.VISIBLE : View.GONE);
     }
 
     private void loadDecyzje() {
@@ -367,6 +380,91 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> Toast.makeText(SalesReturnDetailActivity.this, "Błąd przekazania: " + message, Toast.LENGTH_LONG).show());
             }
         });
+    }
+
+    private static class RejectionReasonItem {
+        final String code;
+        final String description;
+
+        RejectionReasonItem(String code, String description) {
+            this.code = code;
+            this.description = description;
+        }
+
+        @Override
+        public String toString() {
+            return description;
+        }
+    }
+
+    private void showRejectDialog() {
+        if (details == null || details.getAllegroReturnId() == null || details.getAllegroReturnId().isEmpty()) {
+            Toast.makeText(this, "Brak identyfikatora zwrotu Allegro.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        View view = getLayoutInflater().inflate(R.layout.dialog_reject_return, null);
+        Spinner spinner = view.findViewById(R.id.spinnerRejectionReason);
+        EditText editReason = view.findViewById(R.id.editRejectionReason);
+
+        List<RejectionReasonItem> reasons = new ArrayList<>();
+        reasons.add(new RejectionReasonItem("BUYER_FAULT", "Wina kupującego"));
+        reasons.add(new RejectionReasonItem("SENT_AFTER_TIME", "Wysłano po terminie"));
+        reasons.add(new RejectionReasonItem("WRONG_ADDRESS", "Wysłano na zły adres"));
+        reasons.add(new RejectionReasonItem("RETURN_NOT_REGISTERED_IN_SYSTEM", "Zwrot niezarejestrowany w systemie"));
+        reasons.add(new RejectionReasonItem("OTHER", "Inny powód (wymaga uzasadnienia)"));
+
+        ArrayAdapter<RejectionReasonItem> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, reasons);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+
+        new AlertDialog.Builder(this)
+            .setTitle("Odrzuć zwrot")
+            .setView(view)
+            .setPositiveButton("Odrzuć", (dialog, which) -> submitRejection(spinner, editReason))
+            .setNegativeButton("Anuluj", null)
+            .show();
+    }
+
+    private void submitRejection(Spinner spinner, EditText editReason) {
+        if (spinner.getSelectedItem() == null) {
+            Toast.makeText(this, "Wybierz powód odrzucenia.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        RejectionReasonItem selected = (RejectionReasonItem) spinner.getSelectedItem();
+        String reasonText = editReason.getText().toString().trim();
+        RejectCustomerReturnRequest request = new RejectCustomerReturnRequest(
+            new ReturnRejectionDto(selected.code, reasonText.isEmpty() ? null : reasonText)
+        );
+
+        btnOdrzucZwrot.setEnabled(false);
+        ApiClient client = new ApiClient(this);
+        client.rejectReturn(returnId, request, new ApiClient.ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void data) {
+                runOnUiThread(() -> {
+                    btnOdrzucZwrot.setEnabled(true);
+                    Toast.makeText(SalesReturnDetailActivity.this, "Zwrot został odrzucony w Allegro.", Toast.LENGTH_SHORT).show();
+                    loadDetails();
+                    loadActions();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    btnOdrzucZwrot.setEnabled(true);
+                    Toast.makeText(SalesReturnDetailActivity.this, "Błąd odrzucenia zwrotu: " + message, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void openRefundPayment() {
+        Intent intent = new Intent(this, RefundPaymentActivity.class);
+        intent.putExtra(RefundPaymentActivity.EXTRA_RETURN_ID, returnId);
+        startActivity(intent);
     }
 
     private int getSelectedDecisionId() {
