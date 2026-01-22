@@ -51,6 +51,8 @@ public class ReturnDetailsDto
     public string? KomentarzHandlowca { get; set; }
     public DateTime? DataDecyzji { get; set; }
     public bool IsManual { get; set; }
+    public string? AllegroReturnId { get; set; }
+    public string? OrderId { get; set; }
 }
 
 public class ReturnWarehouseUpdateRequest
@@ -84,6 +86,61 @@ public class ReturnDecisionResponse
 public class ReturnForwardToWarehouseRequest
 {
     public string? Komentarz { get; set; }
+}
+
+public class ReturnRefundContextDto
+{
+    public string OrderId { get; set; } = string.Empty;
+    public string PaymentId { get; set; } = string.Empty;
+    public List<RefundLineItemContextDto> LineItems { get; set; } = new();
+    public RefundValueDto? Delivery { get; set; }
+}
+
+public class RefundLineItemContextDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public RefundValueDto Price { get; set; } = new();
+}
+
+public class RejectCustomerReturnRequestDto
+{
+    public ReturnRejectionDto Rejection { get; set; } = new();
+}
+
+public class ReturnRejectionDto
+{
+    public string Code { get; set; } = string.Empty;
+    public string? Reason { get; set; }
+}
+
+public class PaymentRefundRequestDto
+{
+    public PaymentIdDto Payment { get; set; } = new();
+    public string Reason { get; set; } = string.Empty;
+    public List<RefundLineItemDto>? LineItems { get; set; }
+    public RefundValueDto? Delivery { get; set; }
+    public string? SellerComment { get; set; }
+}
+
+public class PaymentIdDto
+{
+    public string Id { get; set; } = string.Empty;
+}
+
+public class RefundLineItemDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public int? Quantity { get; set; }
+    public RefundValueDto? Value { get; set; }
+}
+
+public class RefundValueDto
+{
+    public string Amount { get; set; } = string.Empty;
+    public string Currency { get; set; } = "PLN";
 }
 
 public class ReturnManualCreateRequest

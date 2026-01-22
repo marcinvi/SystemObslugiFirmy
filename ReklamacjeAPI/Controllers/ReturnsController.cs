@@ -132,6 +132,57 @@ public class ReturnsController : ControllerBase
         return Ok(ApiResponse<object>.SuccessResponse(new { id, statusUpdated = updated }));
     }
 
+    [HttpGet("{id:int}/refund-context")]
+    public async Task<ActionResult<ApiResponse<ReturnRefundContextDto>>> GetRefundContext(int id)
+    {
+        var context = await _returnsService.GetRefundContextAsync(id);
+        if (context == null)
+        {
+            return BadRequest(ApiResponse<ReturnRefundContextDto>.ErrorResponse("Nie udało się pobrać danych do zwrotu wpłaty."));
+        }
+
+        return Ok(ApiResponse<ReturnRefundContextDto>.SuccessResponse(context));
+    }
+
+    [HttpPost("{id:int}/reject")]
+    public async Task<ActionResult<ApiResponse<object>>> RejectReturn(int id, [FromBody] RejectCustomerReturnRequestDto request)
+    {
+        if (request?.Rejection == null || string.IsNullOrWhiteSpace(request.Rejection.Code))
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak powodu odrzucenia."));
+        }
+
+        var success = await _returnsService.RejectReturnAsync(id, request, GetUserDisplayName());
+        if (!success)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się odrzucić zwrotu."));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { id }));
+    }
+
+    [HttpPost("{id:int}/refund")]
+    public async Task<ActionResult<ApiResponse<object>>> RefundPayment(int id, [FromBody] PaymentRefundRequestDto request)
+    {
+        if (request?.Payment == null || string.IsNullOrWhiteSpace(request.Payment.Id))
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak identyfikatora płatności."));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak powodu zwrotu."));
+        }
+
+        var success = await _returnsService.RefundPaymentAsync(id, request, GetUserDisplayName());
+        if (!success)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się zlecić zwrotu wpłaty."));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { id }));
+    }
+
     [HttpGet("manual/meta")]
     public async Task<ActionResult<ApiResponse<ReturnManualMetaDto>>> GetManualReturnMeta()
     {

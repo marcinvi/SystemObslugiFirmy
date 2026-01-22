@@ -1,9 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using ReklamacjeAPI.Data;
+using ReklamacjeAPI.Security;
 using ReklamacjeAPI.Services;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
+
+const string ApplicationSecret = "Twoje-Super-Tajne-Haslo-Aplikacji-123!@#";
+using (var kdf = new Rfc2898DeriveBytes(
+    ApplicationSecret,
+    EncryptionHelper.Salt,
+    50_000,
+    HashAlgorithmName.SHA256))
+{
+    EncryptionHelper.MasterKey = kdf.GetBytes(32);
+}
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -71,6 +83,8 @@ builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IDzialanieService, DzialanieService>();
 builder.Services.AddScoped<ReturnsService>();
 builder.Services.AddScoped<MessagesService>();
+builder.Services.AddScoped<AllegroCredentialsService>();
+builder.Services.AddHttpClient<AllegroApiClient>();
 
 var app = builder.Build();
 
