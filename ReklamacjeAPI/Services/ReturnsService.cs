@@ -1574,7 +1574,9 @@ public class ReturnsService
             command.Parameters.AddWithValue("@JsonDetails", JsonSerializer.Serialize(ret, JsonOptions));
             command.Parameters.AddWithValue("@StatusWewnetrznyId", defaultStatusId ?? (object)DBNull.Value);
             command.Parameters.AddWithValue("@InvoiceNumber", (object?)invoiceNumber ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ProductName", (object?)returnItem?.Name ?? lineItem?.Offer?.Name ?? DBNull.Value);
+            var productName = returnItem?.Name ?? lineItem?.Offer?.Name;
+            command.Parameters.AddWithValue("@ProductName", (object?)productName ?? DBNull.Value);
+
             command.Parameters.AddWithValue("@OfferId", (object?)returnItem?.OfferId ?? DBNull.Value);
             command.Parameters.AddWithValue("@Quantity", (object?)returnItem?.Quantity ?? (object?)lineItem?.Quantity ?? DBNull.Value);
             command.Parameters.AddWithValue("@PaymentType", (object?)orderDetails?.Payment?.Type ?? DBNull.Value);
