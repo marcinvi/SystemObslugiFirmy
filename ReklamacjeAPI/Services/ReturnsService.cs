@@ -436,19 +436,28 @@ public class ReturnsService
 
     public async Task<int?> CreateManualReturnAsync(ReturnManualCreateRequest request, int userId, string userDisplayName)
     {
+        if (string.IsNullOrWhiteSpace(request.NumerListu)
+            || string.IsNullOrWhiteSpace(request.BuyerFullName)
+            || request.StanProduktuId <= 0
+            || request.WybraniHandlowcy == null
+            || request.WybraniHandlowcy.Count == 0)
+        {
+            return null;
+        }
+
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
         await using var transaction = await connection.BeginTransactionAsync();
 
         try
         {
-            var statusDocelowyId = await GetStatusIdAsync(connection, "Oczekuje na decyzję handlowca", "StatusWewnetrzny");
+            var statusDocelowyId = await GetStatusIdAsync(connection, "Oczekuje na decyzję handlowca", "StatusWewnetrzny", transaction);
             if (!statusDocelowyId.HasValue)
             {
                 return null;
             }
 
-            var uwagiColumn = await ResolveUwagiMagazynuColumnAsync(connection);
+            var uwagiColumn = await ResolveUwagiMagazynuColumnAsync(connection, transaction);
             var referenceNumber = await GenerateNewReferenceNumberAsync(connection, transaction);
 
             var insertQuery = $@"
@@ -465,16 +474,17 @@ public class ReturnsService
                 );
                 SELECT LAST_INSERT_ID();";
 
+            var buyerFullName = request.BuyerFullName.Trim();
             var senderDetails = new
             {
-                FullName = request.BuyerFullName,
+                FullName = buyerFullName,
                 Street = request.BuyerStreet,
                 ZipCode = request.BuyerZipCode,
                 City = request.BuyerCity,
                 Phone = request.BuyerPhone
             };
 
-            var nameParts = request.BuyerFullName.Trim()
+            var nameParts = buyerFullName
                 .Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
 
             await using (var command = new MySqlCommand(insertQuery, connection, transaction))
@@ -498,7 +508,7 @@ public class ReturnsService
                 command.Parameters.AddWithValue("@Delivery_City", (object?)request.BuyerCity ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Delivery_PhoneNumber", (object?)request.BuyerPhone ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Uwagi", (object?)request.UwagiMagazynu ?? DBNull.Value);
-                command.Parameters.AddWithValue("@BuyerFullName", request.BuyerFullName);
+                command.Parameters.AddWithValue("@BuyerFullName", buyerFullName);
 
                 var newIdObj = await command.ExecuteScalarAsync();
                 if (newIdObj == null)
@@ -508,7 +518,7 @@ public class ReturnsService
                 }
 
                 var returnId = Convert.ToInt32(newIdObj);
-                var readColumn = await ResolveCzyPrzeczytanaColumnAsync(connection);
+                var readColumn = await ResolveCzyPrzeczytanaColumnAsync(connection, transaction);
 
                 foreach (var handlowiecId in request.WybraniHandlowcy)
                 {
@@ -976,10 +986,10 @@ public class ReturnsService
         return await GetReturnDetailsAsync(Convert.ToInt32(idObj));
     }
 
-    private async Task<int?> GetStatusIdAsync(MySqlConnection connection, string name, string type)
+    private async Task<int?> GetStatusIdAsync(MySqlConnection connection, string name, string type, MySqlTransaction? transaction = null)
     {
         const string query = "SELECT Id FROM Statusy WHERE Nazwa = @name AND TypStatusu = @type LIMIT 1";
-        await using var command = new MySqlCommand(query, connection);
+        await using var command = new MySqlCommand(query, connection, transaction);
         command.Parameters.AddWithValue("@name", name);
         command.Parameters.AddWithValue("@type", type);
         var result = await command.ExecuteScalarAsync();
@@ -1001,7 +1011,7 @@ public class ReturnsService
         return result == null ? null : Convert.ToInt32(result);
     }
 
-    private async Task<string> ResolveUwagiMagazynuColumnAsync(MySqlConnection connection)
+    private async Task<string> ResolveUwagiMagazynuColumnAsync(MySqlConnection connection, MySqlTransaction? transaction = null)
     {
         if (!string.IsNullOrWhiteSpace(_uwagiMagazynuColumn))
         {
@@ -1015,7 +1025,7 @@ public class ReturnsService
               AND TABLE_NAME = 'AllegroCustomerReturns'
               AND COLUMN_NAME IN ('UwagiMagazynu', 'UwagiMagazyn')
             LIMIT 1";
-        await using var command = new MySqlCommand(query, connection);
+        await using var command = new MySqlCommand(query, connection, transaction);
         var result = await command.ExecuteScalarAsync();
         _uwagiMagazynuColumn = result?.ToString() ?? "UwagiMagazynu";
         return _uwagiMagazynuColumn;
@@ -1233,7 +1243,7 @@ public class ReturnsService
         return $"R/{nextId:D3}/{monthYear}";
     }
 
-    private async Task<string> ResolveCzyPrzeczytanaColumnAsync(MySqlConnection connection)
+    private async Task<string> ResolveCzyPrzeczytanaColumnAsync(MySqlConnection connection, MySqlTransaction? transaction = null)
     {
         const string query = @"
             SELECT COLUMN_NAME
@@ -1243,7 +1253,7 @@ public class ReturnsService
               AND COLUMN_NAME IN ('CzyPrzeczytana', 'CzyOdczytana')
             LIMIT 1";
 
-        await using var command = new MySqlCommand(query, connection);
+        await using var command = new MySqlCommand(query, connection, transaction);
         var result = await command.ExecuteScalarAsync();
         return result?.ToString() ?? "CzyPrzeczytana";
     }
