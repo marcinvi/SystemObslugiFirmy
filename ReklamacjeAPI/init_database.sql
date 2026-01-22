@@ -83,7 +83,7 @@ VALUES (
 -- 4. Utwórz testowych klientów (opcjonalne)
 -- ============================================
 
-INSERT IGNORE INTO Klienci (IdKlienta, ImieNazwisko, Telefon, Email, Adres, KodPocztowy, Miasto, DataDodania)
+INSERT IGNORE INTO Klienci (Id, ImieNazwisko, Telefon, Email, Adres, KodPocztowy, Miasto, DataDodania)
 VALUES 
 (1, 'Anna Nowak', '123456789', 'anna@example.com', 'ul. Testowa 1', '00-001', 'Warszawa', NOW()),
 (2, 'Piotr Wiśniewski', '987654321', 'piotr@example.com', 'ul. Przykładowa 5', '30-001', 'Kraków', NOW());
