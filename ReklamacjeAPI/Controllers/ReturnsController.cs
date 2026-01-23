@@ -343,6 +343,16 @@ public class ReturnsController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Niezgodny identyfikator zwrotu."));
         }
 
+        if (request.ReturnId == 0)
+        {
+            request.ReturnId = id;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Przekazal))
+        {
+            request.Przekazal = GetUserDisplayName();
+        }
+
         await _returnsService.ForwardToComplaintsAsync(id, request);
 
         return Ok(ApiResponse<object>.SuccessResponse(new { id }));
