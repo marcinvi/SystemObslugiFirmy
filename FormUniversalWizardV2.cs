@@ -1208,7 +1208,7 @@ namespace Reklamacje_Dane
                                 var item = new ListViewItem(Convert.ToString(rd["Id"]));
                                 item.SubItems.Add(Convert.ToString(rd["DaneKlienta"]));
                                 item.SubItems.Add(Convert.ToString(rd["DaneProduktu"]));
-                                item.Tag = rd["Id"];
+                                item.Tag = Convert.ToInt64(rd["Id"]);
                                 _listViewInitialSelection.Items.Add(item);
                             }
                         }
@@ -1319,9 +1319,8 @@ namespace Reklamacje_Dane
             }
 
             // ZWROTY
-            if (_source == WizardSource.Zwroty && (sourceData is long || (sourceData is string && long.TryParse((string)sourceData, out _))))
+            if (_source == WizardSource.Zwroty && TryGetZwrotId(sourceData, out var niezId))
             {
-                long niezId = sourceData is long l ? l : Convert.ToInt64((string)sourceData);
                 data.Id = niezId.ToString();
 
                 using (var con = DatabaseHelper.GetConnection())
@@ -1439,6 +1438,46 @@ namespace Reklamacje_Dane
 
             data.SourceName = "Nieznane";
             return data;
+        }
+
+        private bool TryGetZwrotId(object sourceData, out long niezId)
+        {
+            niezId = 0;
+            if (sourceData == null)
+                return false;
+
+            if (sourceData is long longId)
+            {
+                niezId = longId;
+                return true;
+            }
+
+            if (sourceData is int intId)
+            {
+                niezId = intId;
+                return true;
+            }
+
+            if (sourceData is string stringId && long.TryParse(stringId, out var parsedId))
+            {
+                niezId = parsedId;
+                return true;
+            }
+
+            if (sourceData is IConvertible)
+            {
+                try
+                {
+                    niezId = Convert.ToInt64(sourceData);
+                    return true;
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+
+            return false;
         }
 
         private string GetValueFromRow(IList<object> row, int index)
