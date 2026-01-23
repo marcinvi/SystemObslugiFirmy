@@ -2,6 +2,8 @@ package com.example.ena.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -15,7 +17,7 @@ import com.example.ena.api.LoginRequest;
 import com.example.ena.api.LoginResponse;
 
 public class LoginActivity extends AppCompatActivity {
-    private EditText editLogin;
+    private AutoCompleteTextView editLogin;
     private EditText editPassword;
     private Button btnLogin;
     private TextView txtBaseUrl;
@@ -36,6 +38,7 @@ public class LoginActivity extends AppCompatActivity {
         Button btnConnectServer = findViewById(R.id.btnConnectServer);
 
         updateBaseUrlLabel();
+        setupLoginDropdown();
 
         btnConnectServer.setOnClickListener(v ->
                 startActivity(new Intent(this, SettingsActivity.class)));
@@ -56,6 +59,21 @@ public class LoginActivity extends AppCompatActivity {
         } else {
             txtBaseUrl.setText("API: " + baseUrl);
         }
+    }
+
+    private void setupLoginDropdown() {
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_dropdown_item_1line,
+                UserSession.getRecentLogins(this)
+        );
+        editLogin.setAdapter(adapter);
+        editLogin.setOnClickListener(v -> editLogin.showDropDown());
+        editLogin.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                editLogin.showDropDown();
+            }
+        });
     }
 
     private void attemptLogin() {

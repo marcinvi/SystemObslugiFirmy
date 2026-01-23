@@ -41,7 +41,7 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <EditText
+        <AutoCompleteTextView
             android:id="@+id/editLogin"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

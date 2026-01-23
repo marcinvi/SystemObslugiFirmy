@@ -9,6 +9,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.net.SocketTimeoutException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -229,19 +230,19 @@ public class ApiClient {
         if (fallback != null && !fallback.isEmpty()) {
             String url = fallback + (path.startsWith("/") ? "" : "/") + path;
             selectClient(url).newCall(buildRequest(url).method(method, body).build()).enqueue(new Callback() {
-                @Override public void onFailure(Call call, IOException e) { callback.onError(error.getMessage()); }
+                @Override public void onFailure(Call call, IOException e) { callback.onError(formatNetworkError(error)); }
                 @Override public void onResponse(Call call, Response response) {
                     try (Response res = response) {
                         if (res.isSuccessful()) {
                             ApiConfig.setBaseUrl(context, fallback);
                             callback.onSuccess(null);
                         } else {
-                            callback.onError(error.getMessage());
+                            callback.onError(formatNetworkError(error));
                         }
                     }
                 }
             });
-        } else callback.onError(error.getMessage());
+        } else callback.onError(formatNetworkError(error));
     }
 
     private <T> void retrySendWithResponseWithFallback(String path, String method, RequestBody body, Type type, ApiCallback<T> callback, IOException error) {
@@ -249,26 +250,26 @@ public class ApiClient {
         if (fallback != null && !fallback.isEmpty()) {
             String url = fallback + (path.startsWith("/") ? "" : "/") + path;
             selectClient(url).newCall(buildRequest(url).method(method, body).build()).enqueue(new Callback() {
-                @Override public void onFailure(Call call, IOException e) { callback.onError(error.getMessage()); }
+                @Override public void onFailure(Call call, IOException e) { callback.onError(formatNetworkError(error)); }
                 @Override public void onResponse(Call call, Response response) throws IOException {
                     try (Response res = response) {
                         if (res.isSuccessful()) {
                             ApiConfig.setBaseUrl(context, fallback);
                             handleResponse(res, type, callback);
                         } else {
-                            callback.onError(error.getMessage());
+                            callback.onError(formatNetworkError(error));
                         }
                     }
                 }
             });
-        } else callback.onError(error.getMessage());
+        } else callback.onError(formatNetworkError(error));
     }
 
     private <T> void tryAutoDiscovery(String path, Type type, ApiCallback<T> callback, IOException error) {
         String ip = NetworkUtils.getIPAddress(true);
-        if (ip == null || ip.isEmpty()) { callback.onError(error.getMessage()); return; }
+        if (ip == null || ip.isEmpty()) { callback.onError(formatNetworkError(error)); return; }
         int lastDot = ip.lastIndexOf('.');
-        if (lastDot <= 0) { callback.onError(error.getMessage()); return; }
+        if (lastDot <= 0) { callback.onError(formatNetworkError(error)); return; }
         String prefix = ip.substring(0, lastDot);
         List<String> ips = new ArrayList<>();
         ips.add(prefix + ".106"); ips.add(prefix + ".1");
@@ -294,6 +295,23 @@ public class ApiClient {
                 }
             }
         });
+    }
+
+    private String formatNetworkError(IOException error) {
+        if (error == null) {
+            return "Błąd połączenia.";
+        }
+        if (error instanceof SocketTimeoutException) {
+            return "Przekroczono limit czasu połączenia.";
+        }
+        String message = error.getMessage();
+        if (message == null || message.trim().isEmpty()) {
+            return "Błąd połączenia.";
+        }
+        if (message.startsWith("HTTP ")) {
+            return "Błąd serwera (" + message + ")";
+        }
+        return message;
     }
 
     // --- METODY WYMAGANE PRZEZ TWOJE ACTIVITY (BŁĘDY Z OBRAZKA) ---
