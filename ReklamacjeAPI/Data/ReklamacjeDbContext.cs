@@ -25,10 +25,12 @@ public class ReklamacjeDbContext : DbContext
         {
             entity.ToTable("Uzytkownicy");
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Login).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Login).IsRequired().HasMaxLength(255);
             entity.Property(e => e.PasswordHash).IsRequired();
-            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.Email).HasMaxLength(100);
+            entity.Property(e => e.DisplayName);
+            entity.Property(e => e.Email);
+            entity.Property(e => e.Role);
+            entity.Property(e => e.IsActive).HasConversion<int>();
         });
 
         // Klient

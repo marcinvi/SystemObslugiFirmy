@@ -7,35 +7,38 @@ namespace ReklamacjeAPI.Models;
 public class User
 {
     [Key]
-    [Column("IdUzytkownika")]
+    [Column("Id")]
     public int Id { get; set; }
 
     [Required]
-    [MaxLength(50)]
+    [MaxLength(255)]
     [Column("Login")]
     public string Login { get; set; } = string.Empty;
 
     [Required]
-    [Column("HasloHash")]
+    [Column("Hasło")]
     public string PasswordHash { get; set; } = string.Empty;
 
-    [Required]
-    [MaxLength(100)]
-    [Column("NazwaWyswietlana")]
-    public string DisplayName { get; set; } = string.Empty;
+    [Column("Nazwa Wyświetlana")]
+    public string? DisplayName { get; set; }
 
-    [MaxLength(100)]
+    [Column("Rola")]
+    public string? Role { get; set; }
+
     [Column("Email")]
     public string? Email { get; set; }
 
-    [Column("Aktywny")]
+    [Column("IsActive")]
     public bool IsActive { get; set; } = true;
 
-    [Column("DataDodania")]
+    [NotMapped]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    [Column("OstatnieLogowanie")]
+    [NotMapped]
     public DateTime? LastLogin { get; set; }
+
+    [NotMapped]
+    public string DisplayNameOrLogin => string.IsNullOrWhiteSpace(DisplayName) ? Login : DisplayName;
 
     // Navigation properties
     public virtual ICollection<Zgloszenie> AssignedZgloszenia { get; set; } = new List<Zgloszenie>();

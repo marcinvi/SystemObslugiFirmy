@@ -261,7 +261,7 @@ public class ZgloszeniaService : IZgloszeniaService
             {
                 Id = z.AssignedUser.Id,
                 Login = z.AssignedUser.Login,
-                NazwaWyswietlana = z.AssignedUser.DisplayName,
+                NazwaWyswietlana = z.AssignedUser.DisplayNameOrLogin,
                 Email = z.AssignedUser.Email,
                 Aktywny = z.AssignedUser.IsActive
             } : null
@@ -302,7 +302,7 @@ public class ZgloszeniaService : IZgloszeniaService
             {
                 Id = z.AssignedUser.Id,
                 Login = z.AssignedUser.Login,
-                NazwaWyswietlana = z.AssignedUser.DisplayName,
+                NazwaWyswietlana = z.AssignedUser.DisplayNameOrLogin,
                 Email = z.AssignedUser.Email,
                 Aktywny = z.AssignedUser.IsActive
             } : null,
@@ -318,7 +318,7 @@ public class ZgloszeniaService : IZgloszeniaService
                 {
                     Id = d.User.Id,
                     Login = d.User.Login,
-                    NazwaWyswietlana = d.User.DisplayName,
+                    NazwaWyswietlana = d.User.DisplayNameOrLogin,
                     Email = d.User.Email,
                     Aktywny = d.User.IsActive
                 }
@@ -334,7 +334,7 @@ public class ZgloszeniaService : IZgloszeniaService
                 {
                     Id = p.UploadedBy.Id,
                     Login = p.UploadedBy.Login,
-                    NazwaWyswietlana = p.UploadedBy.DisplayName,
+                    NazwaWyswietlana = p.UploadedBy.DisplayNameOrLogin,
                     Email = p.UploadedBy.Email,
                     Aktywny = p.UploadedBy.IsActive
                 } : null
