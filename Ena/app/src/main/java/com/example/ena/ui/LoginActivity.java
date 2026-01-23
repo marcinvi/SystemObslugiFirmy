@@ -2,6 +2,7 @@ package com.example.ena.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -14,17 +15,12 @@ import com.example.ena.UserSession;
 import com.example.ena.api.ApiClient;
 import com.example.ena.api.LoginRequest;
 import com.example.ena.api.LoginResponse;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 public class LoginActivity extends AppCompatActivity {
     private AutoCompleteTextView editLogin;
     private EditText editPassword;
     private Button btnLogin;
     private TextView txtBaseUrl;
-    private android.widget.ArrayAdapter<String> loginAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,7 +39,6 @@ public class LoginActivity extends AppCompatActivity {
 
         updateBaseUrlLabel();
         setupLoginDropdown();
-        loadLoginListFromServer();
 
         btnConnectServer.setOnClickListener(v ->
                 startActivity(new Intent(this, SettingsActivity.class)));
@@ -55,7 +50,6 @@ public class LoginActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         updateBaseUrlLabel();
-        loadLoginListFromServer();
     }
 
     private void updateBaseUrlLabel() {
@@ -68,56 +62,18 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void setupLoginDropdown() {
-        loginAdapter = new android.widget.ArrayAdapter<>(
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_dropdown_item_1line,
-                new ArrayList<>()
+                UserSession.getRecentLogins(this)
         );
-        editLogin.setAdapter(loginAdapter);
-        editLogin.setThreshold(0);
+        editLogin.setAdapter(adapter);
         editLogin.setOnClickListener(v -> editLogin.showDropDown());
         editLogin.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 editLogin.showDropDown();
             }
         });
-        updateLoginAdapter(UserSession.getRecentLogins(this));
-    }
-
-    private void loadLoginListFromServer() {
-        String baseUrl = com.example.ena.api.ApiConfig.getBaseUrl(this);
-        if (baseUrl == null || baseUrl.isEmpty()) {
-            updateLoginAdapter(UserSession.getRecentLogins(this));
-            return;
-        }
-
-        ApiClient apiClient = new ApiClient(this);
-        apiClient.fetchLoginList(new ApiClient.ApiCallback<List<String>>() {
-            @Override
-            public void onSuccess(List<String> data) {
-                runOnUiThread(() -> updateLoginAdapter(data));
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> updateLoginAdapter(UserSession.getRecentLogins(LoginActivity.this)));
-            }
-        });
-    }
-
-    private void updateLoginAdapter(List<String> serverLogins) {
-        Set<String> merged = new LinkedHashSet<>();
-        merged.addAll(UserSession.getRecentLogins(this));
-        if (serverLogins != null) {
-            for (String login : serverLogins) {
-                if (login != null && !login.trim().isEmpty()) {
-                    merged.add(login);
-                }
-            }
-        }
-        loginAdapter.clear();
-        loginAdapter.addAll(merged);
-        loginAdapter.notifyDataSetChanged();
     }
 
     private void attemptLogin() {
