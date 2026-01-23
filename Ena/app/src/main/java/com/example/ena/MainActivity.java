@@ -63,16 +63,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView txtPairingHint;
     private TextView txtUserName;
     private TextView txtCurrentModule;
-    private TextView txtModulesEmpty;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private TextView txtDrawerUser;
     private TextView txtDrawerStatus;
-    private Button btnWarehouse;
-    private Button btnSales;
-    private Button btnSummary;
-    private Button btnMessages;
-    private Button btnSettings;
 
     private final ActivityResultLauncher<ScanOptions> qrLauncher =
             registerForActivityResult(new ScanContract(), this::handleQrResult);
@@ -118,8 +112,6 @@ public class MainActivity extends AppCompatActivity {
                 } else if (id == R.id.nav_settings) {
                     startActivity(new Intent(this, SettingsActivity.class));
                     setCurrentModuleLabel("Ustawienia");
-                } else if (id == R.id.nav_logout) {
-                    logout();
                 }
                 drawerLayout.closeDrawers();
                 return true;
@@ -135,7 +127,6 @@ public class MainActivity extends AppCompatActivity {
 
         txtUserName = findViewById(R.id.txtUserName);
         txtCurrentModule = findViewById(R.id.txtCurrentModule);
-        txtModulesEmpty = findViewById(R.id.txtModulesEmpty);
         txtBaseUrl = findViewById(R.id.txtBaseUrl);
         txtPhoneIp = findViewById(R.id.txtPhoneIp);
         txtPairCode = findViewById(R.id.txtPairCode);
@@ -183,10 +174,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (!UserSession.isLoggedIn(this)) {
-            redirectToLogin();
-            return;
-        }
         updateUserName();
         updateBaseUrlLabel(txtBaseUrl);
         updatePhoneInfo(txtPhoneIp, txtPairCode);
@@ -391,10 +378,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateUserName() {
-        String user = UserSession.getDisplayName(this);
-        if (user == null || user.isEmpty()) {
-            user = UserSession.getLogin(this);
-        }
+        String user = PairingManager.getPairedUser(this);
         if (user == null || user.isEmpty()) {
             user = "Nie sparowano";
         }
@@ -439,87 +423,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return "Hej! Jestem gotowy do pracy! Zeskanuj kod z aplikacji na Windows :)";
-    }
-
-    private void loadAssignedModules() {
-        ApiClient apiClient = new ApiClient(this);
-        apiClient.fetchAssignedModules(new ApiClient.ApiCallback<java.util.List<String>>() {
-            @Override
-            public void onSuccess(java.util.List<String> data) {
-                runOnUiThread(() -> {
-                    UserSession.saveModules(MainActivity.this, data);
-                    applyModuleVisibility(data);
-                });
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> applyModuleVisibility(UserSession.getModules(MainActivity.this)));
-            }
-        });
-    }
-
-    private void applyModuleVisibility(java.util.List<String> modules) {
-        boolean allowWarehouse = hasModule(modules, "Magazyn");
-        boolean allowSales = hasModule(modules, "Handlowiec");
-        boolean allowSummary = hasModule(modules, "Zwroty");
-        boolean allowMessages = hasModule(modules, "Wiadomosci") || hasModule(modules, "Wiadomości");
-
-        setVisible(btnWarehouse, allowWarehouse);
-        setVisible(btnSales, allowSales);
-        setVisible(btnSummary, allowSummary);
-        setVisible(btnMessages, allowMessages);
-
-        if (navigationView != null) {
-            if (navigationView.getMenu().findItem(R.id.nav_warehouse) != null) {
-                navigationView.getMenu().findItem(R.id.nav_warehouse).setVisible(allowWarehouse);
-            }
-            if (navigationView.getMenu().findItem(R.id.nav_sales) != null) {
-                navigationView.getMenu().findItem(R.id.nav_sales).setVisible(allowSales);
-            }
-            if (navigationView.getMenu().findItem(R.id.nav_summary) != null) {
-                navigationView.getMenu().findItem(R.id.nav_summary).setVisible(allowSummary);
-            }
-            if (navigationView.getMenu().findItem(R.id.nav_messages) != null) {
-                navigationView.getMenu().findItem(R.id.nav_messages).setVisible(allowMessages);
-            }
-        }
-
-        boolean anyModule = allowWarehouse || allowSales || allowSummary || allowMessages;
-        setVisible(txtModulesEmpty, !anyModule);
-        if (!anyModule && txtCurrentModule != null) {
-            txtCurrentModule.setText("Brak modułów");
-        }
-    }
-
-    private boolean hasModule(java.util.List<String> modules, String name) {
-        if (modules == null || name == null) {
-            return false;
-        }
-        for (String module : modules) {
-            if (module != null && module.equalsIgnoreCase(name)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void setVisible(android.view.View view, boolean visible) {
-        if (view != null) {
-            view.setVisibility(visible ? android.view.View.VISIBLE : android.view.View.GONE);
-        }
-    }
-
-    private void logout() {
-        UserSession.clear(this);
-        redirectToLogin();
-    }
-
-    private void redirectToLogin() {
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
     }
 
     static class QrPairingPayload {
