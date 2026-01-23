@@ -2,18 +2,15 @@ using System.Data.Common;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using ReklamacjeAPI.Data;
 using ReklamacjeAPI.DTOs;
-using ReklamacjeAPI.Models;
 
 namespace ReklamacjeAPI.Services;
 
 public class ReturnsService
 {
     private readonly IConfiguration _configuration;
-    private readonly ApplicationDbContext _context;
     private readonly AllegroApiClient _allegroApiClient;
     private string? _uwagiMagazynuColumn;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -21,10 +18,9 @@ public class ReturnsService
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public ReturnsService(IConfiguration configuration, ApplicationDbContext context, AllegroApiClient allegroApiClient)
+    public ReturnsService(IConfiguration configuration, AllegroApiClient allegroApiClient)
     {
         _configuration = configuration;
-        _context = context;
         _allegroApiClient = allegroApiClient;
     }
 
@@ -1111,44 +1107,13 @@ public class ReturnsService
         };
     }
 
-    public async Task<int?> ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request, int userId)
+    public async Task ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request)
     {
         var opisUsterki = BuildComplaintDescription(
             request.PowodKlienta,
             request.UwagiMagazynu,
             request.UwagiHandlowca,
             request.Przekazal);
-        var klient = await EnsureKlientAsync(request.DaneKlienta);
-        var produkt = await EnsureProduktAsync(request.Produkt);
-
-        var zgloszenie = new Zgloszenie
-        {
-            NrZgloszenia = await GenerateZgloszenieNumberAsync(),
-            IdKlienta = klient.Id,
-            IdProduktu = produkt?.Id,
-            Usterka = opisUsterki,
-            Priorytet = "Normalny",
-            PrzypisanyDo = null,
-            StatusOgolny = "Nowe",
-            Uwagi = request.UwagiHandlowca,
-            DataZgloszenia = DateTime.UtcNow,
-            DataModyfikacji = DateTime.UtcNow
-        };
-
-        _context.Zgloszenia.Add(zgloszenie);
-        await _context.SaveChangesAsync();
-
-        _context.Dzialania.Add(new Dzialanie
-        {
-            IdZgloszenia = zgloszenie.Id,
-            IdUzytkownika = userId,
-            TypDzialania = "utworzenie",
-            Opis = "Zgłoszenie utworzone z poziomu zwrotu",
-            StatusNowy = "Nowe",
-            DataDzialania = DateTime.UtcNow
-        });
-
-        await _context.SaveChangesAsync();
 
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
@@ -1766,78 +1731,6 @@ public class ReturnsService
             DoDecyzji = Convert.ToInt32(reader["DoDecyzji"] ?? 0),
             Zakonczone = Convert.ToInt32(reader["Zakonczone"] ?? 0)
         };
-    }
-
-    private async Task<Klient> EnsureKlientAsync(ComplaintCustomerDto customer)
-    {
-        var fullName = $"{customer.Imie} {customer.Nazwisko}".Trim();
-        if (!string.IsNullOrWhiteSpace(customer.Email))
-        {
-            var existing = await _context.Klienci.FirstOrDefaultAsync(k => k.Email == customer.Email);
-            if (existing != null)
-            {
-                return existing;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(customer.Telefon))
-        {
-            var existing = await _context.Klienci.FirstOrDefaultAsync(k => k.Telefon == customer.Telefon);
-            if (existing != null)
-            {
-                return existing;
-            }
-        }
-
-        var klient = new Klient
-        {
-            ImieNazwisko = fullName,
-            Email = customer.Email,
-            Telefon = customer.Telefon,
-            Adres = customer.Adres?.Ulica,
-            KodPocztowy = customer.Adres?.Kod,
-            Miasto = customer.Adres?.Miasto,
-            DataDodania = DateTime.UtcNow
-        };
-
-        _context.Klienci.Add(klient);
-        await _context.SaveChangesAsync();
-        return klient;
-    }
-
-    private async Task<Produkt?> EnsureProduktAsync(ComplaintProductDto product)
-    {
-        if (string.IsNullOrWhiteSpace(product.Nazwa))
-        {
-            return null;
-        }
-
-        var existing = await _context.Produkty.FirstOrDefaultAsync(p => p.Nazwa == product.Nazwa);
-        if (existing != null)
-        {
-            return existing;
-        }
-
-        var produkt = new Produkt
-        {
-            Nazwa = product.Nazwa,
-            NumerSeryjny = product.NrSeryjny,
-            DataDodania = DateTime.UtcNow
-        };
-
-        _context.Produkty.Add(produkt);
-        await _context.SaveChangesAsync();
-        return produkt;
-    }
-
-    private async Task<string> GenerateZgloszenieNumberAsync()
-    {
-        var lastZgloszenie = await _context.Zgloszenia
-            .OrderByDescending(z => z.Id)
-            .FirstOrDefaultAsync();
-
-        var nextNumber = lastZgloszenie != null ? lastZgloszenie.Id + 1 : 1;
-        return $"R/{nextNumber}/{DateTime.UtcNow.Year}";
     }
 
     private static string BuildComplaintDescription(

@@ -338,39 +338,14 @@ public class ReturnsController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak danych żądania."));
         }
 
-        if (request.DaneKlienta == null)
-        {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Brak danych klienta."));
-        }
-
-        if (request.Produkt == null)
-        {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Brak danych produktu."));
-        }
-
         if (request.ReturnId != 0 && request.ReturnId != id)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Niezgodny identyfikator zwrotu."));
         }
 
-        var userId = GetUserIdFromClaims();
-        if (!userId.HasValue)
-        {
-            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
-            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
-        }
-        if (!userId.HasValue)
-        {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
-        }
+        await _returnsService.ForwardToComplaintsAsync(id, request);
 
-        var complaintId = await _returnsService.ForwardToComplaintsAsync(id, request, userId.Value);
-        if (!complaintId.HasValue)
-        {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się przekazać do reklamacji."));
-        }
-
-        return Ok(ApiResponse<object>.SuccessResponse(new { id, complaintId }));
+        return Ok(ApiResponse<object>.SuccessResponse(new { id }));
     }
 
     private int? GetUserIdFromClaims()
