@@ -83,6 +83,7 @@ builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IDzialanieService, DzialanieService>();
 builder.Services.AddScoped<ReturnsService>();
 builder.Services.AddScoped<MessagesService>();
+builder.Services.AddScoped<ModulesService>();
 builder.Services.AddScoped<AllegroCredentialsService>();
 builder.Services.AddHttpClient<AllegroApiClient>();
 
