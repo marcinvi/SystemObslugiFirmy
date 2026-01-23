@@ -1152,6 +1152,7 @@ public class ReturnsService
 
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
+        await InsertNiezarejestrowanyZwrotAsync(connection, returnId, request, opisUsterki);
         var query = "UPDATE AllegroCustomerReturns SET ZgloszenieId = @zgloszenieId WHERE Id = @id";
         await using var updateCommand = new MySqlCommand(query, connection);
         updateCommand.Parameters.AddWithValue("@zgloszenieId", zgloszenie.Id);
@@ -1867,6 +1868,72 @@ public class ReturnsService
         }
 
         return sb.ToString().Trim();
+    }
+
+    private static async Task InsertNiezarejestrowanyZwrotAsync(
+        MySqlConnection connection,
+        int returnId,
+        ForwardToComplaintRequest request,
+        string opisUsterki)
+    {
+        var customer = request.DaneKlienta ?? new ComplaintCustomerDto();
+        var address = customer.Adres ?? new ComplaintAddressDto();
+        var product = request.Produkt ?? new ComplaintProductDto();
+        var imie = customer.Imie ?? string.Empty;
+        var nazwisko = customer.Nazwisko ?? string.Empty;
+        var email = customer.Email ?? string.Empty;
+        var telefon = customer.Telefon ?? string.Empty;
+        var ulica = address.Ulica ?? string.Empty;
+        var kod = address.Kod ?? string.Empty;
+        var miasto = address.Miasto ?? string.Empty;
+        var pelneImie = $"{imie} {nazwisko}".Trim();
+        var daneKlientaZbiorczo = $"{pelneImie} | {ulica}, {kod} {miasto} | tel: {telefon}"
+            + (string.IsNullOrWhiteSpace(email) ? string.Empty : $" | e-mail: {email}");
+        var nazwaProduktu = product.Nazwa ?? string.Empty;
+        var numerFaktury = product.NrFaktury ?? string.Empty;
+        var numerSeryjny = string.IsNullOrWhiteSpace(product.NrSeryjny) ? "Brak" : product.NrSeryjny;
+        var przekazal = request.Przekazal ?? string.Empty;
+
+        const string insertQuery = @"
+            INSERT INTO NiezarejestrowaneZwrotyReklamacyjne
+            (
+                DataPrzekazania, PrzekazanePrzez, IdZwrotuWMagazynie,
+                DaneKlienta, DaneProduktu, NumerFaktury, NumerSeryjny, UwagiMagazynu, KomentarzHandlowca,
+                ImieKlienta, NazwiskoKlienta, EmailKlienta, TelefonKlienta,
+                AdresUlica, AdresKodPocztowy, AdresMiasto,
+                NazwaProduktu, NIP, DataZakupu, OpisUsterki
+            )
+            VALUES
+            (
+                @data, @kto, @idZw,
+                @daneKlienta, @daneProduktu, @fv, @sn, @uwagiMag, @komHandl,
+                @imie, @nazw, @email, @tel,
+                @ulica, @kod, @miasto,
+                @nazwaProd, @nip, @dataZakupu, @opis
+            );";
+
+        await using var insertCommand = new MySqlCommand(insertQuery, connection);
+        insertCommand.Parameters.AddWithValue("@data", DateTime.Now);
+        insertCommand.Parameters.AddWithValue("@kto", przekazal);
+        insertCommand.Parameters.AddWithValue("@idZw", returnId);
+        insertCommand.Parameters.AddWithValue("@daneKlienta", daneKlientaZbiorczo);
+        insertCommand.Parameters.AddWithValue("@daneProduktu", nazwaProduktu);
+        insertCommand.Parameters.AddWithValue("@fv", numerFaktury);
+        insertCommand.Parameters.AddWithValue("@sn", numerSeryjny);
+        insertCommand.Parameters.AddWithValue("@uwagiMag", request.UwagiMagazynu ?? string.Empty);
+        insertCommand.Parameters.AddWithValue("@komHandl", request.UwagiHandlowca ?? string.Empty);
+        insertCommand.Parameters.AddWithValue("@imie", imie);
+        insertCommand.Parameters.AddWithValue("@nazw", nazwisko);
+        insertCommand.Parameters.AddWithValue("@email", email);
+        insertCommand.Parameters.AddWithValue("@tel", telefon);
+        insertCommand.Parameters.AddWithValue("@ulica", ulica);
+        insertCommand.Parameters.AddWithValue("@kod", kod);
+        insertCommand.Parameters.AddWithValue("@miasto", miasto);
+        insertCommand.Parameters.AddWithValue("@nazwaProd", nazwaProduktu);
+        insertCommand.Parameters.AddWithValue("@nip", string.Empty);
+        insertCommand.Parameters.AddWithValue("@dataZakupu", DBNull.Value);
+        insertCommand.Parameters.AddWithValue("@opis", opisUsterki);
+        await insertCommand.ExecuteNonQueryAsync();
     }
 
     private sealed record AllegroAccountInfo(int Id, string Name);
