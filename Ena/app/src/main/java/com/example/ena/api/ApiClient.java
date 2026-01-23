@@ -326,6 +326,11 @@ public class ApiClient {
         sendJsonWithResponse("api/auth/login", request, "POST", type, callback);
     }
 
+    public void fetchLoginList(ApiCallback<List<String>> callback) {
+        Type type = new TypeToken<ApiResponse<List<String>>>(){}.getType();
+        get("api/auth/logins", type, callback);
+    }
+
     public void fetchAssignedModules(ApiCallback<List<String>> callback) {
         Type type = new TypeToken<ApiResponse<List<String>>>(){}.getType();
         get("api/modules/assigned", type, callback);

@@ -107,7 +107,7 @@ public class FileService : IFileService
             {
                 Id = p.UploadedBy.Id,
                 Login = p.UploadedBy.Login,
-                NazwaWyswietlana = p.UploadedBy.DisplayName,
+                NazwaWyswietlana = p.UploadedBy.DisplayNameOrLogin,
                 Email = p.UploadedBy.Email,
                 Aktywny = p.UploadedBy.IsActive
             } : null

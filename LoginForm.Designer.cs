@@ -44,6 +44,7 @@ namespace Reklamacje_Dane
             // 
             this.comboUsername.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
             this.comboUsername.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(245)))), ((int)(((byte)(245)))));
+            this.comboUsername.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboUsername.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.comboUsername.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.comboUsername.FormattingEnabled = true;

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ReklamacjeAPI.Data;
 using ReklamacjeAPI.DTOs;
 using ReklamacjeAPI.Models;
+using ReklamacjeAPI.Security;
 using ReklamacjeAPI.Services;
 
 namespace ReklamacjeAPI.Controllers;
@@ -27,7 +28,7 @@ public class AuthController : ControllerBase
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Login == request.Login);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        if (user == null || !PasswordVerifier.Verify(request.Password, user.PasswordHash))
         {
             return Unauthorized(ApiResponse<LoginResponse>.ErrorResponse("Nieprawidłowy login lub hasło"));
         }
@@ -58,13 +59,26 @@ public class AuthController : ControllerBase
             {
                 Id = user.Id,
                 Login = user.Login,
-                NazwaWyswietlana = user.DisplayName,
+                NazwaWyswietlana = user.DisplayNameOrLogin,
                 Email = user.Email,
                 Aktywny = user.IsActive
             }
         };
 
         return Ok(ApiResponse<LoginResponse>.SuccessResponse(response, "Zalogowano pomyślnie"));
+    }
+
+    [HttpGet("logins")]
+    public async Task<ActionResult<ApiResponse<List<string>>>> GetLogins()
+    {
+        var logins = await _context.Users
+            .Where(u => u.IsActive)
+            .Select(u => u.Login)
+            .Distinct()
+            .OrderBy(login => login)
+            .ToListAsync();
+
+        return Ok(ApiResponse<List<string>>.SuccessResponse(logins));
     }
 
     [HttpPost("refresh")]
@@ -99,7 +113,7 @@ public class AuthController : ControllerBase
             {
                 Id = refreshToken.User.Id,
                 Login = refreshToken.User.Login,
-                NazwaWyswietlana = refreshToken.User.DisplayName,
+                NazwaWyswietlana = refreshToken.User.DisplayNameOrLogin,
                 Email = refreshToken.User.Email,
                 Aktywny = refreshToken.User.IsActive
             }

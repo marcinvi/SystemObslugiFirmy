@@ -74,6 +74,10 @@ public class ApplicationDbContext : DbContext
             .HasIndex(u => u.Login)
             .IsUnique();
 
+        modelBuilder.Entity<User>()
+            .Property(u => u.IsActive)
+            .HasConversion<int>();
+
         modelBuilder.Entity<Klient>()
             .HasIndex(k => k.Telefon);
 
