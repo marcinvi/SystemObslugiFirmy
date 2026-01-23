@@ -139,10 +139,12 @@ public class ApiClient {
         selectClient(url).newCall(request).enqueue(new Callback() {
             @Override public void onFailure(Call call, IOException e) { retryGetWithFallback(path, type, callback, e); }
             @Override public void onResponse(Call call, Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    handleResponse(response, type, callback);
-                } else {
-                    callback.onError("Błąd serwera (HTTP " + response.code() + ")");
+                try (Response res = response) {
+                    if (res.isSuccessful()) {
+                        handleResponse(res, type, callback);
+                    } else {
+                        callback.onError("Błąd serwera (HTTP " + res.code() + ")");
+                    }
                 }
             }
         });
@@ -153,8 +155,13 @@ public class ApiClient {
         selectClient(url).newCall(request).enqueue(new Callback() {
             @Override public void onFailure(Call call, IOException e) { retrySendWithFallback(path, method, body, callback, e); }
             @Override public void onResponse(Call call, Response response) {
-                if (response.isSuccessful()) callback.onSuccess(null);
-                else retrySendWithFallback(path, method, body, callback, new IOException("HTTP " + response.code()));
+                try (Response res = response) {
+                    if (res.isSuccessful()) {
+                        callback.onSuccess(null);
+                    } else {
+                        retrySendWithFallback(path, method, body, callback, new IOException("HTTP " + res.code()));
+                    }
+                }
             }
         });
     }
@@ -164,10 +171,12 @@ public class ApiClient {
         selectClient(url).newCall(request).enqueue(new Callback() {
             @Override public void onFailure(Call call, IOException e) { retrySendWithResponseWithFallback(path, method, body, type, callback, e); }
             @Override public void onResponse(Call call, Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    handleResponse(response, type, callback);
-                } else {
-                    retrySendWithResponseWithFallback(path, method, body, type, callback, new IOException("HTTP " + response.code()));
+                try (Response res = response) {
+                    if (res.isSuccessful()) {
+                        handleResponse(res, type, callback);
+                    } else {
+                        retrySendWithResponseWithFallback(path, method, body, type, callback, new IOException("HTTP " + res.code()));
+                    }
                 }
             }
         });
@@ -192,11 +201,13 @@ public class ApiClient {
             selectClient(url).newCall(buildRequest(url).get().build()).enqueue(new Callback() {
                 @Override public void onFailure(Call call, IOException e) { tryAutoDiscovery(path, type, callback, error); }
                 @Override public void onResponse(Call call, Response response) throws IOException {
-                    if (response.isSuccessful()) {
-                        ApiConfig.setBaseUrl(context, fallback);
-                        handleResponse(response, type, callback);
-                    } else {
-                        callback.onError("Błąd serwera (HTTP " + response.code() + ")");
+                    try (Response res = response) {
+                        if (res.isSuccessful()) {
+                            ApiConfig.setBaseUrl(context, fallback);
+                            handleResponse(res, type, callback);
+                        } else {
+                            callback.onError("Błąd serwera (HTTP " + res.code() + ")");
+                        }
                     }
                 }
             });
@@ -210,8 +221,14 @@ public class ApiClient {
             selectClient(url).newCall(buildRequest(url).method(method, body).build()).enqueue(new Callback() {
                 @Override public void onFailure(Call call, IOException e) { callback.onError(error.getMessage()); }
                 @Override public void onResponse(Call call, Response response) {
-                    if (response.isSuccessful()) { ApiConfig.setBaseUrl(context, fallback); callback.onSuccess(null); }
-                    else callback.onError(error.getMessage());
+                    try (Response res = response) {
+                        if (res.isSuccessful()) {
+                            ApiConfig.setBaseUrl(context, fallback);
+                            callback.onSuccess(null);
+                        } else {
+                            callback.onError(error.getMessage());
+                        }
+                    }
                 }
             });
         } else callback.onError(error.getMessage());
@@ -224,8 +241,14 @@ public class ApiClient {
             selectClient(url).newCall(buildRequest(url).method(method, body).build()).enqueue(new Callback() {
                 @Override public void onFailure(Call call, IOException e) { callback.onError(error.getMessage()); }
                 @Override public void onResponse(Call call, Response response) throws IOException {
-                    if (response.isSuccessful()) { ApiConfig.setBaseUrl(context, fallback); handleResponse(response, type, callback); }
-                    else callback.onError(error.getMessage());
+                    try (Response res = response) {
+                        if (res.isSuccessful()) {
+                            ApiConfig.setBaseUrl(context, fallback);
+                            handleResponse(res, type, callback);
+                        } else {
+                            callback.onError(error.getMessage());
+                        }
+                    }
                 }
             });
         } else callback.onError(error.getMessage());
@@ -250,10 +273,15 @@ public class ApiClient {
         selectClient(url).newCall(buildRequest(url).get().build()).enqueue(new Callback() {
             @Override public void onFailure(Call call, IOException e) { tryNextCandidate(ips, idx + 1, path, type, cb, err); }
             @Override public void onResponse(Call call, Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    ApiConfig.setBaseUrl(context, base); ApiConfig.setFallbackBaseUrl(context, base);
-                    handleResponse(response, type, cb);
-                } else tryNextCandidate(ips, idx + 1, path, type, cb, err);
+                try (Response res = response) {
+                    if (res.isSuccessful()) {
+                        ApiConfig.setBaseUrl(context, base);
+                        ApiConfig.setFallbackBaseUrl(context, base);
+                        handleResponse(res, type, cb);
+                    } else {
+                        tryNextCandidate(ips, idx + 1, path, type, cb, err);
+                    }
+                }
             }
         });
     }
