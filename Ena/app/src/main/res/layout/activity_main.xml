@@ -90,7 +90,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:text="Skanuj QR z komputera" />
+                    android:text="Połącz z serwerem (QR)" />
 
                 <Button
                     android:id="@+id/btnResetPairing"
@@ -106,6 +106,15 @@
                     android:text="Szybkie moduły"
                     android:textSize="16sp"
                     android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txtModulesEmpty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Brak przypisanych modułów."
+                    android:textColor="#757575"
+                    android:visibility="gone" />
 
                 <Button
                     android:id="@+id/btnWarehouse"
