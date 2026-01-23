@@ -15,6 +15,8 @@ public class UserSession {
     private static final String KEY_DISPLAY_NAME = "display_name";
     private static final String KEY_USER_ID = "user_id";
     private static final String KEY_MODULES = "modules";
+    private static final String KEY_RECENT_LOGINS = "recent_logins";
+    private static final int MAX_RECENT_LOGINS = 5;
 
     private UserSession() {
     }
@@ -28,6 +30,7 @@ public class UserSession {
                 .putString(KEY_TOKEN, token == null ? "" : token)
                 .putString(KEY_REFRESH, refreshToken == null ? "" : refreshToken)
                 .apply();
+        saveRecentLogin(context, login);
     }
 
     public static boolean isLoggedIn(Context context) {
@@ -69,6 +72,42 @@ public class UserSession {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         Set<String> moduleSet = prefs.getStringSet(KEY_MODULES, new HashSet<>());
         return moduleSet == null ? new ArrayList<>() : new ArrayList<>(moduleSet);
+    }
+
+    public static List<String> getRecentLogins(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String raw = prefs.getString(KEY_RECENT_LOGINS, "[]");
+        List<String> logins = new ArrayList<>();
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(raw);
+            for (int i = 0; i < array.length(); i++) {
+                String value = array.optString(i, "");
+                if (value != null && !value.isEmpty()) {
+                    logins.add(value);
+                }
+            }
+        } catch (org.json.JSONException ignored) {
+            // ignore corrupted storage
+        }
+        return logins;
+    }
+
+    public static void saveRecentLogin(Context context, String login) {
+        if (login == null || login.trim().isEmpty()) {
+            return;
+        }
+        List<String> logins = getRecentLogins(context);
+        logins.remove(login);
+        logins.add(0, login);
+        while (logins.size() > MAX_RECENT_LOGINS) {
+            logins.remove(logins.size() - 1);
+        }
+        org.json.JSONArray array = new org.json.JSONArray();
+        for (String item : logins) {
+            array.put(item);
+        }
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putString(KEY_RECENT_LOGINS, array.toString()).apply();
     }
 
     public static void clear(Context context) {
