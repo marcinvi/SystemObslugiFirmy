@@ -1118,16 +1118,6 @@ public class ReturnsService
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
         await InsertNiezarejestrowanyZwrotAsync(connection, returnId, request, opisUsterki);
-        var query = "UPDATE AllegroCustomerReturns SET ZgloszenieId = @zgloszenieId WHERE Id = @id";
-        await using var updateCommand = new MySqlCommand(query, connection);
-        updateCommand.Parameters.AddWithValue("@zgloszenieId", zgloszenie.Id);
-        updateCommand.Parameters.AddWithValue("@id", returnId);
-        await updateCommand.ExecuteNonQueryAsync();
-
-        await AddReturnActionInternalAsync(connection, returnId, request.Przekazal,
-            $"Przekazano do reklamacji. Zgłoszenie: {zgloszenie.NrZgloszenia} (ID {zgloszenie.Id}).");
-
-        return zgloszenie.Id;
     }
 
     public async Task<ReturnDetailsDto?> GetReturnByCodeAsync(string code)
