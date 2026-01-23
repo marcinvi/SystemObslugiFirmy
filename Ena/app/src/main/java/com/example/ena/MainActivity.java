@@ -17,7 +17,10 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
 import com.example.ena.api.ApiConfig;
+import com.example.ena.api.ApiClient;
+import com.example.ena.UserSession;
 import com.example.ena.ui.MessagesActivity;
+import com.example.ena.ui.LoginActivity;
 import com.example.ena.ui.ReturnsListActivity;
 import com.example.ena.ui.SettingsActivity;
 import com.example.ena.ui.SummaryActivity;
@@ -71,6 +74,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (!UserSession.isLoggedIn(this)) {
+            redirectToLogin();
+            return;
+        }
         setContentView(R.layout.activity_main);
 
         drawerLayout = findViewById(R.id.drawerLayout);
@@ -126,16 +133,17 @@ public class MainActivity extends AppCompatActivity {
         txtPairingHint = findViewById(R.id.txtPairingHint);
         Button btnScanQr = findViewById(R.id.btnScanQr);
         Button btnResetPairing = findViewById(R.id.btnResetPairing);
-        Button btnWarehouse = findViewById(R.id.btnWarehouse);
-        Button btnSales = findViewById(R.id.btnSales);
-        Button btnSummary = findViewById(R.id.btnSummary);
-        Button btnMessages = findViewById(R.id.btnMessages);
-        Button btnSettings = findViewById(R.id.btnSettings);
+        btnWarehouse = findViewById(R.id.btnWarehouse);
+        btnSales = findViewById(R.id.btnSales);
+        btnSummary = findViewById(R.id.btnSummary);
+        btnMessages = findViewById(R.id.btnMessages);
+        btnSettings = findViewById(R.id.btnSettings);
 
         updateUserName();
         updateBaseUrlLabel(txtBaseUrl);
         updatePhoneInfo(txtPhoneIp, txtPairCode);
         updatePairingHint(txtPairingHint);
+        applyModuleVisibility(UserSession.getModules(this));
         startBackgroundServer();
         requestRuntimePermissions();
 
@@ -171,6 +179,7 @@ public class MainActivity extends AppCompatActivity {
         updatePhoneInfo(txtPhoneIp, txtPairCode);
         updatePairingHint(txtPairingHint);
         startPairingHintRefresh();
+        loadAssignedModules();
     }
 
     @Override
