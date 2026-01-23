@@ -3,6 +3,7 @@ package com.example.ena.api;
 import android.content.Context;
 import com.example.ena.NetworkUtils;
 import com.example.ena.PairingManager;
+import com.example.ena.UserSession;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -109,8 +110,17 @@ public class ApiClient {
 
     private Request.Builder buildRequest(String url) {
         Request.Builder builder = new Request.Builder().url(url);
-        String user = PairingManager.getPairedUser(context);
-        if (user != null && !user.isEmpty()) builder.addHeader("X-User", user);
+        String token = UserSession.getToken(context);
+        if (token != null && !token.isEmpty()) {
+            builder.addHeader("Authorization", "Bearer " + token);
+        }
+        String user = UserSession.getLogin(context);
+        if (user == null || user.isEmpty()) {
+            user = PairingManager.getPairedUser(context);
+        }
+        if (user != null && !user.isEmpty()) {
+            builder.addHeader("X-User", user);
+        }
         return builder;
     }
 
@@ -291,6 +301,16 @@ public class ApiClient {
     public void fetchReturns(String query, ApiCallback<PaginatedResponse<ReturnListItemDto>> callback) {
         Type type = new TypeToken<ApiResponse<PaginatedResponse<ReturnListItemDto>>>(){}.getType();
         get("api/returns" + query, type, callback);
+    }
+
+    public void login(LoginRequest request, ApiCallback<LoginResponse> callback) {
+        Type type = new TypeToken<ApiResponse<LoginResponse>>(){}.getType();
+        sendJsonWithResponse("api/auth/login", request, "POST", type, callback);
+    }
+
+    public void fetchAssignedModules(ApiCallback<List<String>> callback) {
+        Type type = new TypeToken<ApiResponse<List<String>>>(){}.getType();
+        get("api/modules/assigned", type, callback);
     }
 
     public void fetchAssignedReturns(String query, ApiCallback<PaginatedResponse<ReturnListItemDto>> callback) {
