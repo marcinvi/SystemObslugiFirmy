@@ -852,6 +852,6 @@ namespace Reklamacje_Dane
         private void menuProducenci_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new Form16().Show(); }
         private void menuUstawienia_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUstawienia().Show(); }
         private void menuSledzeniePrzesylek_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormDpdTracking().Show(); }
-        private void menuNiezarejestrowaneZwroty_Click(object sender, EventArgs e) { HighlightMenuButton(sender); try { new FormUniversalWizard(WizardSource.Zwroty).Show(); } catch (Exception ex) { MessageBox.Show("Błąd: " + ex.Message); } }
+        private void menuNiezarejestrowaneZwroty_Click(object sender, EventArgs e) { HighlightMenuButton(sender); try { new FormUniversalWizardV2(WizardSource.Zwroty).Show(); } catch (Exception ex) { MessageBox.Show("Błąd: " + ex.Message); } }
     }
 }
