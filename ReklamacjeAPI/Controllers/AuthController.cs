@@ -58,7 +58,7 @@ public class AuthController : ControllerBase
             {
                 Id = user.Id,
                 Login = user.Login,
-                NazwaWyswietlana = user.DisplayName,
+                NazwaWyswietlana = user.DisplayNameOrLogin,
                 Email = user.Email,
                 Aktywny = user.IsActive
             }
@@ -99,7 +99,7 @@ public class AuthController : ControllerBase
             {
                 Id = refreshToken.User.Id,
                 Login = refreshToken.User.Login,
-                NazwaWyswietlana = refreshToken.User.DisplayName,
+                NazwaWyswietlana = refreshToken.User.DisplayNameOrLogin,
                 Email = refreshToken.User.Email,
                 Aktywny = refreshToken.User.IsActive
             }

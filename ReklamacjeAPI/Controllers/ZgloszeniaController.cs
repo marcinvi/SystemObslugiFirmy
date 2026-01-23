@@ -157,7 +157,7 @@ public class ZgloszeniaController : ControllerBase
             {
                 Id = dzialanie.User.Id,
                 Login = dzialanie.User.Login,
-                NazwaWyswietlana = dzialanie.User.DisplayName,
+                NazwaWyswietlana = dzialanie.User.DisplayNameOrLogin,
                 Email = dzialanie.User.Email,
                 Aktywny = dzialanie.User.IsActive
             }
@@ -188,7 +188,7 @@ public class ZgloszeniaController : ControllerBase
                 {
                     Id = d.User.Id,
                     Login = d.User.Login,
-                    NazwaWyswietlana = d.User.DisplayName,
+                    NazwaWyswietlana = d.User.DisplayNameOrLogin,
                     Email = d.User.Email,
                     Aktywny = d.User.IsActive
                 }
