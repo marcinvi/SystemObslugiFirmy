@@ -13,11 +13,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.widget.Toolbar;
+import androidx.drawerlayout.widget.DrawerLayout;
 import com.example.ena.api.ApiConfig;
 import com.example.ena.ui.MessagesActivity;
 import com.example.ena.ui.ReturnsListActivity;
 import com.example.ena.ui.SettingsActivity;
 import com.example.ena.ui.SummaryActivity;
+import com.google.android.material.navigation.NavigationView;
 import com.google.gson.Gson;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanIntentResult;
@@ -54,6 +58,12 @@ public class MainActivity extends AppCompatActivity {
     private TextView txtPhoneIp;
     private TextView txtPairCode;
     private TextView txtPairingHint;
+    private TextView txtUserName;
+    private TextView txtCurrentModule;
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+    private TextView txtDrawerUser;
+    private TextView txtDrawerStatus;
 
     private final ActivityResultLauncher<ScanOptions> qrLauncher =
             registerForActivityResult(new ScanContract(), this::handleQrResult);
@@ -63,6 +73,53 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this,
+                drawerLayout,
+                toolbar,
+                R.string.navigation_drawer_open,
+                R.string.navigation_drawer_close
+        );
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
+
+        if (navigationView != null) {
+            navigationView.setNavigationItemSelectedListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.nav_warehouse) {
+                    openReturns("warehouse");
+                    setCurrentModuleLabel("Magazyn");
+                } else if (id == R.id.nav_sales) {
+                    openReturns("sales");
+                    setCurrentModuleLabel("Handlowiec");
+                } else if (id == R.id.nav_summary) {
+                    startActivity(new Intent(this, SummaryActivity.class));
+                    setCurrentModuleLabel("Zwroty");
+                } else if (id == R.id.nav_messages) {
+                    startActivity(new Intent(this, MessagesActivity.class));
+                    setCurrentModuleLabel("Wiadomości");
+                } else if (id == R.id.nav_settings) {
+                    startActivity(new Intent(this, SettingsActivity.class));
+                    setCurrentModuleLabel("Ustawienia");
+                }
+                drawerLayout.closeDrawers();
+                return true;
+            });
+
+            if (navigationView.getHeaderCount() > 0) {
+                TextView headerUser = navigationView.getHeaderView(0).findViewById(R.id.txtDrawerUser);
+                TextView headerStatus = navigationView.getHeaderView(0).findViewById(R.id.txtDrawerStatus);
+                txtDrawerUser = headerUser;
+                txtDrawerStatus = headerStatus;
+            }
+        }
+
+        txtUserName = findViewById(R.id.txtUserName);
+        txtCurrentModule = findViewById(R.id.txtCurrentModule);
         txtBaseUrl = findViewById(R.id.txtBaseUrl);
         txtPhoneIp = findViewById(R.id.txtPhoneIp);
         txtPairCode = findViewById(R.id.txtPairCode);
@@ -75,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnMessages = findViewById(R.id.btnMessages);
         Button btnSettings = findViewById(R.id.btnSettings);
 
+        updateUserName();
         updateBaseUrlLabel(txtBaseUrl);
         updatePhoneInfo(txtPhoneIp, txtPairCode);
         updatePairingHint(txtPairingHint);
@@ -83,16 +141,32 @@ public class MainActivity extends AppCompatActivity {
 
         btnScanQr.setOnClickListener(v -> startQrScan());
         btnResetPairing.setOnClickListener(v -> confirmResetPairing());
-        btnWarehouse.setOnClickListener(v -> openReturns("warehouse"));
-        btnSales.setOnClickListener(v -> openReturns("sales"));
-        btnSummary.setOnClickListener(v -> startActivity(new Intent(this, SummaryActivity.class)));
-        btnMessages.setOnClickListener(v -> startActivity(new Intent(this, MessagesActivity.class)));
-        btnSettings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        btnWarehouse.setOnClickListener(v -> {
+            openReturns("warehouse");
+            setCurrentModuleLabel("Magazyn");
+        });
+        btnSales.setOnClickListener(v -> {
+            openReturns("sales");
+            setCurrentModuleLabel("Handlowiec");
+        });
+        btnSummary.setOnClickListener(v -> {
+            startActivity(new Intent(this, SummaryActivity.class));
+            setCurrentModuleLabel("Zwroty");
+        });
+        btnMessages.setOnClickListener(v -> {
+            startActivity(new Intent(this, MessagesActivity.class));
+            setCurrentModuleLabel("Wiadomości");
+        });
+        btnSettings.setOnClickListener(v -> {
+            startActivity(new Intent(this, SettingsActivity.class));
+            setCurrentModuleLabel("Ustawienia");
+        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        updateUserName();
         updateBaseUrlLabel(txtBaseUrl);
         updatePhoneInfo(txtPhoneIp, txtPairCode);
         updatePairingHint(txtPairingHint);
@@ -137,28 +211,9 @@ public class MainActivity extends AppCompatActivity {
         if (hintLabel == null) {
             return;
         }
-        if (PairingManager.isPaired(this)) {
-            String user = PairingManager.getPairedUser(this);
-            long lastSeen = PairingManager.getLastSeen(this);
-            long now = System.currentTimeMillis();
-            boolean active = lastSeen > 0 && now - lastSeen <= PAIRING_STALE_MS;
-            if (active) {
-                if (user == null || user.isEmpty()) {
-                    hintLabel.setText("Telefon sparowany z aplikacją. Połączenie aktywne.");
-                } else {
-                    hintLabel.setText("Telefon sparowany z użytkownikiem: " + user + ". Połączenie aktywne.");
-                }
-            } else {
-                String staleSuffix = lastSeen > 0 ? " Ostatni kontakt: " + formatStaleDuration(now - lastSeen) + "." : "";
-                if (user == null || user.isEmpty()) {
-                    hintLabel.setText("Telefon sparowany, ale brak połączenia z komputerem." + staleSuffix);
-                } else {
-                    hintLabel.setText("Telefon sparowany z użytkownikiem: " + user + ", ale brak połączenia z komputerem." + staleSuffix);
-                }
-            }
-        } else {
-            hintLabel.setText("Hej! Jestem gotowy do pracy! Zeskanuj kod z aplikacji na Windows :)");
-        }
+        String statusMessage = buildPairingStatusMessage();
+        hintLabel.setText(statusMessage);
+        updateDrawerStatus(statusMessage);
     }
 
     private String formatStaleDuration(long diffMs) {
@@ -195,6 +250,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void resetPairing() {
         PairingManager.reset(this);
+        updateUserName();
         updatePairingHint(txtPairingHint);
         updatePhoneInfo(txtPhoneIp, txtPairCode);
         showToast("Parowanie zostało wyczyszczone.");
@@ -310,6 +366,54 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ReturnsListActivity.class);
         intent.putExtra(ReturnsListActivity.EXTRA_MODE, mode);
         startActivity(intent);
+    }
+
+    private void updateUserName() {
+        String user = PairingManager.getPairedUser(this);
+        if (user == null || user.isEmpty()) {
+            user = "Nie sparowano";
+        }
+        if (txtUserName != null) {
+            txtUserName.setText("Użytkownik: " + user);
+        }
+        if (txtDrawerUser != null) {
+            txtDrawerUser.setText("Użytkownik: " + user);
+        }
+    }
+
+    private void updateDrawerStatus(String status) {
+        if (txtDrawerStatus != null) {
+            txtDrawerStatus.setText(status);
+        }
+    }
+
+    private void setCurrentModuleLabel(String moduleName) {
+        if (txtCurrentModule != null && moduleName != null && !moduleName.isEmpty()) {
+            txtCurrentModule.setText(moduleName);
+        }
+    }
+
+    private String buildPairingStatusMessage() {
+        if (PairingManager.isPaired(this)) {
+            String user = PairingManager.getPairedUser(this);
+            long lastSeen = PairingManager.getLastSeen(this);
+            long now = System.currentTimeMillis();
+            boolean active = lastSeen > 0 && now - lastSeen <= PAIRING_STALE_MS;
+            if (active) {
+                if (user == null || user.isEmpty()) {
+                    return "Telefon sparowany z aplikacją. Połączenie aktywne.";
+                }
+                return "Telefon sparowany z użytkownikiem: " + user + ". Połączenie aktywne.";
+            }
+
+            String staleSuffix = lastSeen > 0 ? " Ostatni kontakt: " + formatStaleDuration(now - lastSeen) + "." : "";
+            if (user == null || user.isEmpty()) {
+                return "Telefon sparowany, ale brak połączenia z komputerem." + staleSuffix;
+            }
+            return "Telefon sparowany z użytkownikiem: " + user + ", ale brak połączenia z komputerem." + staleSuffix;
+        }
+
+        return "Hej! Jestem gotowy do pracy! Zeskanuj kod z aplikacji na Windows :)";
     }
 
     static class QrPairingPayload {
