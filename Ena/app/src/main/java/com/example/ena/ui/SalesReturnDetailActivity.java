@@ -44,6 +44,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private TextView txtBuyerLogin;
     private TextView txtCondition;
     private TextView txtWarehouseNotes;
+    private LinearLayout decisionTemplatesContainer;
     private ImageButton btnBack;
     private Button btnRefund;
     private Button btnReject;
@@ -74,6 +75,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         txtBuyerLogin = findViewById(R.id.txtBuyerLogin);
         txtCondition = findViewById(R.id.txtCondition);
         txtWarehouseNotes = findViewById(R.id.txtWarehouseNotes);
+        decisionTemplatesContainer = findViewById(R.id.decisionTemplatesContainer);
         btnBack = findViewById(R.id.btnBack);
         btnRefund = findViewById(R.id.btnRefund);
         btnReject = findViewById(R.id.btnReject);
@@ -255,6 +257,10 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     }
 
     private void showDecisionDialog() {
+        showDecisionDialogWithPreselect(null);
+    }
+
+    private void showDecisionDialogWithPreselect(Integer preselectedDecisionId) {
         if (decyzje.isEmpty()) {
             Toast.makeText(this, "Brak dostępnych decyzji handlowca.", Toast.LENGTH_SHORT).show();
             return;
@@ -276,7 +282,10 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
-        int preselectIndex = getDecisionIndexById(details != null ? details.getDecyzjaHandlowcaId() : null);
+        Integer defaultDecisionId = preselectedDecisionId != null
+                ? preselectedDecisionId
+                : details != null ? details.getDecyzjaHandlowcaId() : null;
+        int preselectIndex = getDecisionIndexById(defaultDecisionId);
         if (preselectIndex >= 0) {
             spinner.setSelection(preselectIndex);
         }
@@ -625,11 +634,40 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             case "Reklamacje":
             case "Przekaż do reklamacji":
             case "Przekaz do reklamacji":
+            case "Na dział reklamacji":
+            case "Na dzial reklamacji":
                 return "Reklamacje";
             case "Inne":
                 return "Inne";
             default:
                 return "";
+        }
+    }
+
+    private void renderDecisionTemplates() {
+        if (decisionTemplatesContainer == null) {
+            return;
+        }
+        decisionTemplatesContainer.removeAllViews();
+        if (decyzje.isEmpty()) {
+            TextView empty = new TextView(this);
+            empty.setText("Brak decyzji do wyboru.");
+            empty.setTextColor(0xFF777777);
+            decisionTemplatesContainer.addView(empty);
+            return;
+        }
+        int margin = (int) (8 * getResources().getDisplayMetrics().density);
+        for (DecisionItem item : decyzje) {
+            Button button = new Button(this);
+            button.setText(item.displayName);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            params.bottomMargin = margin;
+            button.setLayoutParams(params);
+            button.setOnClickListener(v -> showDecisionDialogWithPreselect(item.id));
+            decisionTemplatesContainer.addView(button);
         }
     }
 
