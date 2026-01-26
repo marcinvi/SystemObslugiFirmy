@@ -44,6 +44,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private TextView txtBuyerLogin;
     private TextView txtCondition;
     private TextView txtWarehouseNotes;
+    private LinearLayout decisionTemplatesContainer;
     private ImageButton btnBack;
     private Button btnRefund;
     private Button btnReject;
@@ -74,6 +75,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         txtBuyerLogin = findViewById(R.id.txtBuyerLogin);
         txtCondition = findViewById(R.id.txtCondition);
         txtWarehouseNotes = findViewById(R.id.txtWarehouseNotes);
+        decisionTemplatesContainer = findViewById(R.id.decisionTemplatesContainer);
         btnBack = findViewById(R.id.btnBack);
         btnRefund = findViewById(R.id.btnRefund);
         btnReject = findViewById(R.id.btnReject);
@@ -152,8 +154,16 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         if (details != null && details.isManual()) {
             showManualInfoDialog();
         } else {
-            showDecisionDialog();
+            ensureDecisionsThenShowDialog();
         }
+    }
+
+    private void ensureDecisionsThenShowDialog() {
+        if (!decyzje.isEmpty()) {
+            showDecisionDialog();
+            return;
+        }
+        loadDecyzje(this::showDecisionDialog);
     }
 
     private void showManualInfoDialog() {
@@ -195,6 +205,10 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     }
 
     private void loadDecyzje() {
+        loadDecyzje(null);
+    }
+
+    private void loadDecyzje(Runnable onLoaded) {
         ApiClient client = new ApiClient(this);
         client.fetchStatuses("DecyzjaHandlowca", new ApiClient.ApiCallback<List<StatusDto>>() {
             @Override
@@ -204,17 +218,27 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                     if (data != null) {
                         decyzje.addAll(buildDecisionItems(data));
                     }
-                    if (!hasAllRequiredDecisions()) {
+                    if (!hasAllRequiredDecisions(data)) {
                         Toast.makeText(SalesReturnDetailActivity.this,
                                 "Brakuje wymaganych decyzji: Na półkę, Ponowna wysyłka, Reklamacje, Inne.",
                                 Toast.LENGTH_LONG).show();
+                    }
+                    renderDecisionTemplates();
+                    if (onLoaded != null) {
+                        onLoaded.run();
                     }
                 });
             }
 
             @Override
             public void onError(String message) {
-                runOnUiThread(() -> Toast.makeText(SalesReturnDetailActivity.this, "Błąd statusów: " + message, Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> {
+                    Toast.makeText(SalesReturnDetailActivity.this, "Błąd statusów: " + message, Toast.LENGTH_LONG).show();
+                    renderDecisionTemplates();
+                    if (onLoaded != null) {
+                        onLoaded.run();
+                    }
+                });
             }
         });
     }
@@ -235,13 +259,16 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     }
 
     private void showDecisionDialog() {
+        showDecisionDialogWithPreselect(null);
+    }
+
+    private void showDecisionDialogWithPreselect(Integer preselectedDecisionId) {
         if (decyzje.isEmpty()) {
             Toast.makeText(this, "Brak dostępnych decyzji handlowca.", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (!hasAllRequiredDecisions()) {
+        if (!hasAllRequiredDecisions(null)) {
             Toast.makeText(this, "Brak pełnej listy decyzji. Uzupełnij konfigurację statusów.", Toast.LENGTH_SHORT).show();
-            return;
         }
 
         LinearLayout container = new LinearLayout(this);
@@ -257,7 +284,10 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
-        int preselectIndex = getDecisionIndexById(details != null ? details.getDecyzjaHandlowcaId() : null);
+        Integer defaultDecisionId = preselectedDecisionId != null
+                ? preselectedDecisionId
+                : details != null ? details.getDecyzjaHandlowcaId() : null;
+        int preselectIndex = getDecisionIndexById(defaultDecisionId);
         if (preselectIndex >= 0) {
             spinner.setSelection(preselectIndex);
         }
@@ -553,9 +583,17 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private boolean hasAllRequiredDecisions() {
+    private boolean hasAllRequiredDecisions(List<StatusDto> statuses) {
+        List<DecisionItem> source = statuses == null ? decyzje : buildDecisionItems(statuses);
         for (String required : REQUIRED_DECISIONS) {
-            if (getDecisionByName(required) == null) {
+            boolean found = false;
+            for (DecisionItem item : source) {
+                if (required.equalsIgnoreCase(item.displayName)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
                 return false;
             }
         }
@@ -573,18 +611,13 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
 
     private List<DecisionItem> buildDecisionItems(List<StatusDto> statuses) {
         List<DecisionItem> result = new ArrayList<>();
-        for (String required : REQUIRED_DECISIONS) {
-            DecisionItem matched = null;
-            for (StatusDto status : statuses) {
-                String normalized = normalizeDecisionName(status.getNazwa());
-                if (required.equalsIgnoreCase(normalized)) {
-                    matched = new DecisionItem(status.getId(), required, status.getNazwa());
-                    break;
-                }
-            }
-            if (matched != null) {
-                result.add(matched);
-            }
+        if (statuses == null) {
+            return result;
+        }
+        for (StatusDto status : statuses) {
+            String normalized = normalizeDecisionName(status.getNazwa());
+            String displayName = normalized.isEmpty() ? status.getNazwa() : normalized;
+            result.add(new DecisionItem(status.getId(), displayName, status.getNazwa()));
         }
         return result;
     }
@@ -603,11 +636,40 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             case "Reklamacje":
             case "Przekaż do reklamacji":
             case "Przekaz do reklamacji":
+            case "Na dział reklamacji":
+            case "Na dzial reklamacji":
                 return "Reklamacje";
             case "Inne":
                 return "Inne";
             default:
                 return "";
+        }
+    }
+
+    private void renderDecisionTemplates() {
+        if (decisionTemplatesContainer == null) {
+            return;
+        }
+        decisionTemplatesContainer.removeAllViews();
+        if (decyzje.isEmpty()) {
+            TextView empty = new TextView(this);
+            empty.setText("Brak decyzji do wyboru.");
+            empty.setTextColor(0xFF777777);
+            decisionTemplatesContainer.addView(empty);
+            return;
+        }
+        int margin = (int) (8 * getResources().getDisplayMetrics().density);
+        for (DecisionItem item : decyzje) {
+            Button button = new Button(this);
+            button.setText(item.displayName);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            params.bottomMargin = margin;
+            button.setLayoutParams(params);
+            button.setOnClickListener(v -> showDecisionDialogWithPreselect(item.id));
+            decisionTemplatesContainer.addView(button);
         }
     }
 
