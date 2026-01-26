@@ -45,7 +45,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private TextView txtCondition;
     private TextView txtWarehouseNotes;
     private LinearLayout decisionTemplatesContainer;
-    private EditText editDecisionComment;
     private ImageButton btnBack;
     private Button btnRefund;
     private Button btnReject;
@@ -78,7 +77,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         txtCondition = findViewById(R.id.txtCondition);
         txtWarehouseNotes = findViewById(R.id.txtWarehouseNotes);
         decisionTemplatesContainer = findViewById(R.id.decisionTemplatesContainer);
-        editDecisionComment = findViewById(R.id.editDecisionComment);
         btnBack = findViewById(R.id.btnBack);
         btnRefund = findViewById(R.id.btnRefund);
         btnReject = findViewById(R.id.btnReject);
@@ -176,7 +174,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         if (details != null && details.isManual()) {
             showManualInfoDialog();
         } else {
-            submitSelectedDecision();
+            ensureDecisionsThenShowDialog();
         }
     }
 
@@ -186,29 +184,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             return;
         }
         loadDecyzje(this::showDecisionDialog);
-    }
-
-    private void submitSelectedDecision() {
-        if (decyzje.isEmpty()) {
-            loadDecyzje(this::submitSelectedDecision);
-            return;
-        }
-        if (selectedDecisionId == null) {
-            Toast.makeText(this, "Wybierz decyzję handlowca.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        DecisionItem selected = getDecisionById(selectedDecisionId);
-        if (selected == null) {
-            Toast.makeText(this, "Wybrana decyzja jest nieprawidłowa.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String comment = editDecisionComment != null ? editDecisionComment.getText().toString().trim() : "";
-        if ("Inne".equalsIgnoreCase(selected.displayName) && comment.isEmpty()) {
-            Toast.makeText(this, "Dla decyzji 'Inne' wymagany jest komentarz.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        boolean forwardToComplaints = "Reklamacje".equalsIgnoreCase(selected.displayName);
-        submitDecision(selected.id, comment, forwardToComplaints);
     }
 
     private void showManualInfoDialog() {
@@ -268,7 +243,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                                 "Brakuje wymaganych decyzji: Na półkę, Ponowna wysyłka, Reklamacje, Inne.",
                                 Toast.LENGTH_LONG).show();
                     }
-                    renderDecisionTemplates();
                     if (onLoaded != null) {
                         onLoaded.run();
                     }
@@ -279,7 +253,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             public void onError(String message) {
                 runOnUiThread(() -> {
                     Toast.makeText(SalesReturnDetailActivity.this, "Błąd statusów: " + message, Toast.LENGTH_LONG).show();
-                    renderDecisionTemplates();
                     if (onLoaded != null) {
                         onLoaded.run();
                     }
@@ -713,25 +686,9 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             );
             params.bottomMargin = margin;
             button.setLayoutParams(params);
-            boolean isSelected = selectedDecisionId != null && selectedDecisionId == item.id;
-            if (isSelected) {
-                button.setBackgroundColor(0xFFBBDEFB);
-            }
-            button.setOnClickListener(v -> {
-                selectedDecisionId = item.id;
-                renderDecisionTemplates();
-            });
+            button.setOnClickListener(v -> showDecisionDialogWithPreselect(item.id));
             decisionTemplatesContainer.addView(button);
         }
-    }
-
-    private DecisionItem getDecisionById(int id) {
-        for (DecisionItem item : decyzje) {
-            if (item.id == id) {
-                return item;
-            }
-        }
-        return null;
     }
 
     private static class DecisionItem {
