@@ -144,7 +144,17 @@ namespace Reklamacje_Dane
             {
                 var returnDetails = JsonConvert.DeserializeObject<AllegroCustomerReturn>(_dbDataRow["JsonDetails"].ToString());
                 var item = returnDetails?.Items?.FirstOrDefault();
-                lblReason.Text = $"{item?.Reason?.Type} ({item?.Reason?.UserComment})";
+                string reasonType = item?.Reason?.Type;
+                string reasonLabel = TranslateReturnReasonType(reasonType);
+                string reasonDescription = string.IsNullOrWhiteSpace(reasonLabel)
+                    ? reasonType
+                    : $"{reasonLabel} ({reasonType})";
+                string userComment = item?.Reason?.UserComment;
+                lblReason.Text = string.IsNullOrWhiteSpace(reasonDescription)
+                    ? "Brak"
+                    : string.IsNullOrWhiteSpace(userComment)
+                        ? reasonDescription
+                        : $"{reasonDescription} — {userComment}";
             }
             else
             {
@@ -494,6 +504,44 @@ namespace Reklamacje_Dane
                 return _dbDataRow["UwagiMagazyn"]?.ToString();
             }
             return string.Empty;
+        }
+
+        private string TranslateReturnReasonType(string reasonType)
+        {
+            if (string.IsNullOrWhiteSpace(reasonType))
+            {
+                return string.Empty;
+            }
+
+            switch (reasonType)
+            {
+                case "DONT_LIKE_IT":
+                    return "Nie podoba się";
+                case "NOT_AS_DESCRIBED":
+                    return "Nie zgodny z opisem";
+                case "DAMAGED":
+                    return "Uszkodzony";
+                case "MISSING_PARTS":
+                    return "Brakujące elementy";
+                case "WRONG_ITEM":
+                    return "Niewłaściwy produkt";
+                case "NO_LONGER_NEEDED":
+                    return "Niepotrzebny";
+                case "BETTER_PRICE_FOUND":
+                    return "Znaleziono lepszą cenę";
+                case "ORDERED_BY_MISTAKE":
+                    return "Zakup przez pomyłkę";
+                case "DEFECTIVE":
+                    return "Wadliwy";
+                case "DELIVERED_TOO_LATE":
+                    return "Dostarczony zbyt późno";
+                case "PRODUCT_DOES_NOT_WORK":
+                    return "Produkt nie działa";
+                case "QUALITY_UNSATISFACTORY":
+                    return "Niezadowalająca jakość";
+                default:
+                    return string.Empty;
+            }
         }
 }
 }
