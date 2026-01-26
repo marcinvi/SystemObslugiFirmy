@@ -75,6 +75,18 @@
             app:layout_constraintStart_toStartOf="@+id/txtRef"
             app:layout_constraintTop_toBottomOf="@+id/txtProduct" />
 
+        <TextView
+            android:id="@+id/txtStatusAllegro"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            tools:text="Status: Dostarczone"
+            android:textSize="12sp"
+            android:textColor="#6D6D6D"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/txtRef"
+            app:layout_constraintTop_toBottomOf="@+id/txtBuyer" />
+
         <FrameLayout
             android:id="@+id/decisionContainer"
             android:layout_width="0dp"
@@ -87,7 +99,7 @@
             android:backgroundTint="#E0F2F1"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="@+id/txtRef"
-            app:layout_constraintTop_toBottomOf="@+id/txtBuyer">
+            app:layout_constraintTop_toBottomOf="@+id/txtStatusAllegro">
 
             <TextView
                 android:id="@+id/txtAction"
