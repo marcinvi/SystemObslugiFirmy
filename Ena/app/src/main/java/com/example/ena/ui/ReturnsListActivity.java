@@ -45,6 +45,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 public class ReturnsListActivity extends AppCompatActivity {
     public static final String EXTRA_MODE = "mode";
     private static final int CAMERA_PERMISSION_REQUEST = 2001;
+    private static final String STATE_PENDING_MANUAL_CODE = "pending_manual_code";
 
     private ReturnListAdapter adapter;
     private ProgressBar progressBar;
@@ -70,6 +71,8 @@ public class ReturnsListActivity extends AppCompatActivity {
     private boolean deliveredOnly;
     private int pendingCount;
     private int completedCount;
+    private String pendingManualCode;
+    private boolean isManualDialogVisible;
 
     private final ActivityResultLauncher<ScanOptions> scanLauncher =
             registerForActivityResult(new ScanContract(), this::handleScanResult);
@@ -80,6 +83,9 @@ public class ReturnsListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_returns_list);
 
         mode = getIntent().getStringExtra(EXTRA_MODE);
+        if (savedInstanceState != null) {
+            pendingManualCode = savedInstanceState.getString(STATE_PENDING_MANUAL_CODE);
+        }
         progressBar = findViewById(R.id.progress);
         txtEmpty = findViewById(R.id.txtEmpty);
         txtHeader = findViewById(R.id.txtHeader);
@@ -118,6 +124,22 @@ public class ReturnsListActivity extends AppCompatActivity {
             btnSync.setOnClickListener(v -> syncReturns());
         }
         loadReturns();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (pendingManualCode != null && !isManualDialogVisible && !"sales".equals(mode)) {
+            showManualReturnPrompt(pendingManualCode);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (pendingManualCode != null) {
+            outState.putString(STATE_PENDING_MANUAL_CODE, pendingManualCode);
+        }
     }
 
     private void setupFilters() {
@@ -499,12 +521,24 @@ public class ReturnsListActivity extends AppCompatActivity {
     }
 
     private void showManualReturnPrompt(String code) {
-        new AlertDialog.Builder(this)
+        pendingManualCode = code;
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Nie znaleziono zwrotu")
                 .setMessage("Nie znaleziono zwrotu dla numeru listu: " + code + ".\n\nCzy chcesz dodać nowy zwrot ręcznie?")
-                .setPositiveButton("Dodaj ręcznie", (dialog, which) -> openManualReturnForm(code))
-                .setNegativeButton("Anuluj", null)
-                .show();
+                .setPositiveButton("Dodaj ręcznie", (dialogInterface, which) -> {
+                    pendingManualCode = null;
+                    openManualReturnForm(code);
+                })
+                .setNegativeButton("Anuluj", (dialogInterface, which) -> pendingManualCode = null)
+                .create();
+        dialog.setOnShowListener(dialogInterface -> isManualDialogVisible = true);
+        dialog.setOnDismissListener(dialogInterface -> {
+            isManualDialogVisible = false;
+            if (!isChangingConfigurations()) {
+                pendingManualCode = null;
+            }
+        });
+        dialog.show();
     }
 
     private void openManualReturnForm(String waybill) {
