@@ -59,6 +59,8 @@ public class ReturnsListActivity extends AppCompatActivity {
     private Button btnRefresh;
     private Button btnSync;
     private Button btnScanCode;
+    private View loadingOverlay;
+    private TextView txtLoadingMessage;
     private String mode;
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private String currentStatusWewnetrzny;
@@ -90,6 +92,8 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnRefresh = findViewById(R.id.btnRefresh);
         btnSync = findViewById(R.id.btnSync);
         btnScanCode = findViewById(R.id.btnScanCode);
+        loadingOverlay = findViewById(R.id.loadingOverlay);
+        txtLoadingMessage = findViewById(R.id.txtLoadingMessage);
 
         if ("sales".equals(mode)) {
             txtHeader.setText("Handlowiec - moje zwroty");
@@ -187,9 +191,9 @@ public class ReturnsListActivity extends AppCompatActivity {
             }
         });
 
-        setActiveFilter(btnFilterOczekujace);
-        currentStatusWewnetrzny = "Oczekuje na przyjęcie";
-        deliveredOnly = true;
+        setActiveFilter(btnFilterPoDecyzji);
+        currentStatusWewnetrzny = "Zakończony";
+        deliveredOnly = false;
     }
 
     private void setupSalesFilters() {
@@ -245,6 +249,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         txtEmpty.setVisibility(View.GONE);
         txtCount.setText("Wyświetlono: 0");
+        showLoadingOverlay("Wczytywanie zwrotów...");
 
         ApiClient client = new ApiClient(this);
         ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>> callback = new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
@@ -252,6 +257,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             public void onSuccess(PaginatedResponse<ReturnListItemDto> data) {
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
+                    hideLoadingOverlay();
                     List<ReturnListItemDto> items = data != null ? data.getItems() : null;
                     adapter.setItems(items);
                     if (items == null || items.isEmpty()) {
@@ -269,6 +275,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             public void onError(String message) {
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
+                    hideLoadingOverlay();
                     txtEmpty.setVisibility(View.VISIBLE);
                     Toast.makeText(ReturnsListActivity.this, "Błąd: " + message, Toast.LENGTH_LONG).show();
                 });
@@ -442,6 +449,7 @@ public class ReturnsListActivity extends AppCompatActivity {
 
     private void findReturnByCode(String code) {
         progressBar.setVisibility(View.VISIBLE);
+        showLoadingOverlay("Szukam zwrotu...");
         ApiClient client = new ApiClient(this);
         String query = "?page=1&pageSize=100&search=" + encode(code);
         ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>> callback = new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
@@ -449,6 +457,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             public void onSuccess(PaginatedResponse<ReturnListItemDto> data) {
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
+                    hideLoadingOverlay();
                     List<ReturnListItemDto> items = data != null ? data.getItems() : null;
                     adapter.setItems(items);
                     int count = items == null ? 0 : items.size();
@@ -473,6 +482,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             public void onError(String message) {
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
+                    hideLoadingOverlay();
                     Toast.makeText(ReturnsListActivity.this, "Nie znaleziono zwrotu: " + message, Toast.LENGTH_LONG).show();
                     loadReturns();
                 });
@@ -521,5 +531,20 @@ public class ReturnsListActivity extends AppCompatActivity {
             return "";
         }
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private void showLoadingOverlay(String message) {
+        if (txtLoadingMessage != null) {
+            txtLoadingMessage.setText(message);
+        }
+        if (loadingOverlay != null) {
+            loadingOverlay.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void hideLoadingOverlay() {
+        if (loadingOverlay != null) {
+            loadingOverlay.setVisibility(View.GONE);
+        }
     }
 }

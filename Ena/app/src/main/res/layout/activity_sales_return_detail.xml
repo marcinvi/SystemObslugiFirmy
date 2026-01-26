@@ -328,10 +328,17 @@
             android:text="Anuluj" />
 
         <Button
-            android:id="@+id/btnWyslijDecyzje"
+            android:id="@+id/btnPodejmijDecyzje"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
-            android:text="Zatwierdź decyzję" />
+            android:text="Podejmij decyzję" />
+
+        <Button
+            android:id="@+id/btnPrzekazDoReklamacji"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="Przekaż do reklamacji" />
     </LinearLayout>
 </LinearLayout>

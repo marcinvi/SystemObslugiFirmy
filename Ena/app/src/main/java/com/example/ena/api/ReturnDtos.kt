@@ -53,6 +53,8 @@ data class ReturnDetailsDto(
     val isManual: Boolean,
     val allegroReturnId: String?,
     val orderId: String?,
+    val assignedSalesId: Int? = null,
+    val assignedSalesName: String? = null,
 )
 
 data class ReturnWarehouseUpdateRequest(
