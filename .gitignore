@@ -1,45 +1,29 @@
 reklamacje-baza-ed853b4e33f7.json
 Reklamacje Dane.csproj.dtbcache.json
-Reklamacje Dane.csproj.dtbcache.json
-reklamacje-baza-ed853b4e33f7.json
-/packages
-/obj
-/.vs
-/.vs
-/bin
 reklamacje-baza-c36d05b0ffdb.json
 reklamacje-baza-e2a6599c24f7.json
-<<<<<<< HEAD
+
+/packages
+/obj
+/bin
+
+# Visual Studio
+/.vs
 /.vs/slnx.sqlite
-/.gradle
-Ena/.gradle
-=======
-/.vs
-/.vs
-/.vs/SystemObslugiFirmy/v17
->>>>>>> s
 /.vs/SystemObslugiFirmy
 /.vs/SystemObslugiFirmy/v17
-/.vs
-/.vs
 .vs/VSWorkspaceState.json
 .vs/SystemObslugiFirmy/v17/workspaceFileList.bin
 .vs/SystemObslugiFirmy/v17/DocumentLayout.json
 .vs/SystemObslugiFirmy/v17/DocumentLayout.backup.json
 .vs/SystemObslugiFirmy/v17/.wsuo
 .vs/slnx.sqlite
-.vs/slnx.sqlite
 *.sqlite
-.vs/slnx.sqlite
-/.vs/slnx.sqlite
+
+# Gradle
+/.gradle
 /Ena/.gradle
 /Ena/.idea
-/Ena/gradle
-/Ena/.gradle
-/Ena/gradle
-/Ena/.gradle
-/Ena/.gradle/buildOutputCleanup
-/Ena/.gradle/buildOutputCleanup
-/Ena/.gradle/buildOutputCleanup
-/Ena/.idea
-Ena/gradle/wrapper/gradle-wrapper.properties
+
+# Android local SDK config
+Ena/local.properties

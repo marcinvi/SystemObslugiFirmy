@@ -241,19 +241,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void showForwardToComplaintsDialog() {
-        if (details == null) {
-            Toast.makeText(this, "Brak danych zwrotu", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        new AlertDialog.Builder(this)
-            .setTitle("Przekaż do reklamacji")
-            .setMessage("Czy na pewno chcesz przekazać zwrot do działu reklamacji?")
-            .setPositiveButton("Przekaż", (dialog, which) -> submitForwardToComplaints())
-            .setNegativeButton("Anuluj", null)
-            .show();
-    }
-
     private void submitForwardToSales() {
         int stanId = getSelectedStatusId();
         if (stanId <= 0) {
