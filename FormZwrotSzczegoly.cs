@@ -144,7 +144,17 @@ namespace Reklamacje_Dane
             {
                 var returnDetails = JsonConvert.DeserializeObject<AllegroCustomerReturn>(_dbDataRow["JsonDetails"].ToString());
                 var item = returnDetails?.Items?.FirstOrDefault();
-                lblReason.Text = $"{item?.Reason?.Type} ({item?.Reason?.UserComment})";
+                string reasonType = item?.Reason?.Type;
+                string reasonLabel = TranslateReturnReasonType(reasonType);
+                string reasonDescription = string.IsNullOrWhiteSpace(reasonLabel)
+                    ? reasonType
+                    : $"{reasonLabel} ({reasonType})";
+                string userComment = item?.Reason?.UserComment;
+                lblReason.Text = string.IsNullOrWhiteSpace(reasonDescription)
+                    ? "Brak"
+                    : string.IsNullOrWhiteSpace(userComment)
+                        ? reasonDescription
+                        : $"{reasonDescription} — {userComment}";
             }
             else
             {
@@ -189,6 +199,7 @@ namespace Reklamacje_Dane
 
             // Karta: Panel Magazynu
             txtUwagiMagazynu.Text = GetUwagiMagazynuValue();
+            lblOpiekunValue.Text = await GetOpiekunInfoAsync();
         }
 
         private void btnShowOtherAddresses_Click(object sender, EventArgs e)
@@ -494,6 +505,86 @@ namespace Reklamacje_Dane
                 return _dbDataRow["UwagiMagazyn"]?.ToString();
             }
             return string.Empty;
+        }
+
+        private async Task<string> GetOpiekunInfoAsync()
+        {
+            if (_dbDataRow == null || _dbDataRow["AllegroAccountId"] == DBNull.Value)
+            {
+                return "Zwrot ręczny — brak opiekuna";
+            }
+
+            int accountId = Convert.ToInt32(_dbDataRow["AllegroAccountId"]);
+            var opiekunIdObj = await _dbServiceMagazyn.ExecuteScalarAsync(
+                "SELECT OpiekunId FROM AllegroAccountOpiekun WHERE AllegroAccountId = @id",
+                new MySqlParameter("@id", accountId));
+
+            if (opiekunIdObj == null || opiekunIdObj == DBNull.Value)
+            {
+                return "Brak przypisanego opiekuna konta";
+            }
+
+            int opiekunId = Convert.ToInt32(opiekunIdObj);
+            string opiekunName = (await _dbServiceBaza.ExecuteScalarAsync(
+                "SELECT `Nazwa Wyświetlana` FROM Uzytkownicy WHERE Id = @id",
+                new MySqlParameter("@id", opiekunId)))?.ToString() ?? "Nieznany";
+
+            var zastepcaIdObj = await _dbServiceMagazyn.ExecuteScalarAsync(
+                "SELECT ZastepcaId FROM Delegacje " +
+                "WHERE UzytkownikId = @opiekunId " +
+                "AND CURDATE() BETWEEN DataOd AND DataDo " +
+                "AND CzyAktywna = 1",
+                new MySqlParameter("@opiekunId", opiekunId));
+
+            if (zastepcaIdObj != null && zastepcaIdObj != DBNull.Value)
+            {
+                int zastepcaId = Convert.ToInt32(zastepcaIdObj);
+                string zastepcaName = (await _dbServiceBaza.ExecuteScalarAsync(
+                    "SELECT `Nazwa Wyświetlana` FROM Uzytkownicy WHERE Id = @id",
+                    new MySqlParameter("@id", zastepcaId)))?.ToString() ?? "Nieznany";
+
+                return $"Opiekun: {opiekunName} → Adresat: {zastepcaName} (delegacja)";
+            }
+
+            return $"Opiekun: {opiekunName} → Adresat: {opiekunName}";
+        }
+
+        private string TranslateReturnReasonType(string reasonType)
+        {
+            if (string.IsNullOrWhiteSpace(reasonType))
+            {
+                return string.Empty;
+            }
+
+            switch (reasonType)
+            {
+                case "DONT_LIKE_IT":
+                    return "Nie podoba się";
+                case "NOT_AS_DESCRIBED":
+                    return "Nie zgodny z opisem";
+                case "DAMAGED":
+                    return "Uszkodzony";
+                case "MISSING_PARTS":
+                    return "Brakujące elementy";
+                case "WRONG_ITEM":
+                    return "Niewłaściwy produkt";
+                case "NO_LONGER_NEEDED":
+                    return "Niepotrzebny";
+                case "BETTER_PRICE_FOUND":
+                    return "Znaleziono lepszą cenę";
+                case "ORDERED_BY_MISTAKE":
+                    return "Zakup przez pomyłkę";
+                case "DEFECTIVE":
+                    return "Wadliwy";
+                case "DELIVERED_TOO_LATE":
+                    return "Dostarczony zbyt późno";
+                case "PRODUCT_DOES_NOT_WORK":
+                    return "Produkt nie działa";
+                case "QUALITY_UNSATISFACTORY":
+                    return "Niezadowalająca jakość";
+                default:
+                    return string.Empty;
+            }
         }
 }
 }

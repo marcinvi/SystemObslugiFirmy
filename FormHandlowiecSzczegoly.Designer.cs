@@ -25,6 +25,7 @@ namespace Reklamacje_Dane
             this.lblTitle = new System.Windows.Forms.Label();
             this.panelBottomActions = new System.Windows.Forms.Panel();
             this.btnWyslijDecyzje = new System.Windows.Forms.Button();
+            this.btnPrzekazDoReklamacji = new System.Windows.Forms.Button();
             this.btnAnuluj = new System.Windows.Forms.Button();
             this.panelMainContainer = new System.Windows.Forms.Panel();
             this.cardPanelHistoria = new Reklamacje_Dane.CardPanel();
@@ -98,6 +99,7 @@ namespace Reklamacje_Dane
             // 
             this.panelBottomActions.BackColor = System.Drawing.Color.WhiteSmoke;
             this.panelBottomActions.Controls.Add(this.btnWyslijDecyzje);
+            this.panelBottomActions.Controls.Add(this.btnPrzekazDoReklamacji);
             this.panelBottomActions.Controls.Add(this.btnAnuluj);
             this.panelBottomActions.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panelBottomActions.Location = new System.Drawing.Point(0, 908);
@@ -123,6 +125,23 @@ namespace Reklamacje_Dane
             this.btnWyslijDecyzje.UseVisualStyleBackColor = false;
             this.btnWyslijDecyzje.Click += new System.EventHandler(this.btnWyslijDecyzje_Click);
             // 
+            // btnPrzekazDoReklamacji
+            // 
+            this.btnPrzekazDoReklamacji.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnPrzekazDoReklamacji.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
+            this.btnPrzekazDoReklamacji.FlatAppearance.BorderSize = 0;
+            this.btnPrzekazDoReklamacji.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnPrzekazDoReklamacji.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(238)));
+            this.btnPrzekazDoReklamacji.ForeColor = System.Drawing.Color.White;
+            this.btnPrzekazDoReklamacji.Location = new System.Drawing.Point(606, 15);
+            this.btnPrzekazDoReklamacji.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnPrzekazDoReklamacji.Name = "btnPrzekazDoReklamacji";
+            this.btnPrzekazDoReklamacji.Size = new System.Drawing.Size(211, 39);
+            this.btnPrzekazDoReklamacji.TabIndex = 12;
+            this.btnPrzekazDoReklamacji.Text = "Przekaż na reklamacje";
+            this.btnPrzekazDoReklamacji.UseVisualStyleBackColor = false;
+            this.btnPrzekazDoReklamacji.Click += new System.EventHandler(this.btnPrzekazDoReklamacji_Click);
+            // 
             // btnAnuluj
             // 
             this.btnAnuluj.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
@@ -132,7 +151,7 @@ namespace Reklamacje_Dane
             this.btnAnuluj.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnAnuluj.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.btnAnuluj.ForeColor = System.Drawing.Color.Black;
-            this.btnAnuluj.Location = new System.Drawing.Point(696, 15);
+            this.btnAnuluj.Location = new System.Drawing.Point(480, 15);
             this.btnAnuluj.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnAnuluj.Name = "btnAnuluj";
             this.btnAnuluj.Size = new System.Drawing.Size(120, 39);
@@ -627,6 +646,7 @@ namespace Reklamacje_Dane
         private System.Windows.Forms.Label lblTitle;
         private System.Windows.Forms.Panel panelBottomActions;
         private System.Windows.Forms.Button btnWyslijDecyzje;
+        private System.Windows.Forms.Button btnPrzekazDoReklamacji;
         private System.Windows.Forms.Button btnAnuluj;
         private System.Windows.Forms.Panel panelMainContainer;
         private CardPanel cardPanelDane;

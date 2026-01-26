@@ -62,6 +62,7 @@ namespace Reklamacje_Dane
             chkDateTo.CheckedChanged += async (s, e) => await LoadReturnsAsync();
 
             dgvReturns.CellDoubleClick += DgvReturns_CellDoubleClick;
+            dgvReturns.DataBindingComplete += DgvReturns_DataBindingComplete;
         }
 
         private async void ZwrotyPodsumowanieControl_Load(object sender, EventArgs e)
@@ -443,6 +444,61 @@ namespace Reklamacje_Dane
             {
                 using (var f = new FormZwrotPodsumowanie(returnId))
                     f.ShowDialog(this.FindForm());
+            }
+        }
+
+        private void DgvReturns_DataBindingComplete(object sender, DataGridViewBindingCompleteEventArgs e)
+        {
+            ApplyDecisionColors();
+        }
+
+        private void ApplyDecisionColors()
+        {
+            var decisionColumn = ColByNameOrHeader("Jaka decyzja");
+            if (decisionColumn == null) return;
+
+            foreach (DataGridViewRow row in dgvReturns.Rows)
+            {
+                string decision = row.Cells[decisionColumn.Index].Value?.ToString() ?? "";
+                string normalized = NormalizeDecision(decision);
+
+                if (normalized == "Na półkę")
+                {
+                    row.DefaultCellStyle.BackColor = Color.LightGreen;
+                }
+                else if (normalized == "Ponowna wysyłka")
+                {
+                    row.DefaultCellStyle.BackColor = Color.LightBlue;
+                }
+                else if (normalized == "Reklamacje")
+                {
+                    row.DefaultCellStyle.BackColor = Color.Moccasin;
+                }
+                else if (normalized == "Inne")
+                {
+                    row.DefaultCellStyle.BackColor = Color.LightCoral;
+                }
+            }
+        }
+
+        private static string NormalizeDecision(string decision)
+        {
+            if (string.IsNullOrWhiteSpace(decision)) return "";
+            switch (decision.Trim())
+            {
+                case "Na półkę":
+                    return "Na półkę";
+                case "Ponowna wysyłka":
+                case "Ponowna wysylka":
+                    return "Ponowna wysyłka";
+                case "Reklamacje":
+                case "Przekaż do reklamacji":
+                case "Przekaz do reklamacji":
+                    return "Reklamacje";
+                case "Inne":
+                    return "Inne";
+                default:
+                    return "";
             }
         }
 

@@ -24,12 +24,21 @@ namespace Reklamacje_Dane
         private DataRow _dbDataRow;
         private OrderDetails _orderDetails;
 
-        private class StatusItem
+        private class DecisionItem
         {
             public int Id { get; set; }
-            public string Nazwa { get; set; }
-            public override string ToString() => Nazwa;
+            public string DisplayName { get; set; }
+            public string DatabaseName { get; set; }
+            public override string ToString() => DisplayName;
         }
+
+        private static readonly string[] AllowedDecisionOrder =
+        {
+            "Na półkę",
+            "Ponowna wysyłka",
+            "Reklamacje",
+            "Inne"
+        };
 
         public FormHandlowiecSzczegoly(int returnDbId, string fullName)
         {
@@ -91,15 +100,28 @@ namespace Reklamacje_Dane
             try
             {
                 var dt = await _dbServiceMagazyn.GetDataTableAsync("SELECT Id, Nazwa FROM Statusy WHERE TypStatusu = 'DecyzjaHandlowca' ORDER BY Nazwa");
-                var decyzje = new List<StatusItem>();
-                foreach (DataRow row in dt.Rows)
-                {
-                    decyzje.Add(new StatusItem { Id = Convert.ToInt32(row["Id"]), Nazwa = row["Nazwa"].ToString() });
-                }
+                var decyzje = BuildDecisionItems(dt);
                 comboDecyzja.DataSource = decyzje;
-                comboDecyzja.DisplayMember = "Nazwa";
+                comboDecyzja.DisplayMember = "DisplayName";
                 comboDecyzja.ValueMember = "Id";
-                comboDecyzja.SelectedIndex = -1;
+                comboDecyzja.SelectedIndex = decyzje.Count > 0 ? 0 : -1;
+
+                if (!HasAllRequiredDecisions(decyzje))
+                {
+                    btnWyslijDecyzje.Enabled = false;
+                    btnPrzekazDoReklamacji.Enabled = false;
+                    MessageBox.Show(
+                        "Brakuje wymaganych decyzji (Na półkę, Ponowna wysyłka, Reklamacje, Inne). " +
+                        "Uzupełnij je w ustawieniach statusów.",
+                        "Brak konfiguracji",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+                else
+                {
+                    btnWyslijDecyzje.Enabled = true;
+                    btnPrzekazDoReklamacji.Enabled = true;
+                }
             }
             catch (Exception ex)
             {
@@ -189,17 +211,84 @@ namespace Reklamacje_Dane
 
         private async void btnWyslijDecyzje_Click(object sender, EventArgs e)
         {
-            if (comboDecyzja.SelectedItem == null)
+            if (!(comboDecyzja.SelectedItem is DecisionItem selectedDecision))
             {
                 MessageBox.Show("Proszę wybrać decyzję dla magazynu.", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            var selectedDecision = (StatusItem)comboDecyzja.SelectedItem;
-            string komentarz = txtKomentarzHandlowca.Text.Trim();
+            if (!ValidateDecisionInput(selectedDecision))
+            {
+                return;
+            }
 
-            var confirm = MessageBox.Show($"Czy na pewno chcesz wysłać decyzję: '{selectedDecision.Nazwa}'?", "Potwierdzenie", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            var confirm = MessageBox.Show(
+                $"Czy na pewno chcesz wysłać decyzję: '{selectedDecision.DisplayName}'?",
+                "Potwierdzenie",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
             if (confirm == DialogResult.No) return;
+
+            await SendDecisionAsync(selectedDecision);
+        }
+
+        private async void btnPrzekazDoReklamacji_Click(object sender, EventArgs e)
+        {
+            var decision = GetDecisionByDisplayName("Reklamacje");
+            if (decision == null)
+            {
+                MessageBox.Show("Brak decyzji 'Reklamacje' w konfiguracji statusów.", "Błąd",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!ValidateDecisionInput(decision))
+            {
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                "Czy na pewno chcesz przekazać zwrot do reklamacji?",
+                "Potwierdzenie",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+            if (confirm == DialogResult.No) return;
+
+            await SendDecisionAsync(decision);
+        }
+
+        private bool ValidateDecisionInput(DecisionItem decision)
+        {
+            if (decision == null || !AllowedDecisionOrder.Contains(decision.DisplayName))
+            {
+                MessageBox.Show("Wybrana decyzja nie znajduje się na liście dozwolonych.", "Błąd",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            if (decision.DisplayName == "Inne" && string.IsNullOrWhiteSpace(txtKomentarzHandlowca.Text))
+            {
+                MessageBox.Show("Dla decyzji 'Inne' wymagany jest komentarz.", "Walidacja",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            return true;
+        }
+
+        private DecisionItem GetDecisionByDisplayName(string displayName)
+        {
+            if (comboDecyzja.DataSource is IEnumerable<DecisionItem> items)
+            {
+                return items.FirstOrDefault(item => item.DisplayName == displayName);
+            }
+
+            return null;
+        }
+
+        private async Task SendDecisionAsync(DecisionItem selectedDecision)
+        {
+            string komentarz = txtKomentarzHandlowca.Text.Trim();
 
             try
             {
@@ -233,7 +322,7 @@ namespace Reklamacje_Dane
                         cmdUpdateReturn.Parameters.AddWithValue("@id", _returnDbId);
                         await cmdUpdateReturn.ExecuteNonQueryAsync();
 
-                        string trescDzialania = $"Podjęto decyzję: {selectedDecision.Nazwa}. Komentarz: {komentarz}";
+                        string trescDzialania = $"Podjęto decyzję: {selectedDecision.DisplayName}. Komentarz: {komentarz}";
                         var cmdDzialanie = new MySqlCommand("INSERT INTO ZwrotDzialania (ZwrotId, Data, Uzytkownik, Tresc) VALUES (@zwrotId, @data, @uzytkownik, @tresc)", con, transaction);
                         cmdDzialanie.Parameters.AddWithValue("@zwrotId", _returnDbId);
                         cmdDzialanie.Parameters.AddWithValue("@data", DateTime.Now);
@@ -251,104 +340,116 @@ namespace Reklamacje_Dane
                             cmdReplyMsg.Parameters.AddWithValue("@nadawca", SessionManager.CurrentUserId);
                             cmdReplyMsg.Parameters.AddWithValue("@odbiorca", originalSenderId.Value);
                             cmdReplyMsg.Parameters.AddWithValue("@tytul", "Re: Prośba o decyzję dla zwrotu nr " + _dbDataRow["ReferenceNumber"]);
-                            cmdReplyMsg.Parameters.AddWithValue("@tresc", $"Podjęto decyzję: '{selectedDecision.Nazwa}'. Komentarz: {komentarz}");
+                            cmdReplyMsg.Parameters.AddWithValue("@tresc", $"Podjęto decyzję: '{selectedDecision.DisplayName}'. Komentarz: {komentarz}");
                             cmdReplyMsg.Parameters.AddWithValue("@data", DateTime.Now);
                             cmdReplyMsg.Parameters.AddWithValue("@zwrotId", _returnDbId);
                             cmdReplyMsg.Parameters.AddWithValue("@parentId", originalMessageId.Value);
                             await cmdReplyMsg.ExecuteNonQueryAsync();
                         }
 
-                        if (selectedDecision.Nazwa == "Przekaż do reklamacji")
+                        if (IsReklamacjeDecision(selectedDecision))
                         {
-                            // ===== 1) Złóż OpisUsterki =====
-                            // powód klienta: w ręcznych zwykle go nie ma, ale spróbujemy wydobyć z JSON (jeśli jednak jest)
-                            string powodKlienta = "";
-                            try
-                            {
-                                if (_dbDataRow.Table.Columns.Contains("JsonDetails") &&
-                                    _dbDataRow["JsonDetails"] != DBNull.Value &&
-                                    !string.IsNullOrWhiteSpace(_dbDataRow["JsonDetails"]?.ToString()))
-                                {
-                                    var ret = Newtonsoft.Json.JsonConvert
-                                        .DeserializeObject<Reklamacje_Dane.Allegro.Returns.AllegroCustomerReturn>(_dbDataRow["JsonDetails"].ToString());
-                                    var item = ret?.Items?.FirstOrDefault();
-                                    if (item?.Reason != null)
-                                    {
-                                        // np. "NOT_AS_DESCRIBED (opis klienta...)"
-                                        var typ = string.IsNullOrWhiteSpace(item.Reason.Type) ? "" : item.Reason.Type;
-                                        var user = string.IsNullOrWhiteSpace(item.Reason.UserComment) ? "" : item.Reason.UserComment;
-                                        powodKlienta = string.IsNullOrWhiteSpace(user) ? typ : $"{typ}: {user}";
-                                    }
-                                }
-                            }
-                            catch { /* brak powodu = OK */ }
+                            await PrzekazDoReklamacjiAsync(komentarz);
+                        }
 
-                            string uwagiMagazynu = GetUwagiMagazynuValue() ?? "";
+                        transaction.Commit();
+                    }
 
-                            string uwagiHandlowca = komentarz ?? "";
+                    MessageBox.Show("Decyzja została zapisana.", "Sukces", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Wystąpił błąd podczas zapisu decyzji: " + ex.Message, "Błąd krytyczny", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
 
-                            var sbOpis = new System.Text.StringBuilder();
-                            if (!string.IsNullOrWhiteSpace(powodKlienta))
-                                sbOpis.AppendLine($"Powód klienta: {powodKlienta}");
-                            if (!string.IsNullOrWhiteSpace(uwagiMagazynu))
-                                sbOpis.AppendLine($"Uwagi magazynu: {uwagiMagazynu}");
-                            if (!string.IsNullOrWhiteSpace(uwagiHandlowca))
-                                sbOpis.AppendLine($"Uwagi handlowca: {uwagiHandlowca}");
-                            sbOpis.AppendLine($"Przekazał: {_fullName}");
-                            string opisUsterki = sbOpis.ToString().Trim();
+        private async Task PrzekazDoReklamacjiAsync(string komentarz)
+        {
+            // ===== 1) Złóż OpisUsterki =====
+            string powodKlienta = "";
+            try
+            {
+                if (_dbDataRow.Table.Columns.Contains("JsonDetails") &&
+                    _dbDataRow["JsonDetails"] != DBNull.Value &&
+                    !string.IsNullOrWhiteSpace(_dbDataRow["JsonDetails"]?.ToString()))
+                {
+                    var ret = Newtonsoft.Json.JsonConvert
+                        .DeserializeObject<Reklamacje_Dane.Allegro.Returns.AllegroCustomerReturn>(_dbDataRow["JsonDetails"].ToString());
+                    var item = ret?.Items?.FirstOrDefault();
+                    if (item?.Reason != null)
+                    {
+                        var typ = string.IsNullOrWhiteSpace(item.Reason.Type) ? "" : item.Reason.Type;
+                        var user = string.IsNullOrWhiteSpace(item.Reason.UserComment) ? "" : item.Reason.UserComment;
+                        powodKlienta = string.IsNullOrWhiteSpace(user) ? typ : $"{typ}: {user}";
+                    }
+                }
+            }
+            catch { /* brak powodu = OK */ }
 
-                            // ===== 2) Dane klienta / kontakt / adres =====
-                            string imie = _dbDataRow["Delivery_FirstName"]?.ToString();
-                            string nazwisko = _dbDataRow["Delivery_LastName"]?.ToString();
+            string uwagiMagazynu = GetUwagiMagazynuValue() ?? "";
+            string uwagiHandlowca = komentarz ?? "";
 
-                            if (string.IsNullOrWhiteSpace(imie) && string.IsNullOrWhiteSpace(nazwisko))
-                            {
-                                // fallback na Buyer_*
-                                imie = _dbDataRow["Buyer_FirstName"]?.ToString();
-                                nazwisko = _dbDataRow["Buyer_LastName"]?.ToString();
-                            }
+            var sbOpis = new System.Text.StringBuilder();
+            if (!string.IsNullOrWhiteSpace(powodKlienta))
+                sbOpis.AppendLine($"Powód klienta: {powodKlienta}");
+            if (!string.IsNullOrWhiteSpace(uwagiMagazynu))
+                sbOpis.AppendLine($"Uwagi magazynu: {uwagiMagazynu}");
+            if (!string.IsNullOrWhiteSpace(uwagiHandlowca))
+                sbOpis.AppendLine($"Uwagi handlowca: {uwagiHandlowca}");
+            sbOpis.AppendLine($"Przekazał: {_fullName}");
+            string opisUsterki = sbOpis.ToString().Trim();
 
-                            // nie zawsze mamy email w tabeli zwrotów — podajemy tylko jeśli istnieje kolumna i nie jest pusta
-                            string email = _dbDataRow.Table.Columns.Contains("BuyerEmail")
-                                ? (_dbDataRow["BuyerEmail"]?.ToString() ?? "")
-                                : "";
+            // ===== 2) Dane klienta / kontakt / adres =====
+            string imie = _dbDataRow["Delivery_FirstName"]?.ToString();
+            string nazwisko = _dbDataRow["Delivery_LastName"]?.ToString();
 
-                            string telefon = _dbDataRow["Delivery_PhoneNumber"]?.ToString();
-                            if (string.IsNullOrWhiteSpace(telefon) && _dbDataRow.Table.Columns.Contains("Buyer_PhoneNumber"))
-                                telefon = _dbDataRow["Buyer_PhoneNumber"]?.ToString();
+            if (string.IsNullOrWhiteSpace(imie) && string.IsNullOrWhiteSpace(nazwisko))
+            {
+                imie = _dbDataRow["Buyer_FirstName"]?.ToString();
+                nazwisko = _dbDataRow["Buyer_LastName"]?.ToString();
+            }
 
-                            string ulica = _dbDataRow["Delivery_Street"]?.ToString();
-                            string kod = _dbDataRow["Delivery_ZipCode"]?.ToString();
-                            string miasto = _dbDataRow["Delivery_City"]?.ToString();
+            string email = _dbDataRow.Table.Columns.Contains("BuyerEmail")
+                ? (_dbDataRow["BuyerEmail"]?.ToString() ?? "")
+                : "";
 
-                            if (string.IsNullOrWhiteSpace(ulica) && _dbDataRow.Table.Columns.Contains("Buyer_Street"))
-                            {
-                                ulica = _dbDataRow["Buyer_Street"]?.ToString();
-                                kod = _dbDataRow["Buyer_ZipCode"]?.ToString();
-                                miasto = _dbDataRow["Buyer_City"]?.ToString();
-                            }
+            string telefon = _dbDataRow["Delivery_PhoneNumber"]?.ToString();
+            if (string.IsNullOrWhiteSpace(telefon) && _dbDataRow.Table.Columns.Contains("Buyer_PhoneNumber"))
+                telefon = _dbDataRow["Buyer_PhoneNumber"]?.ToString();
 
-                            string nazwaProduktu = _dbDataRow["ProductName"]?.ToString();
-                            string daneProduktu = nazwaProduktu;
+            string ulica = _dbDataRow["Delivery_Street"]?.ToString();
+            string kod = _dbDataRow["Delivery_ZipCode"]?.ToString();
+            string miasto = _dbDataRow["Delivery_City"]?.ToString();
 
-                            string nip = "";          // w zwrocie ręcznym zwykle nie mamy NIP — zostawiamy puste
-                            DateTime? dataZakupu = null; // brak w danych zwrotu — jeśli nie masz, zostaw null
+            if (string.IsNullOrWhiteSpace(ulica) && _dbDataRow.Table.Columns.Contains("Buyer_Street"))
+            {
+                ulica = _dbDataRow["Buyer_Street"]?.ToString();
+                kod = _dbDataRow["Buyer_ZipCode"]?.ToString();
+                miasto = _dbDataRow["Buyer_City"]?.ToString();
+            }
 
-                            string nrFv = _dbDataRow.Table.Columns.Contains("InvoiceNumber")
-                                ? (_dbDataRow["InvoiceNumber"]?.ToString() ?? "")
-                                : "";
-                            string nrSn = "Brak";
+            string nazwaProduktu = _dbDataRow["ProductName"]?.ToString();
+            string daneProduktu = nazwaProduktu;
 
-                            // Zbiorcze pole "DaneKlienta" (stare) — zostaje dla zgodności, ale i tak wypełniamy też nowe kolumny Imie/Nazwisko/itd.
-                            string daneKlientaZbiorczo =
-                                $"{(imie + " " + nazwisko).Trim()} | {ulica}, {kod} {miasto} | tel: {telefon}" +
-                                (string.IsNullOrWhiteSpace(email) ? "" : $" | e-mail: {email}");
+            string nip = "";
+            DateTime? dataZakupu = null;
 
-                            // ===== 3) Insert do Baza.db:NiezarejestrowaneZwrotyReklamacyjne =====
-                            using (var conB = DatabaseHelper.GetConnection())
-                            {
-                                await conB.OpenAsync();
-                                using (var cmdIns = new MySqlCommand(@"
+            string nrFv = _dbDataRow.Table.Columns.Contains("InvoiceNumber")
+                ? (_dbDataRow["InvoiceNumber"]?.ToString() ?? "")
+                : "";
+            string nrSn = "Brak";
+
+            string daneKlientaZbiorczo =
+                $"{(imie + " " + nazwisko).Trim()} | {ulica}, {kod} {miasto} | tel: {telefon}" +
+                (string.IsNullOrWhiteSpace(email) ? "" : $" | e-mail: {email}");
+
+            using (var conB = DatabaseHelper.GetConnection())
+            {
+                await conB.OpenAsync();
+                using (var cmdIns = new MySqlCommand(@"
             INSERT INTO NiezarejestrowaneZwrotyReklamacyjne
             (
                 DataPrzekazania, PrzekazanePrzez, IdZwrotuWMagazynie,
@@ -365,56 +466,114 @@ namespace Reklamacje_Dane
                 @ulica, @kod, @miasto,
                 @nazwaProd, @nip, @dataZakupu, @opis
             );", conB))
-                                {
-                                    cmdIns.Parameters.AddWithValue("@data", DateTime.Now);
-                                    cmdIns.Parameters.AddWithValue("@kto", _fullName);
-                                    cmdIns.Parameters.AddWithValue("@idZw", _returnDbId);
+                {
+                    cmdIns.Parameters.AddWithValue("@data", DateTime.Now);
+                    cmdIns.Parameters.AddWithValue("@kto", _fullName);
+                    cmdIns.Parameters.AddWithValue("@idZw", _returnDbId);
 
-                                    cmdIns.Parameters.AddWithValue("@daneKlienta", daneKlientaZbiorczo);
-                                    cmdIns.Parameters.AddWithValue("@daneProduktu", daneProduktu);
-                                    cmdIns.Parameters.AddWithValue("@fv", nrFv);
-                                    cmdIns.Parameters.AddWithValue("@sn", nrSn);
-                                    cmdIns.Parameters.AddWithValue("@uwagiMag", uwagiMagazynu ?? "");
-                                    cmdIns.Parameters.AddWithValue("@komHandl", uwagiHandlowca ?? "");
+                    cmdIns.Parameters.AddWithValue("@daneKlienta", daneKlientaZbiorczo);
+                    cmdIns.Parameters.AddWithValue("@daneProduktu", daneProduktu);
+                    cmdIns.Parameters.AddWithValue("@fv", nrFv);
+                    cmdIns.Parameters.AddWithValue("@sn", nrSn);
+                    cmdIns.Parameters.AddWithValue("@uwagiMag", uwagiMagazynu ?? "");
+                    cmdIns.Parameters.AddWithValue("@komHandl", uwagiHandlowca ?? "");
 
-                                    cmdIns.Parameters.AddWithValue("@imie", imie ?? "");
-                                    cmdIns.Parameters.AddWithValue("@nazw", nazwisko ?? "");
-                                    cmdIns.Parameters.AddWithValue("@email", email ?? "");
-                                    cmdIns.Parameters.AddWithValue("@tel", telefon ?? "");
+                    cmdIns.Parameters.AddWithValue("@imie", imie ?? "");
+                    cmdIns.Parameters.AddWithValue("@nazw", nazwisko ?? "");
+                    cmdIns.Parameters.AddWithValue("@email", email ?? "");
+                    cmdIns.Parameters.AddWithValue("@tel", telefon ?? "");
 
-                                    cmdIns.Parameters.AddWithValue("@ulica", ulica ?? "");
-                                    cmdIns.Parameters.AddWithValue("@kod", kod ?? "");
-                                    cmdIns.Parameters.AddWithValue("@miasto", miasto ?? "");
+                    cmdIns.Parameters.AddWithValue("@ulica", ulica ?? "");
+                    cmdIns.Parameters.AddWithValue("@kod", kod ?? "");
+                    cmdIns.Parameters.AddWithValue("@miasto", miasto ?? "");
 
-                                    cmdIns.Parameters.AddWithValue("@nazwaProd", nazwaProduktu ?? "");
-                                    cmdIns.Parameters.AddWithValue("@nip", nip ?? "");
-                                    if (dataZakupu.HasValue)
-                                        cmdIns.Parameters.AddWithValue("@dataZakupu", dataZakupu.Value);
-                                    else
-                                        cmdIns.Parameters.AddWithValue("@dataZakupu", DBNull.Value);
+                    cmdIns.Parameters.AddWithValue("@nazwaProd", nazwaProduktu ?? "");
+                    cmdIns.Parameters.AddWithValue("@nip", nip ?? "");
+                    if (dataZakupu.HasValue)
+                        cmdIns.Parameters.AddWithValue("@dataZakupu", dataZakupu.Value);
+                    else
+                        cmdIns.Parameters.AddWithValue("@dataZakupu", DBNull.Value);
 
-                                    cmdIns.Parameters.AddWithValue("@opis", opisUsterki);
+                    cmdIns.Parameters.AddWithValue("@opis", opisUsterki);
 
-                                    await cmdIns.ExecuteNonQueryAsync();
-                                }
-                            }
-
-                            ToastManager.ShowToast("Przekazano",
-                                "Zwrot został przekazany do działu reklamacji (z kompletem danych).",
-                                NotificationType.Info);
-                        }
-                        transaction.Commit();
-                    }
-
-                    MessageBox.Show("Decyzja została zapisana.", "Sukces", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    this.DialogResult = DialogResult.OK;
-                    this.Close();
+                    await cmdIns.ExecuteNonQueryAsync();
                 }
             }
-            catch (Exception ex)
+
+            ToastManager.ShowToast("Przekazano",
+                "Zwrot został przekazany do działu reklamacji (z kompletem danych).",
+                NotificationType.Info);
+        }
+
+        private static List<DecisionItem> BuildDecisionItems(DataTable dt)
+        {
+            var map = new Dictionary<string, DecisionItem>(StringComparer.OrdinalIgnoreCase);
+            foreach (DataRow row in dt.Rows)
             {
-                MessageBox.Show("Wystąpił błąd podczas zapisu decyzji: " + ex.Message, "Błąd krytyczny", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                string dbName = row["Nazwa"]?.ToString();
+                string canonical = NormalizeDecisionName(dbName);
+                if (string.IsNullOrWhiteSpace(canonical))
+                {
+                    continue;
+                }
+
+                if (!map.ContainsKey(canonical))
+                {
+                    map[canonical] = new DecisionItem
+                    {
+                        Id = Convert.ToInt32(row["Id"]),
+                        DisplayName = canonical,
+                        DatabaseName = dbName
+                    };
+                }
             }
+
+            var ordered = new List<DecisionItem>();
+            foreach (var name in AllowedDecisionOrder)
+            {
+                if (map.TryGetValue(name, out var item))
+                {
+                    ordered.Add(item);
+                }
+            }
+
+            return ordered;
+        }
+
+        private static bool HasAllRequiredDecisions(IEnumerable<DecisionItem> decisions)
+        {
+            var available = decisions.Select(d => d.DisplayName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return AllowedDecisionOrder.All(available.Contains);
+        }
+
+        private static string NormalizeDecisionName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return "";
+            }
+
+            switch (name.Trim())
+            {
+                case "Na półkę":
+                    return "Na półkę";
+                case "Ponowna wysyłka":
+                case "Ponowna wysylka":
+                    return "Ponowna wysyłka";
+                case "Reklamacje":
+                case "Przekaż do reklamacji":
+                case "Przekaz do reklamacji":
+                    return "Reklamacje";
+                case "Inne":
+                    return "Inne";
+                default:
+                    return "";
+            }
+        }
+
+        private static bool IsReklamacjeDecision(DecisionItem decision)
+        {
+            return decision != null && decision.DisplayName == "Reklamacje";
         }
 
         private void btnZarzadzajStatusami_Click(object sender, EventArgs e)
