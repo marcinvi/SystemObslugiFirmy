@@ -123,43 +123,87 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:paddingHorizontal="16dp">
 
-            <Button
-                android:id="@+id/btnFilterOczekujace"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_spinner"
-                android:text="Do przyjęcia"
-                android:textAllCaps="false"
-                android:textSize="12sp"
-                style="?android:attr/borderlessButtonStyle"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/btnFilterWDrodze"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_spinner"
-                android:text="W drodze"
-                android:textAllCaps="false"
-                android:textSize="12sp"
-                style="?android:attr/borderlessButtonStyle"/>
+                <Button
+                    android:id="@+id/btnFilterOczekujace"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_spinner"
+                    android:text="Do przyjęcia"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    style="?android:attr/borderlessButtonStyle"/>
 
-            <Button
-                android:id="@+id/btnFilterWszystkie"
-                android:layout_width="0dp"
+                <Button
+                    android:id="@+id/btnFilterWDrodze"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_spinner"
+                    android:text="W drodze"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    style="?android:attr/borderlessButtonStyle"/>
+
+                <Button
+                    android:id="@+id/btnFilterWszystkie"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_spinner"
+                    android:text="Wszystkie"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    style="?android:attr/borderlessButtonStyle"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnFilterNaDecyzje"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_spinner"
+                    android:text="Na decyzję"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    style="?android:attr/borderlessButtonStyle"/>
+
+                <Button
+                    android:id="@+id/btnFilterPoDecyzji"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_spinner"
+                    android:text="Po decyzji"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    style="?android:attr/borderlessButtonStyle"/>
+            </LinearLayout>
+
+            <Spinner
+                android:id="@+id/spinnerStatusAllegro"
+                android:layout_width="match_parent"
                 android:layout_height="40dp"
-                android:layout_weight="1"
+                android:layout_marginTop="8dp"
                 android:background="@drawable/bg_spinner"
-                android:text="Wszystkie"
-                android:textAllCaps="false"
-                android:textSize="12sp"
-                style="?android:attr/borderlessButtonStyle"/>
+                android:spinnerMode="dropdown" />
         </LinearLayout>
     </LinearLayout>
 
@@ -201,6 +245,44 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/headerContainer" />
+
+    <FrameLayout
+        android:id="@+id/loadingOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#80000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_spinner"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <ProgressBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:indeterminateTint="#1976D2" />
+
+            <TextView
+                android:id="@+id/txtLoadingMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Wczytywanie..."
+                android:textColor="#333333"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </FrameLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnScanCode"
