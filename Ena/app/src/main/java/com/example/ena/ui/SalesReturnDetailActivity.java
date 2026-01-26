@@ -223,7 +223,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                                 "Brakuje wymaganych decyzji: Na półkę, Ponowna wysyłka, Reklamacje, Inne.",
                                 Toast.LENGTH_LONG).show();
                     }
-                    renderDecisionTemplates();
                     if (onLoaded != null) {
                         onLoaded.run();
                     }
@@ -234,7 +233,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             public void onError(String message) {
                 runOnUiThread(() -> {
                     Toast.makeText(SalesReturnDetailActivity.this, "Błąd statusów: " + message, Toast.LENGTH_LONG).show();
-                    renderDecisionTemplates();
                     if (onLoaded != null) {
                         onLoaded.run();
                     }
