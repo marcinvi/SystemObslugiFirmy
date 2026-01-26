@@ -214,6 +214,37 @@ public class ReturnsListActivity extends AppCompatActivity {
         updateSalesCounts();
     }
 
+    private void setupWarehouseFilters() {
+        spinnerStatusAllegro.setVisibility(View.GONE);
+        btnFilterNaDecyzje.setVisibility(View.GONE);
+        btnFilterPoDecyzji.setVisibility(View.GONE);
+
+        btnFilterOczekujace.setText("Dostarczone");
+
+        btnFilterOczekujace.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = "DELIVERED";
+            setActiveFilter(btnFilterOczekujace);
+            loadReturns();
+        });
+        btnFilterWDrodze.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = "IN_TRANSIT";
+            setActiveFilter(btnFilterWDrodze);
+            loadReturns();
+        });
+        btnFilterWszystkie.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterWszystkie);
+            loadReturns();
+        });
+
+        setActiveFilter(btnFilterOczekujace);
+        currentStatusWewnetrzny = null;
+        currentStatusAllegro = "DELIVERED";
+    }
+
     private void setupSearch() {
         editSearch.addTextChangedListener(new TextWatcher() {
             @Override

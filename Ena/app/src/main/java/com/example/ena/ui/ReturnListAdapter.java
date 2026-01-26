@@ -129,6 +129,12 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
     }
 
     private DecisionStyle resolveDecisionStyle(String decision) {
+        if (displayMode == DisplayMode.WAREHOUSE_SCANNER) {
+            return resolveWarehouseStatusStyle(decision);
+        }
+        if (displayMode == DisplayMode.WAREHOUSE_STATUS) {
+            return DecisionStyle.NEUTRAL;
+        }
         if (decision == null) {
             return DecisionStyle.NEUTRAL;
         }
