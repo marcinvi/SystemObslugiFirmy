@@ -2,7 +2,7 @@ package com.example.ena.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
+import android.view.View; // WAŻNY IMPORT DLA View.GONE/VISIBLE
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -31,20 +31,26 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
 
     public static final String EXTRA_RETURN_ID = "return_id";
 
-    // Elementy interfejsu (muszą pasować do XML!)
-    private TextView txtTitle, txtCurrentStatus;
-    private TextView txtProductName, txtBuyerName, txtBuyerLogin;
-    private TextView txtCondition, txtWarehouseNotes;
+    // --- DEKLARACJE ZMIENNYCH UI (Te, o które krzyczał kompilator) ---
+    private TextView txtTitle;
+    private TextView txtCurrentStatus;
+    private TextView txtProductName;
+    private TextView txtBuyerName;
+    private TextView txtBuyerLogin;
+    private TextView txtCondition;
+    private TextView txtWarehouseNotes;
 
-    private Button btnRefund, btnReject, btnComplaint;
+    private Button btnRefund;
+    private Button btnReject;
+    private Button btnComplaint;
     private ImageButton btnBack;
 
     private RecyclerView listActions;
     private ProgressBar progressBar;
+    // ----------------------------------------------------------------
 
     private ApiClient apiClient;
     private ReturnActionAdapter actionAdapter;
-
     private int returnId;
     private ReturnDetailsDto returnDetails;
 
@@ -53,7 +59,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sales_return_detail);
 
-        // Pobranie ID zwrotu - jeśli 0, to błąd
         returnId = getIntent().getIntExtra(EXTRA_RETURN_ID, 0);
         if (returnId == 0) {
             Toast.makeText(this, "Błąd: Brak ID zwrotu", Toast.LENGTH_SHORT).show();
@@ -62,12 +67,13 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         }
 
         apiClient = new ApiClient(this);
+
         initViews();
         loadData();
     }
 
     private void initViews() {
-        // Mapowanie widoków
+        // Powiązanie z XML (ID muszą być w activity_sales_return_detail.xml)
         txtTitle = findViewById(R.id.txtTitle);
         txtCurrentStatus = findViewById(R.id.txtCurrentStatus);
         txtProductName = findViewById(R.id.txtProductName);
@@ -75,38 +81,40 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         txtBuyerLogin = findViewById(R.id.txtBuyerLogin);
         txtCondition = findViewById(R.id.txtCondition);
         txtWarehouseNotes = findViewById(R.id.txtWarehouseNotes);
-
         progressBar = findViewById(R.id.progressBar);
-        btnBack = findViewById(R.id.btnBack);
 
+        btnBack = findViewById(R.id.btnBack);
         btnRefund = findViewById(R.id.btnRefund);
         btnReject = findViewById(R.id.btnReject);
         btnComplaint = findViewById(R.id.btnComplaint);
 
         listActions = findViewById(R.id.listActions);
 
-        // Konfiguracja listy historii
-        listActions.setLayoutManager(new LinearLayoutManager(this));
-        actionAdapter = new ReturnActionAdapter();
-        listActions.setAdapter(actionAdapter);
+        // Konfiguracja listy
+        if (listActions != null) {
+            listActions.setLayoutManager(new LinearLayoutManager(this));
+            actionAdapter = new ReturnActionAdapter();
+            listActions.setAdapter(actionAdapter);
+        }
 
-        // Obsługa kliknięć
-        btnBack.setOnClickListener(v -> finish());
+        // Listenery
+        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
 
-        btnRefund.setOnClickListener(v -> {
-            Intent intent = new Intent(this, RefundPaymentActivity.class);
-            intent.putExtra(RefundPaymentActivity.EXTRA_RETURN_ID, returnId);
-            startActivity(intent);
-        });
+        if (btnRefund != null) {
+            btnRefund.setOnClickListener(v -> {
+                Intent intent = new Intent(this, RefundPaymentActivity.class);
+                intent.putExtra(RefundPaymentActivity.EXTRA_RETURN_ID, returnId);
+                startActivity(intent);
+            });
+        }
 
-        btnReject.setOnClickListener(v -> showRejectDialog());
-        btnComplaint.setOnClickListener(v -> confirmComplaint());
+        if (btnReject != null) btnReject.setOnClickListener(v -> showRejectDialog());
+        if (btnComplaint != null) btnComplaint.setOnClickListener(v -> confirmComplaint());
     }
 
     private void loadData() {
         if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
 
-        // 1. Pobranie szczegółów zwrotu
         apiClient.fetchReturnDetails(returnId, new ApiClient.ApiCallback<ReturnDetailsDto>() {
             @Override
             public void onSuccess(ReturnDetailsDto data) {
@@ -115,17 +123,16 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                     bindData(data);
                 });
             }
-
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
                     if (progressBar != null) progressBar.setVisibility(View.GONE);
-                    Toast.makeText(SalesReturnDetailActivity.this, "Błąd: " + message, Toast.LENGTH_LONG).show();
+                    Toast.makeText(SalesReturnDetailActivity.this, "Błąd: " + message, Toast.LENGTH_SHORT).show();
                 });
             }
         });
 
-        // 2. Pobranie historii akcji
+        // Historia (opcjonalna, nie blokuje błędem)
         apiClient.fetchReturnActions(returnId, new ApiClient.ApiCallback<List<ReturnActionDto>>() {
             @Override
             public void onSuccess(List<ReturnActionDto> data) {
@@ -134,10 +141,11 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                     if (actionAdapter != null) actionAdapter.setItems(data);
                 });
             }
-
             @Override
             public void onError(String message) {
-                // Błąd historii nie blokuje UI
+                runOnUiThread(() -> {
+                    if (progressBar != null) progressBar.setVisibility(View.GONE);
+                });
             }
         });
     }
@@ -145,26 +153,22 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private void bindData(ReturnDetailsDto data) {
         if (data == null) return;
 
+        // Używamy getReferenceNumber()
         String ref = data.getReferenceNumber();
         if (ref == null) ref = "ID: " + data.getId();
 
-        // Ustawianie tekstów z bezpiecznymi null-checkami
         if (txtTitle != null) txtTitle.setText(ref);
         if (txtCurrentStatus != null) txtCurrentStatus.setText(data.getStatusWewnetrzny());
         if (txtProductName != null) txtProductName.setText(data.getProductName());
         if (txtBuyerName != null) txtBuyerName.setText(data.getBuyerName());
         if (txtBuyerLogin != null) txtBuyerLogin.setText(data.getBuyerLogin());
 
-        if (txtCondition != null) txtCondition.setText(
-                data.getStanProduktuName() != null ? data.getStanProduktuName() : "Brak oceny"
-        );
-        if (txtWarehouseNotes != null) txtWarehouseNotes.setText(
-                data.getUwagiMagazynu() != null ? data.getUwagiMagazynu() : "Brak uwag"
-        );
+        if (txtCondition != null) txtCondition.setText(data.getStanProduktuName() != null ? data.getStanProduktuName() : "Brak oceny");
+        if (txtWarehouseNotes != null) txtWarehouseNotes.setText(data.getUwagiMagazynu() != null ? data.getUwagiMagazynu() : "Brak uwag");
 
-        // Logika blokowania przycisków (np. jeśli zwrot zakończony)
-        boolean isActive = !"Zakończony".equalsIgnoreCase(data.getStatusWewnetrzny())
-                && !"Odrzucony".equalsIgnoreCase(data.getStatusWewnetrzny());
+        // Blokada przycisków
+        boolean isClosed = "Zakończony".equalsIgnoreCase(data.getStatusWewnetrzny());
+        boolean isActive = !isClosed && !"Odrzucony".equalsIgnoreCase(data.getStatusWewnetrzny());
 
         if (btnRefund != null) btnRefund.setEnabled(isActive);
         if (btnReject != null) btnReject.setEnabled(isActive);
@@ -173,30 +177,25 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
 
     private void showRejectDialog() {
         new AlertDialog.Builder(this)
-                .setTitle("Odrzuć Zwrot")
-                .setMessage("Czy na pewno chcesz odrzucić ten zwrot?\nKlient nie otrzyma zwrotu pieniędzy.")
-                .setPositiveButton("Odrzuć", (dialog, which) -> sendRejection())
+                .setTitle("Odrzuć zwrot")
+                .setMessage("Czy na pewno chcesz odrzucić ten zwrot?")
+                .setPositiveButton("Odrzuć", (d, w) -> sendRejection("OTHER", "Decyzja handlowca"))
                 .setNegativeButton("Anuluj", null)
                 .show();
     }
 
-    private void sendRejection() {
+    private void sendRejection(String code, String reason) {
         if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
-
-        // Domyślny powód: Decyzja handlowca (OTHER)
-        RejectCustomerReturnRequest req = new RejectCustomerReturnRequest(
-                new ReturnRejectionDto("OTHER", "Decyzja Handlowca")
-        );
+        RejectCustomerReturnRequest req = new RejectCustomerReturnRequest(new ReturnRejectionDto(code, reason));
 
         apiClient.rejectReturn(returnId, req, new ApiClient.ApiCallback<Void>() {
             @Override
             public void onSuccess(Void data) {
                 runOnUiThread(() -> {
-                    Toast.makeText(SalesReturnDetailActivity.this, "Zwrot został odrzucony.", Toast.LENGTH_SHORT).show();
-                    loadData(); // Odśwież widok
+                    Toast.makeText(SalesReturnDetailActivity.this, "Odrzucono.", Toast.LENGTH_SHORT).show();
+                    loadData();
                 });
             }
-
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
@@ -209,18 +208,16 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
 
     private void confirmComplaint() {
         new AlertDialog.Builder(this)
-                .setTitle("Przekaż do Reklamacji")
-                .setMessage("Czy przekazać ten zwrot do działu technicznego/reklamacji?")
-                .setPositiveButton("Przekaż", (d, w) -> sendComplaint())
-                .setNegativeButton("Anuluj", null)
+                .setTitle("Reklamacja")
+                .setMessage("Przekazać do reklamacji?")
+                .setPositiveButton("Tak", (d, w) -> sendComplaint())
+                .setNegativeButton("Nie", null)
                 .show();
     }
 
     private void sendComplaint() {
         if (returnDetails == null) return;
-        if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
 
-        // Tworzenie obiektów wymaganych przez API
         ComplaintCustomerDto customer = new ComplaintCustomerDto(
                 returnDetails.getBuyerName(), "", null, null,
                 new ComplaintAddressDto("", "", "")
@@ -229,22 +226,22 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
 
         ForwardToComplaintRequest req = new ForwardToComplaintRequest(
                 returnId,
-                "Przekazano przez Handlowca (Mobile)",
+                "Decyzja handlowca",
                 returnDetails.getUwagiMagazynu(),
-                "Decyzja w aplikacji mobilnej",
+                "Przekazano z aplikacji",
                 "Handlowiec",
                 customer, product
         );
 
+        if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
         apiClient.forwardToComplaints(returnId, req, new ApiClient.ApiCallback<Void>() {
             @Override
             public void onSuccess(Void data) {
                 runOnUiThread(() -> {
-                    Toast.makeText(SalesReturnDetailActivity.this, "Przekazano do reklamacji.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SalesReturnDetailActivity.this, "Przekazano.", Toast.LENGTH_SHORT).show();
                     loadData();
                 });
             }
-
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
