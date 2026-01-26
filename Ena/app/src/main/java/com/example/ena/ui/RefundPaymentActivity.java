@@ -166,11 +166,13 @@ public class RefundPaymentActivity extends AppCompatActivity {
         }
 
         if (context.getDelivery() != null && context.getDelivery().getAmount() != null) {
+            chkRefundDelivery.setEnabled(true);
             chkRefundDelivery.setChecked(true);
             editDeliveryAmount.setText(context.getDelivery().getAmount());
             editDeliveryAmount.setEnabled(true);
         } else {
             chkRefundDelivery.setChecked(false);
+            chkRefundDelivery.setEnabled(false);
             editDeliveryAmount.setText("0.00");
             editDeliveryAmount.setEnabled(false);
         }

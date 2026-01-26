@@ -1,16 +1,18 @@
 package com.example.ena.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -22,44 +24,28 @@ import com.example.ena.api.ComplaintAddressDto;
 import com.example.ena.api.ComplaintCustomerDto;
 import com.example.ena.api.ComplaintProductDto;
 import com.example.ena.api.ForwardToComplaintRequest;
-import com.example.ena.api.ReturnActionCreateRequest;
 import com.example.ena.api.ReturnActionDto;
 import com.example.ena.api.ReturnDecisionRequest;
 import com.example.ena.api.ReturnDetailsDto;
-import com.example.ena.api.ReturnForwardToWarehouseRequest;
 import com.example.ena.api.RejectCustomerReturnRequest;
 import com.example.ena.api.ReturnRejectionDto;
 import com.example.ena.api.StatusDto;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SalesReturnDetailActivity extends AppCompatActivity {
     public static final String EXTRA_RETURN_ID = "return_id";
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
-
-    private TextView txtHeaderNumber;
-    private TextView txtHeaderStatus;
+    private TextView txtTitle;
+    private TextView txtCurrentStatus;
     private TextView txtProductName;
+    private TextView txtBuyerName;
     private TextView txtBuyerLogin;
-    private TextView txtAccountName;
-    private TextView txtOrderDate;
-    private TextView txtInvoice;
-    private TextView txtStanProduktu;
-    private TextView txtPrzyjetyPrzez;
-    private TextView txtUwagiMagazynu;
-    private TextView txtDataPrzyjecia;
-    private Spinner spinnerDecyzja;
-    private EditText editKomentarz;
-    private EditText editNoweDzialanie;
-    private Button btnDodajDzialanie;
-    private Button btnPodejmijDecyzje;
-    private Button btnPrzekazDoReklamacji;
-    private Button btnAnuluj;
-    private Button btnPrzekazDoMagazynu;
-    private Button btnOdrzucZwrot;
-    private Button btnZwrotWplaty;
+    private TextView txtCondition;
+    private TextView txtWarehouseNotes;
+    private ImageButton btnBack;
+    private Button btnRefund;
+    private Button btnReject;
+    private Button btnComplaint;
     private ProgressBar progressBar;
 
     private ReturnActionAdapter actionAdapter;
@@ -73,41 +59,28 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_sales_return_detail);
 
         returnId = getIntent().getIntExtra(EXTRA_RETURN_ID, 0);
-        txtHeaderNumber = findViewById(R.id.txtHeaderNumber);
-        txtHeaderStatus = findViewById(R.id.txtHeaderStatus);
+        txtTitle = findViewById(R.id.txtTitle);
+        txtCurrentStatus = findViewById(R.id.txtCurrentStatus);
         txtProductName = findViewById(R.id.txtProductName);
+        txtBuyerName = findViewById(R.id.txtBuyerName);
         txtBuyerLogin = findViewById(R.id.txtBuyerLogin);
-        txtAccountName = findViewById(R.id.txtAccountName);
-        txtOrderDate = findViewById(R.id.txtOrderDate);
-        txtInvoice = findViewById(R.id.txtInvoice);
-        txtStanProduktu = findViewById(R.id.txtStanProduktu);
-        txtPrzyjetyPrzez = findViewById(R.id.txtPrzyjetyPrzez);
-        txtUwagiMagazynu = findViewById(R.id.txtUwagiMagazynu);
-        txtDataPrzyjecia = findViewById(R.id.txtDataPrzyjecia);
-        spinnerDecyzja = findViewById(R.id.spinnerDecyzja);
-        editKomentarz = findViewById(R.id.editKomentarz);
-        editNoweDzialanie = findViewById(R.id.editNoweDzialanie);
-        btnDodajDzialanie = findViewById(R.id.btnDodajDzialanie);
-        btnPodejmijDecyzje = findViewById(R.id.btnPodejmijDecyzje);
-        btnPrzekazDoReklamacji = findViewById(R.id.btnPrzekazDoReklamacji);
-        btnAnuluj = findViewById(R.id.btnAnuluj);
-        btnPrzekazDoMagazynu = findViewById(R.id.btnPrzekazDoMagazynu);
-        btnOdrzucZwrot = findViewById(R.id.btnOdrzucZwrot);
-        btnZwrotWplaty = findViewById(R.id.btnZwrotWplaty);
-        progressBar = findViewById(R.id.progressDetail);
+        txtCondition = findViewById(R.id.txtCondition);
+        txtWarehouseNotes = findViewById(R.id.txtWarehouseNotes);
+        btnBack = findViewById(R.id.btnBack);
+        btnRefund = findViewById(R.id.btnRefund);
+        btnReject = findViewById(R.id.btnReject);
+        btnComplaint = findViewById(R.id.btnComplaint);
+        progressBar = findViewById(R.id.progressBar);
 
         RecyclerView listActions = findViewById(R.id.listActions);
         listActions.setLayoutManager(new LinearLayoutManager(this));
         actionAdapter = new ReturnActionAdapter();
         listActions.setAdapter(actionAdapter);
 
-        btnAnuluj.setOnClickListener(v -> finish());
-        btnPodejmijDecyzje.setOnClickListener(v -> confirmSubmitDecision(false));
-        btnPrzekazDoReklamacji.setOnClickListener(v -> confirmSubmitDecision(true));
-        btnDodajDzialanie.setOnClickListener(v -> submitAction());
-        btnPrzekazDoMagazynu.setOnClickListener(v -> promptForwardToWarehouse());
-        btnOdrzucZwrot.setOnClickListener(v -> showRejectDialog());
-        btnZwrotWplaty.setOnClickListener(v -> openRefundPayment());
+        btnBack.setOnClickListener(v -> finish());
+        btnRefund.setOnClickListener(v -> openRefundPayment());
+        btnReject.setOnClickListener(v -> showRejectDialog());
+        btnComplaint.setOnClickListener(v -> showDecisionDialog());
 
         loadDecyzje();
         loadDetails();
@@ -142,32 +115,23 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             return;
         }
         String ref = safe(details.getReferenceNumber());
-        txtHeaderNumber.setText(ref.isEmpty() ? "Decyzja dla zwrotu" : "Decyzja dla zwrotu: " + ref);
-        txtHeaderStatus.setText("Status: " + safe(details.getStatusWewnetrzny(), "Brak"));
+        txtTitle.setText(ref.isEmpty() ? "Decyzja dla zwrotu" : "Decyzja dla zwrotu: " + ref);
+        txtCurrentStatus.setText(safe(details.getStatusWewnetrzny(), "Brak"));
 
         txtProductName.setText(safe(details.getProductName(), "Brak"));
-        txtBuyerLogin.setText(safe(details.getBuyerLogin(), "Brak"));
-        String account = safe(details.getAllegroAccountName(), "Brak");
-        if (details.isManual()) {
-            account = "Ręczny";
+        String buyerName = safe(details.getBuyerName(), "");
+        if (buyerName.isEmpty()) {
+            buyerName = safe(details.getBuyerLogin(), "Brak danych");
         }
-        txtAccountName.setText(account);
-        txtOrderDate.setText(formatDate(details.getCreatedAt()));
-        txtInvoice.setText(safe(details.getInvoiceNumber(), "Brak"));
+        txtBuyerName.setText(buyerName);
+        txtBuyerLogin.setText(safe(details.getBuyerLogin(), ""));
 
-        txtStanProduktu.setText(safe(details.getStanProduktuName(), "Brak"));
-        txtPrzyjetyPrzez.setText(safe(details.getPrzyjetyPrzezName(), "Brak"));
-        txtUwagiMagazynu.setText(safe(details.getUwagiMagazynu(), "Brak"));
-        txtDataPrzyjecia.setText(formatDate(details.getDataPrzyjecia()));
-
-        editKomentarz.setText(safe(details.getKomentarzHandlowca()));
-        preselectDecision(details.getDecyzjaHandlowcaId());
-
-        btnPrzekazDoMagazynu.setVisibility(details.isManual() ? View.VISIBLE : View.GONE);
+        txtCondition.setText("Stan: " + safe(details.getStanProduktuName(), "Brak"));
+        txtWarehouseNotes.setText(safe(details.getUwagiMagazynu(), "Brak"));
         boolean hasAllegroReturn = details.getAllegroReturnId() != null && !details.getAllegroReturnId().isEmpty();
         boolean hasOrderId = details.getOrderId() != null && !details.getOrderId().isEmpty();
-        btnOdrzucZwrot.setVisibility(hasAllegroReturn ? View.VISIBLE : View.GONE);
-        btnZwrotWplaty.setVisibility(hasOrderId ? View.VISIBLE : View.GONE);
+        btnReject.setVisibility(hasAllegroReturn ? View.VISIBLE : View.GONE);
+        btnRefund.setVisibility(hasOrderId ? View.VISIBLE : View.GONE);
     }
 
     private void loadDecyzje() {
@@ -180,16 +144,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                     if (data != null) {
                         decyzje.addAll(data);
                     }
-                    ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                            SalesReturnDetailActivity.this,
-                            android.R.layout.simple_spinner_item,
-                            toStatusNames(decyzje)
-                    );
-                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                    spinnerDecyzja.setAdapter(adapter);
-                    if (details != null) {
-                        preselectDecision(details.getDecyzjaHandlowcaId());
-                    }
+                    // decyzje gotowe do użycia w dialogu
                 });
             }
 
@@ -215,73 +170,90 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         });
     }
 
-    private void submitAction() {
-        String text = editNoweDzialanie.getText().toString().trim();
-        if (text.isEmpty()) {
-            Toast.makeText(this, "Treść działania nie może być pusta.", Toast.LENGTH_SHORT).show();
+    private void showDecisionDialog() {
+        if (decyzje.isEmpty()) {
+            Toast.makeText(this, "Brak dostępnych decyzji handlowca.", Toast.LENGTH_SHORT).show();
             return;
         }
-        btnDodajDzialanie.setEnabled(false);
-        ApiClient client = new ApiClient(this);
-        client.addReturnAction(returnId, new ReturnActionCreateRequest(text), new ApiClient.ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void data) {
-                runOnUiThread(() -> {
-                    btnDodajDzialanie.setEnabled(true);
-                    editNoweDzialanie.setText("");
-                    loadActions();
-                });
-            }
 
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> {
-                    btnDodajDzialanie.setEnabled(true);
-                    Toast.makeText(SalesReturnDetailActivity.this, "Błąd zapisu działania: " + message, Toast.LENGTH_LONG).show();
-                });
-            }
-        });
-    }
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        container.setPadding(padding, padding, padding, padding);
 
-    private void confirmSubmitDecision(boolean forwardToComplaints) {
-        if (getSelectedDecisionId() <= 0) {
-            Toast.makeText(this, "Wybierz decyzję handlowca.", Toast.LENGTH_SHORT).show();
-            return;
+        Spinner spinner = new Spinner(this);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                toStatusNames(decyzje)
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        int preselectIndex = getDecisionIndexById(details != null ? details.getDecyzjaHandlowcaId() : null);
+        if (preselectIndex >= 0) {
+            spinner.setSelection(preselectIndex);
         }
-        if (forwardToComplaints && !isComplaintsDecisionSelected()) {
-            Toast.makeText(this, "Wybierz decyzję 'Przekaż do reklamacji'.", Toast.LENGTH_SHORT).show();
-            return;
+
+        EditText commentInput = new EditText(this);
+        commentInput.setHint("Komentarz (opcjonalnie)");
+        if (details != null) {
+            commentInput.setText(safe(details.getKomentarzHandlowca()));
         }
-        new AlertDialog.Builder(this)
-                .setTitle("Zatwierdź decyzję")
-                .setMessage(forwardToComplaints
-                        ? "Czy na pewno chcesz zapisać decyzję i przekazać zwrot do reklamacji?"
-                        : "Czy na pewno chcesz zapisać decyzję dla tego zwrotu?")
-                .setPositiveButton("Zapisz", (dialog, which) -> submitDecision(forwardToComplaints))
+
+        container.addView(spinner);
+        container.addView(commentInput);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Decyzja handlowca")
+                .setView(container)
+                .setPositiveButton("Zapisz decyzję", null)
+                .setNeutralButton("Przekaż do reklamacji", null)
                 .setNegativeButton("Anuluj", null)
-                .show();
+                .create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            Button saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button complaintsButton = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+            saveButton.setOnClickListener(v -> {
+                int decisionId = getDecisionIdFromSpinner(spinner);
+                if (decisionId <= 0) {
+                    Toast.makeText(this, "Wybierz decyzję handlowca.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                submitDecision(decisionId, commentInput.getText().toString().trim(), false);
+                dialog.dismiss();
+            });
+            complaintsButton.setOnClickListener(v -> {
+                int decisionId = getDecisionIdFromSpinner(spinner);
+                if (decisionId <= 0) {
+                    Toast.makeText(this, "Wybierz decyzję handlowca.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String decisionName = getDecisionNameFromSpinner(spinner);
+                if (!isComplaintsDecisionSelected(decisionName)) {
+                    Toast.makeText(this, "Wybierz decyzję 'Przekaż do reklamacji'.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                submitDecision(decisionId, commentInput.getText().toString().trim(), true);
+                dialog.dismiss();
+            });
+        });
+
+        dialog.show();
     }
 
-    private void submitDecision(boolean forwardToComplaints) {
-        int decisionId = getSelectedDecisionId();
-        if (decisionId <= 0) {
-            Toast.makeText(this, "Wybierz decyzję handlowca.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String comment = editKomentarz.getText().toString().trim();
+    private void submitDecision(int decisionId, String comment, boolean forwardToComplaints) {
         ReturnDecisionRequest request = new ReturnDecisionRequest();
         request.decyzjaId = decisionId;
         request.komentarz = TextUtils.isEmpty(comment) ? null : comment;
 
-        btnPodejmijDecyzje.setEnabled(false);
-        btnPrzekazDoReklamacji.setEnabled(false);
+        btnComplaint.setEnabled(false);
         ApiClient client = new ApiClient(this);
         client.submitDecision(returnId, request, new ApiClient.ApiCallback<Void>() {
             @Override
             public void onSuccess(Void data) {
                 runOnUiThread(() -> {
-                    btnPodejmijDecyzje.setEnabled(true);
-                    btnPrzekazDoReklamacji.setEnabled(true);
+                    btnComplaint.setEnabled(true);
                     if (forwardToComplaints) {
                         forwardToComplaints();
                     } else {
@@ -295,8 +267,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
-                    btnPodejmijDecyzje.setEnabled(true);
-                    btnPrzekazDoReklamacji.setEnabled(true);
+                    btnComplaint.setEnabled(true);
                     Toast.makeText(SalesReturnDetailActivity.this, "Błąd zapisu decyzji: " + message, Toast.LENGTH_LONG).show();
                 });
             }
@@ -325,7 +296,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private ForwardToComplaintRequest buildComplaintRequest() {
         String buyerName = safe(details.getBuyerName(), "");
         String[] nameParts = splitName(buyerName);
-        String comment = editKomentarz.getText().toString().trim();
+        String comment = details != null ? safe(details.getKomentarzHandlowca()) : "";
 
         ComplaintAddressDto address = new ComplaintAddressDto(
                 safe(details.getBuyerAddress(), details.getBuyerAddressRaw()),
@@ -357,40 +328,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                 customer,
                 product
         );
-    }
-
-    private void promptForwardToWarehouse() {
-        if (details == null || !details.isManual()) {
-            return;
-        }
-        EditText input = new EditText(this);
-        input.setHint("Komentarz dla magazynu (opcjonalnie)");
-        new AlertDialog.Builder(this)
-                .setTitle("Przekaż do magazynu")
-                .setView(input)
-                .setPositiveButton("Przekaż", (dialog, which) -> forwardToWarehouse(input.getText().toString().trim()))
-                .setNegativeButton("Anuluj", null)
-                .show();
-    }
-
-    private void forwardToWarehouse(String comment) {
-        ReturnForwardToWarehouseRequest request = new ReturnForwardToWarehouseRequest(comment.isEmpty() ? null : comment);
-        ApiClient client = new ApiClient(this);
-        client.forwardToWarehouse(returnId, request, new ApiClient.ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void data) {
-                runOnUiThread(() -> {
-                    Toast.makeText(SalesReturnDetailActivity.this, "Przekazano do magazynu.", Toast.LENGTH_SHORT).show();
-                    loadDetails();
-                    loadActions();
-                });
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> Toast.makeText(SalesReturnDetailActivity.this, "Błąd przekazania: " + message, Toast.LENGTH_LONG).show());
-            }
-        });
     }
 
     private static class RejectionReasonItem {
@@ -449,13 +386,13 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                 new ReturnRejectionDto(selected.code, reasonText.isEmpty() ? null : reasonText)
         );
 
-        btnOdrzucZwrot.setEnabled(false);
+        btnReject.setEnabled(false);
         ApiClient client = new ApiClient(this);
         client.rejectReturn(returnId, request, new ApiClient.ApiCallback<Void>() {
             @Override
             public void onSuccess(Void data) {
                 runOnUiThread(() -> {
-                    btnOdrzucZwrot.setEnabled(true);
+                    btnReject.setEnabled(true);
                     Toast.makeText(SalesReturnDetailActivity.this, "Zwrot został odrzucony w Allegro.", Toast.LENGTH_SHORT).show();
                     loadDetails();
                     loadActions();
@@ -465,7 +402,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
-                    btnOdrzucZwrot.setEnabled(true);
+                    btnReject.setEnabled(true);
                     Toast.makeText(SalesReturnDetailActivity.this, "Błąd odrzucenia zwrotu: " + message, Toast.LENGTH_LONG).show();
                 });
             }
@@ -478,32 +415,32 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private int getSelectedDecisionId() {
-        int index = spinnerDecyzja.getSelectedItemPosition();
+    private int getDecisionIdFromSpinner(Spinner spinner) {
+        int index = spinner.getSelectedItemPosition();
         if (index < 0 || index >= decyzje.size()) {
             return 0;
         }
         return decyzje.get(index).getId();
     }
 
-    private String getSelectedDecisionName() {
-        int index = spinnerDecyzja.getSelectedItemPosition();
+    private String getDecisionNameFromSpinner(Spinner spinner) {
+        int index = spinner.getSelectedItemPosition();
         if (index < 0 || index >= decyzje.size()) {
             return "";
         }
         return decyzje.get(index).getNazwa();
     }
 
-    private void preselectDecision(Integer decisionId) {
+    private int getDecisionIndexById(Integer decisionId) {
         if (decisionId == null) {
-            return;
+            return -1;
         }
         for (int i = 0; i < decyzje.size(); i++) {
             if (decyzje.get(i).getId() == decisionId) {
-                spinnerDecyzja.setSelection(i);
-                return;
+                return i;
             }
         }
+        return -1;
     }
 
     private List<String> toStatusNames(List<StatusDto> statuses) {
@@ -512,13 +449,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             names.add(status.getNazwa());
         }
         return names;
-    }
-
-    private String formatDate(OffsetDateTime date) {
-        if (date == null) {
-            return "Brak";
-        }
-        return DATE_FORMAT.format(date);
     }
 
     private String safe(String value) {
@@ -555,8 +485,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private boolean isComplaintsDecisionSelected() {
-        String decisionName = getSelectedDecisionName();
+    private boolean isComplaintsDecisionSelected(String decisionName) {
         return "Przekaż do reklamacji".equalsIgnoreCase(decisionName);
     }
 }
