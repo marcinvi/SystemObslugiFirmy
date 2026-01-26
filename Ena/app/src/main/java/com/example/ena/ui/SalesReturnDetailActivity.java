@@ -54,7 +54,8 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private EditText editKomentarz;
     private EditText editNoweDzialanie;
     private Button btnDodajDzialanie;
-    private Button btnWyslijDecyzje;
+    private Button btnPodejmijDecyzje;
+    private Button btnPrzekazDoReklamacji;
     private Button btnAnuluj;
     private Button btnPrzekazDoMagazynu;
     private Button btnOdrzucZwrot;
@@ -87,7 +88,8 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         editKomentarz = findViewById(R.id.editKomentarz);
         editNoweDzialanie = findViewById(R.id.editNoweDzialanie);
         btnDodajDzialanie = findViewById(R.id.btnDodajDzialanie);
-        btnWyslijDecyzje = findViewById(R.id.btnWyslijDecyzje);
+        btnPodejmijDecyzje = findViewById(R.id.btnPodejmijDecyzje);
+        btnPrzekazDoReklamacji = findViewById(R.id.btnPrzekazDoReklamacji);
         btnAnuluj = findViewById(R.id.btnAnuluj);
         btnPrzekazDoMagazynu = findViewById(R.id.btnPrzekazDoMagazynu);
         btnOdrzucZwrot = findViewById(R.id.btnOdrzucZwrot);
@@ -100,7 +102,8 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         listActions.setAdapter(actionAdapter);
 
         btnAnuluj.setOnClickListener(v -> finish());
-        btnWyslijDecyzje.setOnClickListener(v -> confirmSubmitDecision());
+        btnPodejmijDecyzje.setOnClickListener(v -> confirmSubmitDecision(false));
+        btnPrzekazDoReklamacji.setOnClickListener(v -> confirmSubmitDecision(true));
         btnDodajDzialanie.setOnClickListener(v -> submitAction());
         btnPrzekazDoMagazynu.setOnClickListener(v -> promptForwardToWarehouse());
         btnOdrzucZwrot.setOnClickListener(v -> showRejectDialog());
@@ -240,20 +243,26 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         });
     }
 
-    private void confirmSubmitDecision() {
+    private void confirmSubmitDecision(boolean forwardToComplaints) {
         if (getSelectedDecisionId() <= 0) {
             Toast.makeText(this, "Wybierz decyzję handlowca.", Toast.LENGTH_SHORT).show();
             return;
         }
+        if (forwardToComplaints && !isComplaintsDecisionSelected()) {
+            Toast.makeText(this, "Wybierz decyzję 'Przekaż do reklamacji'.", Toast.LENGTH_SHORT).show();
+            return;
+        }
         new AlertDialog.Builder(this)
             .setTitle("Zatwierdź decyzję")
-            .setMessage("Czy na pewno chcesz zapisać decyzję dla tego zwrotu?")
-            .setPositiveButton("Zapisz", (dialog, which) -> submitDecision())
+            .setMessage(forwardToComplaints
+                ? "Czy na pewno chcesz zapisać decyzję i przekazać zwrot do reklamacji?"
+                : "Czy na pewno chcesz zapisać decyzję dla tego zwrotu?")
+            .setPositiveButton("Zapisz", (dialog, which) -> submitDecision(forwardToComplaints))
             .setNegativeButton("Anuluj", null)
             .show();
     }
 
-    private void submitDecision() {
+    private void submitDecision(boolean forwardToComplaints) {
         int decisionId = getSelectedDecisionId();
         if (decisionId <= 0) {
             Toast.makeText(this, "Wybierz decyzję handlowca.", Toast.LENGTH_SHORT).show();
@@ -264,15 +273,20 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         request.decyzjaId = decisionId;
         request.komentarz = TextUtils.isEmpty(comment) ? null : comment;
 
-        btnWyslijDecyzje.setEnabled(false);
+        btnPodejmijDecyzje.setEnabled(false);
+        btnPrzekazDoReklamacji.setEnabled(false);
         ApiClient client = new ApiClient(this);
         client.submitDecision(returnId, request, new ApiClient.ApiCallback<Void>() {
             @Override
             public void onSuccess(Void data) {
                 runOnUiThread(() -> {
-                    btnWyslijDecyzje.setEnabled(true);
-                    maybeForwardToComplaints();
-                    Toast.makeText(SalesReturnDetailActivity.this, "Decyzja została zapisana.", Toast.LENGTH_SHORT).show();
+                    btnPodejmijDecyzje.setEnabled(true);
+                    btnPrzekazDoReklamacji.setEnabled(true);
+                    if (forwardToComplaints) {
+                        forwardToComplaints();
+                    } else {
+                        Toast.makeText(SalesReturnDetailActivity.this, "Decyzja została zapisana.", Toast.LENGTH_SHORT).show();
+                    }
                     loadDetails();
                     loadActions();
                 });
@@ -281,22 +295,19 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
-                    btnWyslijDecyzje.setEnabled(true);
+                    btnPodejmijDecyzje.setEnabled(true);
+                    btnPrzekazDoReklamacji.setEnabled(true);
                     Toast.makeText(SalesReturnDetailActivity.this, "Błąd zapisu decyzji: " + message, Toast.LENGTH_LONG).show();
                 });
             }
         });
     }
 
-    private void maybeForwardToComplaints() {
-        String decisionName = getSelectedDecisionName();
-        if (!"Przekaż do reklamacji".equalsIgnoreCase(decisionName)) {
-            return;
-        }
+    private void forwardToComplaints() {
         if (details == null) {
             return;
         }
-        ForwardToComplaintRequest request = buildComplaintRequest(decisionName);
+        ForwardToComplaintRequest request = buildComplaintRequest();
         ApiClient client = new ApiClient(this);
         client.forwardToComplaints(returnId, request, new ApiClient.ApiCallback<Void>() {
             @Override
@@ -311,7 +322,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         });
     }
 
-    private ForwardToComplaintRequest buildComplaintRequest(String decisionName) {
+    private ForwardToComplaintRequest buildComplaintRequest() {
         String buyerName = safe(details.getBuyerName(), "");
         String[] nameParts = splitName(buyerName);
         String comment = editKomentarz.getText().toString().trim();
@@ -542,5 +553,10 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private boolean isComplaintsDecisionSelected() {
+        String decisionName = getSelectedDecisionName();
+        return "Przekaż do reklamacji".equalsIgnoreCase(decisionName);
     }
 }
