@@ -295,8 +295,7 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         boolean hasDecision = decyzja != null && !decyzja.trim().isEmpty();
         if (!hasDecision && statusWew != null) {
             String normalized = statusWew.toLowerCase(Locale.ROOT);
-            hasDecision = normalized.contains("oczekuje na realizację")
-                    || normalized.contains("zakończon")
+            hasDecision = normalized.contains("po decyzji")
                     || normalized.contains("archiwal");
         }
         if (hasDecision) {

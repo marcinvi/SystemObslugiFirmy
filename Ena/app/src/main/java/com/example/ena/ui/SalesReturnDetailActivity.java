@@ -45,6 +45,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private TextView txtCondition;
     private TextView txtWarehouseNotes;
     private LinearLayout decisionTemplatesContainer;
+    private EditText editDecisionComment;
     private ImageButton btnBack;
     private Button btnRefund;
     private Button btnReject;
@@ -56,11 +57,15 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private final List<DecisionItem> decyzje = new ArrayList<>();
     private ReturnDetailsDto details;
     private int returnId;
-    private static final String[] REQUIRED_DECISIONS = new String[]{
-            "Na półkę",
-            "Ponowna wysyłka",
-            "Reklamacje",
-            "Inne"
+    private static final String DECISION_KEY_SHELF = "NA_POLKE";
+    private static final String DECISION_KEY_RESHIPPING = "PONOWNA_WYSYLKA";
+    private static final String DECISION_KEY_COMPLAINTS = "REKLAMACJE";
+    private static final String DECISION_KEY_OTHER = "INNE";
+    private static final String[] REQUIRED_DECISION_KEYS = new String[]{
+            DECISION_KEY_SHELF,
+            DECISION_KEY_RESHIPPING,
+            DECISION_KEY_COMPLAINTS,
+            DECISION_KEY_OTHER
     };
 
     @Override
@@ -77,6 +82,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         txtCondition = findViewById(R.id.txtCondition);
         txtWarehouseNotes = findViewById(R.id.txtWarehouseNotes);
         decisionTemplatesContainer = findViewById(R.id.decisionTemplatesContainer);
+        editDecisionComment = findViewById(R.id.editDecisionComment);
         btnBack = findViewById(R.id.btnBack);
         btnRefund = findViewById(R.id.btnRefund);
         btnReject = findViewById(R.id.btnReject);
@@ -174,7 +180,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         if (details != null && details.isManual()) {
             showManualInfoDialog();
         } else {
-            ensureDecisionsThenShowDialog();
+            submitSelectedDecision();
         }
     }
 
@@ -184,6 +190,29 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             return;
         }
         loadDecyzje(this::showDecisionDialog);
+    }
+
+    private void submitSelectedDecision() {
+        if (decyzje.isEmpty()) {
+            loadDecyzje(this::submitSelectedDecision);
+            return;
+        }
+        if (selectedDecisionId == null) {
+            Toast.makeText(this, "Wybierz decyzję handlowca.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        DecisionItem selected = getDecisionById(selectedDecisionId);
+        if (selected == null) {
+            Toast.makeText(this, "Wybrana decyzja jest nieprawidłowa.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String comment = editDecisionComment != null ? editDecisionComment.getText().toString().trim() : "";
+        if (DECISION_KEY_OTHER.equalsIgnoreCase(selected.key) && comment.isEmpty()) {
+            Toast.makeText(this, "Dla decyzji 'Inne' wymagany jest komentarz.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        boolean forwardToComplaints = DECISION_KEY_COMPLAINTS.equalsIgnoreCase(selected.key);
+        submitDecision(selected.id, comment, forwardToComplaints);
     }
 
     private void showManualInfoDialog() {
@@ -240,9 +269,10 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                     }
                     if (!hasAllRequiredDecisions(data)) {
                         Toast.makeText(SalesReturnDetailActivity.this,
-                                "Brakuje wymaganych decyzji: Na półkę, Ponowna wysyłka, Reklamacje, Inne.",
+                                "Brakuje wymaganych decyzji: Na półkę, Na dział reklamacji, Ponowna wysyłka, Inne.",
                                 Toast.LENGTH_LONG).show();
                     }
+                    renderDecisionTemplates();
                     if (onLoaded != null) {
                         onLoaded.run();
                     }
@@ -253,6 +283,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             public void onError(String message) {
                 runOnUiThread(() -> {
                     Toast.makeText(SalesReturnDetailActivity.this, "Błąd statusów: " + message, Toast.LENGTH_LONG).show();
+                    renderDecisionTemplates();
                     if (onLoaded != null) {
                         onLoaded.run();
                     }
@@ -345,9 +376,9 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                 dialog.dismiss();
             });
             complaintsButton.setOnClickListener(v -> {
-                DecisionItem complaintDecision = getDecisionByName("Reklamacje");
+                DecisionItem complaintDecision = getDecisionByKey(DECISION_KEY_COMPLAINTS);
                 if (complaintDecision == null) {
-                    Toast.makeText(this, "Brak decyzji 'Reklamacje' w konfiguracji.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Brak decyzji 'Na dział reklamacji' w konfiguracji.", Toast.LENGTH_SHORT).show();
                     return;
                 }
                 submitDecision(complaintDecision.id, commentInput.getText().toString().trim(), true);
@@ -603,10 +634,10 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
 
     private boolean hasAllRequiredDecisions(List<StatusDto> statuses) {
         List<DecisionItem> source = statuses == null ? decyzje : buildDecisionItems(statuses);
-        for (String required : REQUIRED_DECISIONS) {
+        for (String required : REQUIRED_DECISION_KEYS) {
             boolean found = false;
             for (DecisionItem item : source) {
-                if (required.equalsIgnoreCase(item.displayName)) {
+                if (required.equalsIgnoreCase(item.key)) {
                     found = true;
                     break;
                 }
@@ -618,47 +649,46 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         return true;
     }
 
-    private DecisionItem getDecisionByName(String displayName) {
-        for (DecisionItem item : decyzje) {
-            if (item.displayName.equalsIgnoreCase(displayName)) {
-                return item;
-            }
-        }
-        return null;
-    }
-
     private List<DecisionItem> buildDecisionItems(List<StatusDto> statuses) {
         List<DecisionItem> result = new ArrayList<>();
         if (statuses == null) {
             return result;
         }
         for (StatusDto status : statuses) {
-            String normalized = normalizeDecisionName(status.getNazwa());
-            String displayName = normalized.isEmpty() ? status.getNazwa() : normalized;
-            result.add(new DecisionItem(status.getId(), displayName, status.getNazwa()));
+            String displayName = normalizeDecisionDisplayName(status.getNazwa());
+            String key = decisionKeyFromName(status.getNazwa());
+            result.add(new DecisionItem(status.getId(), displayName, status.getNazwa(), key));
         }
         return result;
     }
 
-    private String normalizeDecisionName(String name) {
+    private String normalizeDecisionDisplayName(String name) {
+        if (name == null) {
+            return "";
+        }
+        String trimmed = name.trim();
+        return trimmed;
+    }
+
+    private String decisionKeyFromName(String name) {
         if (name == null) {
             return "";
         }
         String trimmed = name.trim();
         switch (trimmed) {
             case "Na półkę":
-                return "Na półkę";
+                return DECISION_KEY_SHELF;
             case "Ponowna wysyłka":
             case "Ponowna wysylka":
-                return "Ponowna wysyłka";
+                return DECISION_KEY_RESHIPPING;
             case "Reklamacje":
             case "Przekaż do reklamacji":
             case "Przekaz do reklamacji":
             case "Na dział reklamacji":
             case "Na dzial reklamacji":
-                return "Reklamacje";
+                return DECISION_KEY_COMPLAINTS;
             case "Inne":
-                return "Inne";
+                return DECISION_KEY_OTHER;
             default:
                 return "";
         }
@@ -686,20 +716,47 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             );
             params.bottomMargin = margin;
             button.setLayoutParams(params);
-            button.setOnClickListener(v -> showDecisionDialogWithPreselect(item.id));
+            boolean isSelected = selectedDecisionId != null && selectedDecisionId == item.id;
+            if (isSelected) {
+                button.setBackgroundColor(0xFFBBDEFB);
+            }
+            button.setOnClickListener(v -> {
+                selectedDecisionId = item.id;
+                renderDecisionTemplates();
+            });
             decisionTemplatesContainer.addView(button);
         }
+    }
+
+    private DecisionItem getDecisionById(int id) {
+        for (DecisionItem item : decyzje) {
+            if (item.id == id) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private DecisionItem getDecisionByKey(String key) {
+        for (DecisionItem item : decyzje) {
+            if (item.key.equalsIgnoreCase(key)) {
+                return item;
+            }
+        }
+        return null;
     }
 
     private static class DecisionItem {
         final int id;
         final String displayName;
         final String dbName;
+        final String key;
 
-        DecisionItem(int id, String displayName, String dbName) {
+        DecisionItem(int id, String displayName, String dbName, String key) {
             this.id = id;
             this.displayName = displayName;
             this.dbName = dbName;
+            this.key = key == null ? "" : key;
         }
     }
 }

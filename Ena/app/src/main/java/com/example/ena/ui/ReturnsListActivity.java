@@ -258,7 +258,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         });
 
         setActiveFilter(btnFilterWszystkie);
-        currentStatusWewnetrzny = null;
+        currentStatusWewnetrzny = "9";
         currentStatusAllegro = null;
     }
 
