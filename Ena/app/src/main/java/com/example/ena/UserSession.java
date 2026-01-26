@@ -21,6 +21,22 @@ public class UserSession {
     private UserSession() {
     }
 
+    // --- NOWE METODY NAPRAWIAJĄCE BŁĄD W MAINACTIVITY ---
+
+    public static String getUserName(Context context) {
+        String displayName = getDisplayName(context);
+        if (displayName != null && !displayName.trim().isEmpty()) {
+            return displayName;
+        }
+        return getLogin(context);
+    }
+
+    public static void logout(Context context) {
+        clear(context);
+    }
+
+    // ----------------------------------------------------
+
     public static void saveLogin(Context context, String login, String displayName, int userId, String token, String refreshToken) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         prefs.edit()
@@ -87,7 +103,6 @@ public class UserSession {
                 }
             }
         } catch (org.json.JSONException ignored) {
-            // ignore corrupted storage
         }
         return logins;
     }
