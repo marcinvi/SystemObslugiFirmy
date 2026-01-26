@@ -13,8 +13,6 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
-
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -33,9 +31,8 @@ import com.example.ena.api.ReturnDetailsDto;
 import com.example.ena.api.RejectCustomerReturnRequest;
 import com.example.ena.api.ReturnRejectionDto;
 import com.example.ena.api.StatusDto;
+import com.example.ena.api.ReturnForwardToWarehouseRequest;
 
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -92,7 +89,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
         btnRefund.setOnClickListener(v -> openRefundPayment());
         btnReject.setOnClickListener(v -> showRejectDialog());
-        btnComplaint.setOnClickListener(v -> showDecisionDialog());
+        btnComplaint.setOnClickListener(v -> handlePrimaryAction());
 
         loadDecyzje();
         loadDetails();
@@ -140,10 +137,62 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
 
         txtCondition.setText("Stan: " + safe(details.getStanProduktuName(), "Brak"));
         txtWarehouseNotes.setText(safe(details.getUwagiMagazynu(), "Brak"));
+        boolean isManual = details.isManual();
         boolean hasAllegroReturn = details.getAllegroReturnId() != null && !details.getAllegroReturnId().isEmpty();
         boolean hasOrderId = details.getOrderId() != null && !details.getOrderId().isEmpty();
-        btnReject.setVisibility(hasAllegroReturn ? View.VISIBLE : View.GONE);
-        btnRefund.setVisibility(hasOrderId ? View.VISIBLE : View.GONE);
+        btnReject.setVisibility(!isManual && hasAllegroReturn ? View.VISIBLE : View.GONE);
+        btnRefund.setVisibility(!isManual && hasOrderId ? View.VISIBLE : View.GONE);
+        if (isManual) {
+            btnComplaint.setText("WYŚLIJ INFORMACJE O ZWROCIE");
+        } else {
+            btnComplaint.setText("DECYZJA HANDLOWCA");
+        }
+    }
+
+    private void handlePrimaryAction() {
+        if (details != null && details.isManual()) {
+            showManualInfoDialog();
+        } else {
+            showDecisionDialog();
+        }
+    }
+
+    private void showManualInfoDialog() {
+        EditText commentInput = new EditText(this);
+        commentInput.setHint("Dodatkowy komentarz (opcjonalnie)");
+
+        new AlertDialog.Builder(this)
+                .setTitle("Wyślij informacje o zwrocie")
+                .setView(commentInput)
+                .setPositiveButton("Wyślij", (dialog, which) -> submitManualInfo(commentInput.getText().toString().trim()))
+                .setNegativeButton("Anuluj", null)
+                .show();
+    }
+
+    private void submitManualInfo(String comment) {
+        btnComplaint.setEnabled(false);
+        ApiClient client = new ApiClient(this);
+        ReturnForwardToWarehouseRequest request = new ReturnForwardToWarehouseRequest(
+                TextUtils.isEmpty(comment) ? null : comment
+        );
+        client.forwardToWarehouse(returnId, request, new ApiClient.ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void data) {
+                runOnUiThread(() -> {
+                    btnComplaint.setEnabled(true);
+                    Toast.makeText(SalesReturnDetailActivity.this, "Informacja o zwrocie została wysłana.", Toast.LENGTH_SHORT).show();
+                    loadActions();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    btnComplaint.setEnabled(true);
+                    Toast.makeText(SalesReturnDetailActivity.this, "Błąd wysyłki informacji: " + message, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
 
     private void loadDecyzje() {

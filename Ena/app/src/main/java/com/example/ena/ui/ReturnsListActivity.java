@@ -34,7 +34,6 @@ import com.journeyapps.barcodescanner.ScanIntentResult;
 import com.journeyapps.barcodescanner.ScanOptions;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.IntConsumer;
 import java.util.regex.Matcher;
@@ -68,7 +67,6 @@ public class ReturnsListActivity extends AppCompatActivity {
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private String currentStatusWewnetrzny;
     private String currentStatusAllegro;
-    private boolean deliveredOnly;
     private int pendingCount;
     private int completedCount;
     private String pendingManualCode;
@@ -111,7 +109,15 @@ public class ReturnsListActivity extends AppCompatActivity {
 
         RecyclerView recyclerView = findViewById(R.id.listReturns);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new ReturnListAdapter(this::openDetails);
+        ReturnListAdapter.DisplayMode displayMode;
+        if ("sales".equals(mode)) {
+            displayMode = ReturnListAdapter.DisplayMode.WAREHOUSE_STATUS;
+        } else if ("warehouse".equals(mode)) {
+            displayMode = ReturnListAdapter.DisplayMode.WAREHOUSE_SCANNER;
+        } else {
+            displayMode = ReturnListAdapter.DisplayMode.DECISION;
+        }
+        adapter = new ReturnListAdapter(this::openDetails, displayMode);
         recyclerView.setAdapter(adapter);
 
         setupFilters();
@@ -147,77 +153,16 @@ public class ReturnsListActivity extends AppCompatActivity {
             setupSalesFilters();
             return;
         }
-        List<String> statuses = Arrays.asList(
-                "Wszystkie",
-                "Dostarczono",
-                "W drodze",
-                "Gotowy do odbioru",
-                "Utworzono",
-                "Zwrócono prowizję"
-        );
-        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
-                this,
-                android.R.layout.simple_spinner_item,
-                statuses
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerStatusAllegro.setAdapter(adapter);
-
-        btnFilterOczekujace.setOnClickListener(v -> {
-            deliveredOnly = true;
-            currentStatusWewnetrzny = "Oczekuje na przyjęcie";
-            setActiveFilter(btnFilterOczekujace);
-            loadReturns();
-        });
-        btnFilterNaDecyzje.setOnClickListener(v -> {
-            deliveredOnly = false;
-            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
-            setActiveFilter(btnFilterNaDecyzje);
-            loadReturns();
-        });
-        btnFilterPoDecyzji.setOnClickListener(v -> {
-            deliveredOnly = false;
-            currentStatusWewnetrzny = "Zakończony";
-            setActiveFilter(btnFilterPoDecyzji);
-            loadReturns();
-        });
-        btnFilterWDrodze.setOnClickListener(v -> {
-            deliveredOnly = false;
-            currentStatusWewnetrzny = null;
-            currentStatusAllegro = "IN_TRANSIT";
-            spinnerStatusAllegro.setSelection(2);
-            setActiveFilter(btnFilterWDrodze);
-            loadReturns();
-        });
-        btnFilterWszystkie.setOnClickListener(v -> {
-            deliveredOnly = false;
-            currentStatusWewnetrzny = null;
-            currentStatusAllegro = null;
-            spinnerStatusAllegro.setSelection(0);
-            setActiveFilter(btnFilterWszystkie);
-            loadReturns();
-        });
-
-        spinnerStatusAllegro.setSelection(0);
-        spinnerStatusAllegro.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                if (position == 0) {
-                    currentStatusAllegro = null;
-                } else {
-                    currentStatusAllegro = translateStatusToApi(parent.getItemAtPosition(position).toString());
-                }
-                loadReturns();
-            }
-
-            @Override
-            public void onNothingSelected(android.widget.AdapterView<?> parent) {
-            }
-        });
-
-        setActiveFilter(btnFilterPoDecyzji);
-        currentStatusWewnetrzny = "Zakończony";
-        deliveredOnly = false;
+        if ("warehouse".equals(mode)) {
+            setupWarehouseFilters();
+            return;
+        }
+        spinnerStatusAllegro.setVisibility(View.GONE);
+        btnFilterOczekujace.setVisibility(View.GONE);
+        btnFilterNaDecyzje.setVisibility(View.GONE);
+        btnFilterPoDecyzji.setVisibility(View.GONE);
+        btnFilterWDrodze.setVisibility(View.GONE);
+        btnFilterWszystkie.setVisibility(View.GONE);
     }
 
     private void setupSalesFilters() {
@@ -230,14 +175,12 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnFilterPoDecyzji.setText("Zakończone");
 
         btnFilterNaDecyzje.setOnClickListener(v -> {
-            deliveredOnly = false;
             currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
             currentStatusAllegro = null;
             setActiveFilter(btnFilterNaDecyzje);
             loadReturns();
         });
         btnFilterPoDecyzji.setOnClickListener(v -> {
-            deliveredOnly = false;
             currentStatusWewnetrzny = "Zakończony";
             currentStatusAllegro = null;
             setActiveFilter(btnFilterPoDecyzji);
@@ -247,8 +190,38 @@ public class ReturnsListActivity extends AppCompatActivity {
         setActiveFilter(btnFilterNaDecyzje);
         currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
         currentStatusAllegro = null;
-        deliveredOnly = false;
         updateSalesCounts();
+    }
+
+    private void setupWarehouseFilters() {
+        spinnerStatusAllegro.setVisibility(View.GONE);
+        btnFilterNaDecyzje.setVisibility(View.GONE);
+        btnFilterPoDecyzji.setVisibility(View.GONE);
+
+        btnFilterOczekujace.setText("Dostarczone");
+
+        btnFilterOczekujace.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = "DELIVERED";
+            setActiveFilter(btnFilterOczekujace);
+            loadReturns();
+        });
+        btnFilterWDrodze.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = "IN_TRANSIT";
+            setActiveFilter(btnFilterWDrodze);
+            loadReturns();
+        });
+        btnFilterWszystkie.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterWszystkie);
+            loadReturns();
+        });
+
+        setActiveFilter(btnFilterOczekujace);
+        currentStatusWewnetrzny = null;
+        currentStatusAllegro = "DELIVERED";
     }
 
     private void setupSearch() {
@@ -399,8 +372,6 @@ public class ReturnsListActivity extends AppCompatActivity {
         String statusAll = currentStatusAllegro;
         if (statusAll != null && !statusAll.isEmpty()) {
             sb.append("&statusAllegro=").append(encode(statusAll));
-        } else if (deliveredOnly) {
-            sb.append("&statusAllegro=DELIVERED");
         }
 
         return sb.toString();
@@ -432,15 +403,6 @@ public class ReturnsListActivity extends AppCompatActivity {
                 runOnUiThread(() -> callback.accept(0));
             }
         });
-    }
-
-    private String translateStatusToApi(String status) {
-        if ("Dostarczono".equals(status)) return "DELIVERED";
-        if ("W drodze".equals(status)) return "IN_TRANSIT";
-        if ("Gotowy do odbioru".equals(status)) return "READY_FOR_PICKUP";
-        if ("Utworzono".equals(status)) return "CREATED";
-        if ("Zwrócono prowizję".equals(status)) return "COMMISSION_REFUNDED";
-        return status;
     }
 
     private void startCodeScan() {

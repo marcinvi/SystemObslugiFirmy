@@ -1,17 +1,14 @@
 package com.example.ena.ui;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -21,8 +18,6 @@ import com.example.ena.api.ApiClient;
 import com.example.ena.api.PaginatedResponse;
 import com.example.ena.api.ReturnListItemDto;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 public class SummaryActivity extends AppCompatActivity {
@@ -35,15 +30,9 @@ public class SummaryActivity extends AppCompatActivity {
     private TextView txtNoData;
     private ImageButton btnBack, btnRefresh;
 
-    // Filtry
-    private Button btnFilterPending;
-    private Button btnFilterAction;
-    private Button btnFilterDone;
-    private Button btnFilterOther;
-
     // Logika
     private ApiClient apiClient;
-    private String currentStatusFilter = "Oczekuje na decyzję handlowca"; // Domyślny start
+    private View filtersContainer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,9 +44,6 @@ public class SummaryActivity extends AppCompatActivity {
         initViews();
         setupRecyclerView();
         setupFilters();
-
-        // Ładujemy domyślny widok
-        updateFilterVisuals(btnFilterPending);
         loadReturns();
     }
 
@@ -68,11 +54,7 @@ public class SummaryActivity extends AppCompatActivity {
         txtNoData = findViewById(R.id.txtNoData);
         btnBack = findViewById(R.id.btnBack);
         btnRefresh = findViewById(R.id.btnRefresh);
-
-        btnFilterPending = findViewById(R.id.btnFilterPending);
-        btnFilterAction = findViewById(R.id.btnFilterAction);
-        btnFilterDone = findViewById(R.id.btnFilterDone);
-        btnFilterOther = findViewById(R.id.btnFilterOther);
+        filtersContainer = findViewById(R.id.summaryFilters);
 
         btnBack.setOnClickListener(v -> finish());
         btnRefresh.setOnClickListener(v -> loadReturns());
@@ -88,68 +70,15 @@ public class SummaryActivity extends AppCompatActivity {
         adapter = new ReturnListAdapter(item -> {
             Intent intent = new Intent(this, ReturnDetailActivity.class);
             intent.putExtra("return_id", item.getId());
+            intent.putExtra(ReturnDetailActivity.EXTRA_READ_ONLY, true);
             startActivity(intent);
-        });
+        }, ReturnListAdapter.DisplayMode.SUMMARY);
         recyclerView.setAdapter(adapter);
     }
 
     private void setupFilters() {
-        // 1. Oczekujące (na Handlowca)
-        btnFilterPending.setOnClickListener(v -> {
-            currentStatusFilter = "Oczekuje na decyzję handlowca";
-            updateFilterVisuals(btnFilterPending);
-            loadReturns();
-        });
-
-        // 2. Po decyzji (czyli "Oczekuje na realizację" przez Magazyn)
-        btnFilterAction.setOnClickListener(v -> {
-            currentStatusFilter = "Oczekuje na realizację";
-            updateFilterVisuals(btnFilterAction);
-            loadReturns();
-        });
-
-        // 3. Zakończone
-        btnFilterDone.setOnClickListener(v -> {
-            currentStatusFilter = "Zakończony";
-            updateFilterVisuals(btnFilterDone);
-            loadReturns();
-        });
-
-        // 4. Problemy / Inne (Czerwone) - filtrujemy np. Reklamacje
-        btnFilterOther.setOnClickListener(v -> {
-            currentStatusFilter = "Reklamacja";
-            updateFilterVisuals(btnFilterOther);
-            loadReturns();
-        });
-    }
-
-    private void updateFilterVisuals(Button active) {
-        Button[] buttons = {btnFilterPending, btnFilterAction, btnFilterDone, btnFilterOther};
-
-        int colorPrimary = ContextCompat.getColor(this, R.color.primary_color);
-        if (colorPrimary == 0) colorPrimary = Color.parseColor("#1976D2");
-        int colorRed = Color.parseColor("#D32F2F");
-        int colorGray = Color.parseColor("#E0E0E0");
-        int textGray = Color.parseColor("#333333");
-
-        for (Button btn : buttons) {
-            if (btn == active) {
-                // Aktywny przycisk
-                if (btn == btnFilterOther) {
-                    btn.setBackgroundColor(colorRed); // Czerwony dla "Inne"
-                } else {
-                    btn.setBackgroundColor(colorPrimary); // Niebieski dla reszty
-                }
-                btn.setTextColor(Color.WHITE);
-            } else {
-                // Nieaktywny przycisk
-                btn.setBackgroundColor(colorGray);
-                if (btn == btnFilterOther) {
-                    btn.setTextColor(colorRed); // Czerwony tekst dla nieaktywnego "Inne"
-                } else {
-                    btn.setTextColor(textGray);
-                }
-            }
+        if (filtersContainer != null) {
+            filtersContainer.setVisibility(View.GONE);
         }
     }
 
@@ -159,9 +88,6 @@ public class SummaryActivity extends AppCompatActivity {
 
         // Budujemy zapytanie
         String query = "?page=1&pageSize=50&sortDesc=true";
-        if (currentStatusFilter != null && !currentStatusFilter.isEmpty()) {
-            query += "&statusWewnetrzny=" + encode(currentStatusFilter);
-        }
 
         // Pobieramy WSZYSTKIE zwroty (fetchReturns), bo to podgląd ogólny
         apiClient.fetchReturns(query, new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
@@ -193,11 +119,4 @@ public class SummaryActivity extends AppCompatActivity {
         });
     }
 
-    private String encode(String value) {
-        try {
-            return URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
-        } catch (Exception e) {
-            return value;
-        }
-    }
 }

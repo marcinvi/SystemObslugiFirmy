@@ -30,6 +30,7 @@ import java.util.List;
 
 public class ReturnDetailActivity extends AppCompatActivity {
     public static final String EXTRA_RETURN_ID = "return_id";
+    public static final String EXTRA_READ_ONLY = "read_only";
 
     private TextView txtHeaderNumber;
     private TextView txtHeaderStatus;
@@ -58,6 +59,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private ReturnDetailsDto details;
     private final List<StatusDto> stanProduktuStatuses = new ArrayList<>();
     private ReturnActionAdapter actionAdapter;
+    private boolean isReadOnly;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +67,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_return_detail);
 
         returnId = getIntent().getIntExtra(EXTRA_RETURN_ID, 0);
+        isReadOnly = getIntent().getBooleanExtra(EXTRA_READ_ONLY, false);
         txtHeaderNumber = findViewById(R.id.txtHeaderNumber);
         txtHeaderStatus = findViewById(R.id.txtHeaderStatus);
         txtProductName = findViewById(R.id.txtProductName);
@@ -101,6 +104,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
         btnCloseReturn.setOnClickListener(v -> confirmCloseReturn());
         btnAddResendInfo.setOnClickListener(v -> showResendInfoDialog());
         btnCancel.setOnClickListener(v -> finish());
+
+        if (isReadOnly) {
+            btnForwardToSales.setVisibility(View.GONE);
+            btnCloseReturn.setVisibility(View.GONE);
+        }
 
         loadStatuses();
         loadDetails();

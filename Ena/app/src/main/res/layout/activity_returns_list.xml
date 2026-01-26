@@ -138,7 +138,7 @@
                     android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_spinner"
-                    android:text="Do przyjęcia"
+                    android:text="Dostarczone"
                     android:textAllCaps="false"
                     android:textSize="12sp"
                     style="?android:attr/borderlessButtonStyle"/>
