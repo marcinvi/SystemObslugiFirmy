@@ -50,6 +50,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private Button btnReject;
     private Button btnComplaint;
     private ProgressBar progressBar;
+    private Integer selectedDecisionId;
 
     private ReturnActionAdapter actionAdapter;
     private final List<DecisionItem> decyzje = new ArrayList<>();
@@ -138,6 +139,13 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
 
         txtCondition.setText("Stan: " + safe(details.getStanProduktuName(), "Brak"));
         txtWarehouseNotes.setText(safe(details.getUwagiMagazynu(), "Brak"));
+        if (editDecisionComment != null) {
+            editDecisionComment.setText(safe(details.getKomentarzHandlowca()));
+        }
+        if (details.getDecyzjaHandlowcaId() != null) {
+            selectedDecisionId = details.getDecyzjaHandlowcaId();
+        }
+        renderDecisionTemplates();
         boolean isManual = details.isManual();
         boolean hasAllegroReturn = details.getAllegroReturnId() != null && !details.getAllegroReturnId().isEmpty();
         boolean hasOrderId = details.getOrderId() != null && !details.getOrderId().isEmpty();
@@ -145,8 +153,20 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         btnRefund.setVisibility(!isManual && hasOrderId ? View.VISIBLE : View.GONE);
         if (isManual) {
             btnComplaint.setText("WYŚLIJ INFORMACJE O ZWROCIE");
+            if (decisionTemplatesContainer != null) {
+                decisionTemplatesContainer.setVisibility(View.GONE);
+            }
+            if (editDecisionComment != null) {
+                editDecisionComment.setVisibility(View.GONE);
+            }
         } else {
-            btnComplaint.setText("REKLAMACJA / INNE");
+            btnComplaint.setText("ZATWIERDŹ DECYZJĘ");
+            if (decisionTemplatesContainer != null) {
+                decisionTemplatesContainer.setVisibility(View.VISIBLE);
+            }
+            if (editDecisionComment != null) {
+                editDecisionComment.setVisibility(View.VISIBLE);
+            }
         }
     }
 

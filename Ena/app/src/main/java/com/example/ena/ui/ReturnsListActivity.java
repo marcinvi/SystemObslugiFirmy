@@ -239,19 +239,19 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnFilterOczekujace.setText("Dostarczone");
 
         btnFilterOczekujace.setOnClickListener(v -> {
-            currentStatusWewnetrzny = null;
+            currentStatusWewnetrzny = "9";
             currentStatusAllegro = "DELIVERED";
             setActiveFilter(btnFilterOczekujace);
             loadReturns();
         });
         btnFilterWDrodze.setOnClickListener(v -> {
-            currentStatusWewnetrzny = null;
+            currentStatusWewnetrzny = "9";
             currentStatusAllegro = "IN_TRANSIT";
             setActiveFilter(btnFilterWDrodze);
             loadReturns();
         });
         btnFilterWszystkie.setOnClickListener(v -> {
-            currentStatusWewnetrzny = null;
+            currentStatusWewnetrzny = "9";
             currentStatusAllegro = null;
             setActiveFilter(btnFilterWszystkie);
             loadReturns();
