@@ -1,6 +1,5 @@
 package com.example.ena.ui;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -145,7 +144,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         if (isManual) {
             btnComplaint.setText("WYŚLIJ INFORMACJE O ZWROCIE");
         } else {
-            btnComplaint.setText("DECYZJA HANDLOWCA");
+            btnComplaint.setText("REKLAMACJA / INNE");
         }
     }
 

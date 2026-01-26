@@ -109,14 +109,9 @@ public class ReturnsListActivity extends AppCompatActivity {
 
         RecyclerView recyclerView = findViewById(R.id.listReturns);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        ReturnListAdapter.DisplayMode displayMode;
-        if ("sales".equals(mode)) {
-            displayMode = ReturnListAdapter.DisplayMode.WAREHOUSE_STATUS;
-        } else if ("warehouse".equals(mode)) {
-            displayMode = ReturnListAdapter.DisplayMode.WAREHOUSE_SCANNER;
-        } else {
-            displayMode = ReturnListAdapter.DisplayMode.DECISION;
-        }
+        ReturnListAdapter.DisplayMode displayMode = "sales".equals(mode)
+                ? ReturnListAdapter.DisplayMode.WAREHOUSE_STATUS
+                : ReturnListAdapter.DisplayMode.DECISION;
         adapter = new ReturnListAdapter(this::openDetails, displayMode);
         recyclerView.setAdapter(adapter);
 
@@ -153,16 +148,42 @@ public class ReturnsListActivity extends AppCompatActivity {
             setupSalesFilters();
             return;
         }
-        if ("warehouse".equals(mode)) {
-            setupWarehouseFilters();
-            return;
-        }
         spinnerStatusAllegro.setVisibility(View.GONE);
-        btnFilterOczekujace.setVisibility(View.GONE);
-        btnFilterNaDecyzje.setVisibility(View.GONE);
-        btnFilterPoDecyzji.setVisibility(View.GONE);
-        btnFilterWDrodze.setVisibility(View.GONE);
-        btnFilterWszystkie.setVisibility(View.GONE);
+
+        btnFilterOczekujace.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = "DELIVERED";
+            setActiveFilter(btnFilterOczekujace);
+            loadReturns();
+        });
+        btnFilterNaDecyzje.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterNaDecyzje);
+            loadReturns();
+        });
+        btnFilterPoDecyzji.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Oczekuje na realizację";
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterPoDecyzji);
+            loadReturns();
+        });
+        btnFilterWDrodze.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = "IN_TRANSIT";
+            setActiveFilter(btnFilterWDrodze);
+            loadReturns();
+        });
+        btnFilterWszystkie.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterWszystkie);
+            loadReturns();
+        });
+
+        setActiveFilter(btnFilterPoDecyzji);
+        currentStatusWewnetrzny = "Oczekuje na realizację";
+        currentStatusAllegro = null;
     }
 
     private void setupSalesFilters() {

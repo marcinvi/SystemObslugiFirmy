@@ -21,9 +21,7 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
 
     public enum DisplayMode {
         DECISION,
-        WAREHOUSE_STATUS,
-        WAREHOUSE_SCANNER,
-        SUMMARY
+        WAREHOUSE_STATUS
     }
 
     public interface OnItemClickListener {
@@ -48,7 +46,25 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         if (data != null) {
             items.addAll(data);
         }
-        items.sort((left, right) -> compareItems(left, right));
+        items.sort((left, right) -> {
+            int leftPriority = statusPriority(left);
+            int rightPriority = statusPriority(right);
+            if (leftPriority != rightPriority) {
+                return Integer.compare(leftPriority, rightPriority);
+            }
+            OffsetDateTime leftDate = left.getCreatedAt();
+            OffsetDateTime rightDate = right.getCreatedAt();
+            if (leftDate == null && rightDate == null) {
+                return 0;
+            }
+            if (leftDate == null) {
+                return 1;
+            }
+            if (rightDate == null) {
+                return -1;
+            }
+            return rightDate.compareTo(leftDate);
+        });
         notifyDataSetChanged();
     }
 
@@ -66,7 +82,7 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         holder.txtProduct.setText(item.getProductName() != null ? item.getProductName() : "Brak produktu");
         holder.txtBuyer.setText(item.getBuyerName() != null ? item.getBuyerName() : "");
         holder.txtDate.setText(formatDate(item.getCreatedAt()));
-        holder.txtStatusAllegro.setText(formatSecondaryLine(item));
+        holder.txtStatusAllegro.setText(formatStatusAllegro(item));
 
         String labelText = resolveActionLabel(item);
         holder.txtAction.setText(labelText.toUpperCase(Locale.ROOT));
@@ -126,6 +142,9 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         if (normalized.isEmpty() || normalized.contains("brak")) {
             return DecisionStyle.NEUTRAL;
         }
+        if (displayMode == DisplayMode.WAREHOUSE_STATUS) {
+            return DecisionStyle.NEUTRAL;
+        }
         if (normalized.contains("półk") || normalized.contains("polk")) {
             return DecisionStyle.STOCK;
         }
@@ -164,17 +183,11 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
             String stan = item.getStanProduktu();
             return stan == null || stan.trim().isEmpty() ? "Brak oceny magazynu" : "Stan produktu: " + stan;
         }
-        if (displayMode == DisplayMode.WAREHOUSE_SCANNER) {
-            return translateStatusAllegro(normalizeStatus(item));
-        }
         String decision = item.getDecyzjaHandlowca();
         return decision == null || decision.trim().isEmpty() ? "Brak decyzji" : decision;
     }
 
-    private String formatSecondaryLine(ReturnListItemDto item) {
-        if (displayMode == DisplayMode.WAREHOUSE_SCANNER) {
-            return "Nr listu: " + resolveWaybill(item);
-        }
+    private String formatStatusAllegro(ReturnListItemDto item) {
         if (item == null) {
             return "Status: -";
         }
@@ -189,9 +202,6 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
     }
 
     private String translateStatusAllegro(String status) {
-        if (status == null || status.trim().isEmpty()) {
-            return "Brak statusu";
-        }
         switch (status) {
             case "CREATED":
                 return "Utworzono";
@@ -218,60 +228,6 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         }
     }
 
-    private String resolveWaybill(ReturnListItemDto item) {
-        if (item == null) {
-            return "Brak";
-        }
-        String waybill = item.getWaybill();
-        return waybill == null || waybill.trim().isEmpty() ? "Brak" : waybill.trim();
-    }
-
-    private String normalizeStatus(ReturnListItemDto item) {
-        if (item == null) {
-            return "";
-        }
-        String status = item.getStatusAllegro();
-        return status == null ? "" : status.trim();
-    }
-
-    private DecisionStyle resolveWarehouseStatusStyle(String statusLabel) {
-        String normalized = statusLabel == null ? "" : statusLabel.trim().toLowerCase();
-        if (normalized.contains("dostarcz")) {
-            return DecisionStyle.STOCK;
-        }
-        if (normalized.contains("w drodze")) {
-            return DecisionStyle.COMPLAINT;
-        }
-        return DecisionStyle.NEUTRAL;
-    }
-
-    private int compareItems(ReturnListItemDto left, ReturnListItemDto right) {
-        int leftPriority = priorityForMode(left);
-        int rightPriority = priorityForMode(right);
-        if (leftPriority != rightPriority) {
-            return Integer.compare(leftPriority, rightPriority);
-        }
-        OffsetDateTime leftDate = left != null ? left.getCreatedAt() : null;
-        OffsetDateTime rightDate = right != null ? right.getCreatedAt() : null;
-        if (leftDate == null && rightDate == null) {
-            return 0;
-        }
-        if (leftDate == null) {
-            return 1;
-        }
-        if (rightDate == null) {
-            return -1;
-        }
-        return rightDate.compareTo(leftDate);
-    }
-
-    private int priorityForMode(ReturnListItemDto item) {
-        if (displayMode == DisplayMode.SUMMARY) {
-            return summaryPriority(item);
-        }
-        return statusPriority(item);
-    }
-
     private int statusPriority(ReturnListItemDto item) {
         if (item == null) {
             return 3;
@@ -290,20 +246,5 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
             default:
                 return 3;
         }
-    }
-
-    private int summaryPriority(ReturnListItemDto item) {
-        if (item == null) {
-            return 2;
-        }
-        String decyzja = item.getDecyzjaHandlowca();
-        if (decyzja != null && !decyzja.trim().isEmpty()) {
-            return 0;
-        }
-        String statusWew = item.getStatusWewnetrzny();
-        if ("Oczekuje na decyzję handlowca".equalsIgnoreCase(statusWew)) {
-            return 1;
-        }
-        return 2;
     }
 }
