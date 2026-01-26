@@ -233,11 +233,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
             return;
         }
         new AlertDialog.Builder(this)
-            .setTitle("Przekaż do reklamacji")
-            .setMessage("Czy na pewno chcesz przekazać zwrot do działu reklamacji?")
-            .setPositiveButton("Przekaż", (dialog, which) -> submitForwardToComplaints())
-            .setNegativeButton("Anuluj", null)
-            .show();
+                .setTitle("Przekaż do reklamacji")
+                .setMessage("Czy na pewno chcesz przekazać zwrot do działu reklamacji?")
+                .setPositiveButton("Przekaż", (dialog, which) -> submitForwardToComplaints())
+                .setNegativeButton("Anuluj", null)
+                .show();
     }
 
     private void submitForwardToSales() {
@@ -327,11 +327,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
     private void confirmCloseReturn() {
         new AlertDialog.Builder(this)
-            .setTitle("Zamknij zwrot")
-            .setMessage("Czy potwierdzasz wykonanie decyzji i zamknięcie zwrotu?")
-            .setPositiveButton("Zamknij", (dialog, which) -> closeReturn())
-            .setNegativeButton("Anuluj", null)
-            .show();
+                .setTitle("Zamknij zwrot")
+                .setMessage("Czy potwierdzasz wykonanie decyzji i zamknięcie zwrotu?")
+                .setPositiveButton("Zamknij", (dialog, which) -> closeReturn())
+                .setNegativeButton("Anuluj", null)
+                .show();
     }
 
     private void closeReturn() {
@@ -363,14 +363,14 @@ public class ReturnDetailActivity extends AppCompatActivity {
         EditText editDate = view.findViewById(R.id.editResendDate);
         EditText editWaybill = view.findViewById(R.id.editResendWaybill);
         new AlertDialog.Builder(this)
-            .setTitle("Ponowna wysyłka")
-            .setView(view)
-            .setPositiveButton("Zapisz", (dialog, which) -> submitResendInfo(
-                editDate.getText().toString().trim(),
-                editWaybill.getText().toString().trim()
-            ))
-            .setNegativeButton("Anuluj", null)
-            .show();
+                .setTitle("Ponowna wysyłka")
+                .setView(view)
+                .setPositiveButton("Zapisz", (dialog, which) -> submitResendInfo(
+                        editDate.getText().toString().trim(),
+                        editWaybill.getText().toString().trim()
+                ))
+                .setNegativeButton("Anuluj", null)
+                .show();
     }
 
     private void submitResendInfo(String date, String waybill) {
@@ -490,5 +490,75 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private String buildAssignedSalesLabel(ReturnDetailsDto data) {
+        String assignedName = safe(data.getAssignedSalesName());
+        String assignedId = data.getAssignedSalesId() != null ? String.valueOf(data.getAssignedSalesId()) : "";
+        if (!assignedName.isEmpty()) {
+            return assignedId.isEmpty() ? assignedName : assignedName + " (ID: " + assignedId + ")";
+        }
+        if (!assignedId.isEmpty()) {
+            return "ID: " + assignedId;
+        }
+        return "Brak informacji";
+    }
+
+    private ForwardToComplaintRequest buildComplaintRequest() {
+        String buyerName = safe(details.getBuyerName(), "");
+        String[] nameParts = splitName(buyerName);
+        ComplaintAddressDto address = new ComplaintAddressDto(
+                safe(details.getBuyerAddress(), details.getBuyerAddressRaw()),
+                null,
+                null
+        );
+        ComplaintCustomerDto customer = new ComplaintCustomerDto(
+                nameParts[0],
+                nameParts[1],
+                null,
+                emptyToNull(details.getBuyerPhone()),
+                address
+        );
+        ComplaintProductDto product = new ComplaintProductDto(
+                safe(details.getProductName(), "Nieznany produkt"),
+                emptyToNull(details.getInvoiceNumber()),
+                null
+        );
+        String przekazal = PairingManager.getPairedUser(this);
+        if (przekazal == null || przekazal.trim().isEmpty()) {
+            przekazal = "Magazyn";
+        }
+        return new ForwardToComplaintRequest(
+                returnId,
+                emptyToNull(details.getReason()),
+                emptyToNull(details.getUwagiMagazynu()),
+                null,
+                przekazal,
+                customer,
+                product
+        );
+    }
+
+    private String[] splitName(String fullName) {
+        if (fullName == null) {
+            return new String[] { "", "" };
+        }
+        String trimmed = fullName.trim();
+        if (trimmed.isEmpty()) {
+            return new String[] { "", "" };
+        }
+        String[] parts = trimmed.split("\\s+", 2);
+        if (parts.length == 1) {
+            return new String[] { parts[0], "" };
+        }
+        return parts;
+    }
+
+    private String emptyToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

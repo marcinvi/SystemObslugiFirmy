@@ -1,15 +1,16 @@
 package com.example.ena.ui;
 
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.content.res.ColorStateList;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.ena.R;
 import com.example.ena.api.ReturnListItemDto;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +25,6 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
 
     private final List<ReturnListItemDto> items = new ArrayList<>();
     private final OnItemClickListener listener;
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM HH:mm");
 
     public ReturnListAdapter(OnItemClickListener listener) {
         this.listener = listener;
@@ -48,48 +48,30 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ReturnListItemDto item = items.get(position);
-
-        // NAPRAWA: Używamy tylko getReferenceNumber() lub ID.
-        // Usunięto całkowicie błędne wywołanie getNumerZwrotu()
-        String ref = item.getReferenceNumber();
-        if (ref == null || ref.isEmpty()) {
-            ref = "Zwrot #" + item.getId();
-        }
-        holder.txtRef.setText(ref);
-
+        holder.txtRef.setText(item.getReferenceNumber() != null ? item.getReferenceNumber() : "Zwrot #" + item.getId());
         holder.txtProduct.setText(item.getProductName() != null ? item.getProductName() : "Brak produktu");
         holder.txtBuyer.setText(item.getBuyerName() != null ? item.getBuyerName() : "");
-
-        try {
-            if (item.getCreatedAt() != null) holder.txtDate.setText(DATE_FMT.format(item.getCreatedAt()));
-        } catch (Exception e) {}
-
-        String status = item.getStatusWewnetrzny();
-        String actionText = (status != null && !status.isEmpty()) ? status : "NIEZNANY";
-        int bgColor = Color.parseColor("#EEEEEE");
-        int textColor = Color.parseColor("#757575");
-
-        if (status != null) {
-            String s = status.toLowerCase();
-            if (s.contains("przyjęcie")) { bgColor = Color.parseColor("#E3F2FD"); textColor = Color.parseColor("#1565C0"); }
-            else if (s.contains("zakończony")) { bgColor = Color.parseColor("#E8F5E9"); textColor = Color.parseColor("#2E7D32"); }
-            else if (s.contains("decyzję")) { bgColor = Color.parseColor("#FFF3E0"); textColor = Color.parseColor("#EF6C00"); }
-            else if (s.contains("reklamacj")) { bgColor = Color.parseColor("#FFEBEE"); textColor = Color.parseColor("#C62828"); }
-        }
-
-        holder.txtAction.setText(actionText.toUpperCase());
-        holder.decisionContainer.getBackground().setTint(bgColor);
-        holder.txtAction.setTextColor(textColor);
-        holder.statusStrip.setBackgroundColor(textColor);
-
+        holder.txtDate.setText(formatDate(item.getCreatedAt()));
+        String decision = item.getDecyzjaHandlowca() != null ? item.getDecyzjaHandlowca() : "Brak decyzji";
+        holder.txtAction.setText(decision.toUpperCase(Locale.ROOT));
+        DecisionStyle style = resolveDecisionStyle(decision);
+        holder.statusStrip.setBackgroundColor(style.stripColor);
+        holder.decisionContainer.setBackgroundTintList(ColorStateList.valueOf(style.containerColor));
+        holder.txtAction.setTextColor(style.textColor);
         holder.itemView.setOnClickListener(v -> listener.onItemClick(item));
     }
 
     @Override
-    public int getItemCount() { return items.size(); }
+    public int getItemCount() {
+        return items.size();
+    }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        final TextView txtRef, txtProduct, txtBuyer, txtAction, txtDate;
+        final TextView txtRef;
+        final TextView txtDate;
+        final TextView txtProduct;
+        final TextView txtBuyer;
+        final TextView txtAction;
         final View statusStrip;
         final FrameLayout decisionContainer;
 
@@ -100,9 +82,28 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
             txtProduct = itemView.findViewById(R.id.txtProduct);
             txtBuyer = itemView.findViewById(R.id.txtBuyer);
             txtAction = itemView.findViewById(R.id.txtAction);
-            txtDate = itemView.findViewById(R.id.txtDate);
             statusStrip = itemView.findViewById(R.id.statusStrip);
             decisionContainer = itemView.findViewById(R.id.decisionContainer);
+        }
+    }
+
+    private String formatDate(OffsetDateTime date) {
+        if (date == null) {
+            return "";
+        }
+        return DATE_FORMAT.format(date);
+    }
+
+    private DecisionStyle resolveDecisionStyle(String decision) {
+        if (decision == null) {
+            return DecisionStyle.OTHER;
+        }
+        String normalized = decision.trim().toLowerCase();
+        if (normalized.contains("stan")) {
+            return DecisionStyle.STOCK;
+        }
+        if (normalized.contains("wysyłka") || normalized.contains("wysylka") || normalized.contains("ponowna")) {
+            return DecisionStyle.RESEND;
         }
         return DecisionStyle.OTHER;
     }
