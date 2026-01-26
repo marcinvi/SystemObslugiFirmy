@@ -19,15 +19,26 @@ import java.util.Locale;
 public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.ViewHolder> {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM HH:mm");
 
+    public enum DisplayMode {
+        DECISION,
+        WAREHOUSE_STATUS
+    }
+
     public interface OnItemClickListener {
         void onItemClick(ReturnListItemDto item);
     }
 
     private final List<ReturnListItemDto> items = new ArrayList<>();
     private final OnItemClickListener listener;
+    private final DisplayMode displayMode;
 
     public ReturnListAdapter(OnItemClickListener listener) {
+        this(listener, DisplayMode.DECISION);
+    }
+
+    public ReturnListAdapter(OnItemClickListener listener, DisplayMode displayMode) {
         this.listener = listener;
+        this.displayMode = displayMode == null ? DisplayMode.DECISION : displayMode;
     }
 
     public void setItems(List<ReturnListItemDto> data) {
@@ -35,6 +46,25 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         if (data != null) {
             items.addAll(data);
         }
+        items.sort((left, right) -> {
+            int leftPriority = statusPriority(left);
+            int rightPriority = statusPriority(right);
+            if (leftPriority != rightPriority) {
+                return Integer.compare(leftPriority, rightPriority);
+            }
+            OffsetDateTime leftDate = left.getCreatedAt();
+            OffsetDateTime rightDate = right.getCreatedAt();
+            if (leftDate == null && rightDate == null) {
+                return 0;
+            }
+            if (leftDate == null) {
+                return 1;
+            }
+            if (rightDate == null) {
+                return -1;
+            }
+            return rightDate.compareTo(leftDate);
+        });
         notifyDataSetChanged();
     }
 
@@ -52,9 +82,11 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         holder.txtProduct.setText(item.getProductName() != null ? item.getProductName() : "Brak produktu");
         holder.txtBuyer.setText(item.getBuyerName() != null ? item.getBuyerName() : "");
         holder.txtDate.setText(formatDate(item.getCreatedAt()));
-        String decision = item.getDecyzjaHandlowca() != null ? item.getDecyzjaHandlowca() : "Brak decyzji";
-        holder.txtAction.setText(decision.toUpperCase(Locale.ROOT));
-        DecisionStyle style = resolveDecisionStyle(decision);
+        holder.txtStatusAllegro.setText(formatStatusAllegro(item));
+
+        String labelText = resolveActionLabel(item);
+        holder.txtAction.setText(labelText.toUpperCase(Locale.ROOT));
+        DecisionStyle style = resolveDecisionStyle(labelText);
         holder.statusStrip.setBackgroundColor(style.stripColor);
         holder.decisionContainer.setBackgroundTintList(ColorStateList.valueOf(style.containerColor));
         holder.txtAction.setTextColor(style.textColor);
@@ -71,6 +103,7 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         final TextView txtDate;
         final TextView txtProduct;
         final TextView txtBuyer;
+        final TextView txtStatusAllegro;
         final TextView txtAction;
         final View statusStrip;
         final FrameLayout decisionContainer;
@@ -81,6 +114,7 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
             txtDate = itemView.findViewById(R.id.txtDate);
             txtProduct = itemView.findViewById(R.id.txtProduct);
             txtBuyer = itemView.findViewById(R.id.txtBuyer);
+            txtStatusAllegro = itemView.findViewById(R.id.txtStatusAllegro);
             txtAction = itemView.findViewById(R.id.txtAction);
             statusStrip = itemView.findViewById(R.id.statusStrip);
             decisionContainer = itemView.findViewById(R.id.decisionContainer);
@@ -100,6 +134,9 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         }
         String normalized = decision.trim().toLowerCase();
         if (normalized.isEmpty() || normalized.contains("brak")) {
+            return DecisionStyle.NEUTRAL;
+        }
+        if (displayMode == DisplayMode.WAREHOUSE_STATUS) {
             return DecisionStyle.NEUTRAL;
         }
         if (normalized.contains("półk") || normalized.contains("polk")) {
@@ -129,9 +166,79 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         }
 
         static final DecisionStyle STOCK = new DecisionStyle(0xFF43A047, 0xFFE8F5E9, 0xFF2E7D32);
-        static final DecisionStyle RESEND = new DecisionStyle(0xFF1E88E5, 0xFFE3F2FD, 0xFF1565C0);
+        static final DecisionStyle RESEND = new DecisionStyle(0xFF7E57C2, 0xFFF3E5F5, 0xFF5E35B1);
         static final DecisionStyle COMPLAINT = new DecisionStyle(0xFFFF8F00, 0xFFFFF3E0, 0xFFF57C00);
         static final DecisionStyle OTHER = new DecisionStyle(0xFFD32F2F, 0xFFFFEBEE, 0xFFC62828);
         static final DecisionStyle NEUTRAL = new DecisionStyle(0xFF9E9E9E, 0xFFF5F5F5, 0xFF616161);
+    }
+
+    private String resolveActionLabel(ReturnListItemDto item) {
+        if (displayMode == DisplayMode.WAREHOUSE_STATUS) {
+            String stan = item.getStanProduktu();
+            return stan == null || stan.trim().isEmpty() ? "Brak oceny magazynu" : "Stan produktu: " + stan;
+        }
+        String decision = item.getDecyzjaHandlowca();
+        return decision == null || decision.trim().isEmpty() ? "Brak decyzji" : decision;
+    }
+
+    private String formatStatusAllegro(ReturnListItemDto item) {
+        if (item == null) {
+            return "Status: -";
+        }
+        if (item.isManual()) {
+            return "Status: Zwrot ręczny";
+        }
+        String status = item.getStatusAllegro();
+        if (status == null || status.trim().isEmpty()) {
+            return "Status: Brak danych";
+        }
+        return "Status: " + translateStatusAllegro(status.trim());
+    }
+
+    private String translateStatusAllegro(String status) {
+        switch (status) {
+            case "CREATED":
+                return "Utworzono";
+            case "IN_TRANSIT":
+                return "W drodze";
+            case "DELIVERED":
+                return "Dostarczone";
+            case "FINISHED":
+                return "Zakończone";
+            case "REJECTED":
+                return "Odrzucone";
+            case "COMMISSION_REFUND_CLAIMED":
+                return "Wniosek o zwrot prowizji";
+            case "COMMISSION_REFUNDED":
+                return "Prowizja zwrócona";
+            case "WAREHOUSE_DELIVERED":
+                return "Dostarczone do magazynu Allegro";
+            case "WAREHOUSE_VERIFICATION":
+                return "W weryfikacji magazynu Allegro";
+            case "READY_FOR_PICKUP":
+                return "Gotowy do odbioru";
+            default:
+                return status;
+        }
+    }
+
+    private int statusPriority(ReturnListItemDto item) {
+        if (item == null) {
+            return 3;
+        }
+        String status = item.getStatusAllegro();
+        if (status == null) {
+            return 3;
+        }
+        switch (status) {
+            case "DELIVERED":
+                return 0;
+            case "IN_TRANSIT":
+                return 1;
+            case "CREATED":
+                return 2;
+            default:
+                return 3;
+        }
     }
 }
