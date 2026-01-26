@@ -216,7 +216,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             loadReturns();
         });
         btnFilterPoDecyzji.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Zakończony";
+            currentStatusWewnetrzny = "Po decyzji";
             currentStatusAllegro = null;
             setActiveFilter(btnFilterPoDecyzji);
             loadReturns();
@@ -421,7 +421,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             pendingCount = count;
             btnFilterNaDecyzje.setText("Nowe sprawy (" + pendingCount + ")");
         });
-        fetchSalesCount(client, "Zakończony", count -> {
+        fetchSalesCount(client, "Po decyzji", count -> {
             completedCount = count;
             btnFilterPoDecyzji.setText("Zakończone (" + completedCount + ")");
         });

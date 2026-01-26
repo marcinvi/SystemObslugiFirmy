@@ -172,7 +172,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
         editUwagiMagazynu.setText(safe(data.getUwagiMagazynu()));
         preselectStanProduktu(data.getStanProduktuId());
 
-        boolean blokujPrzekazanie = "Zakończony".equalsIgnoreCase(safe(data.getStatusWewnetrzny()))
+        boolean blokujPrzekazanie = "Po decyzji".equalsIgnoreCase(safe(data.getStatusWewnetrzny()))
                 || "Archiwalny".equalsIgnoreCase(safe(data.getStatusWewnetrzny()));
         btnForwardToSales.setEnabled(!blokujPrzekazanie);
         btnForwardToComplaints.setEnabled(!blokujPrzekazanie);
