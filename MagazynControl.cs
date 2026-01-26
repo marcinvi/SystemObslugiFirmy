@@ -529,11 +529,12 @@ namespace Reklamacje_Dane
             }
             else
             {
-                var result = MessageBox.Show(
-                    $"Nie znaleziono zwrotu dla numeru listu: {coreWaybill}.\n\nCzy chcesz dodać nowy zwrot ręcznie?",
-                    "Nie znaleziono",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
+                var owner = this.FindForm();
+                owner?.Activate();
+                var promptMessage = $"Nie znaleziono zwrotu dla numeru listu: {coreWaybill}.\n\nCzy chcesz dodać nowy zwrot ręcznie?";
+                var result = owner != null
+                    ? MessageBox.Show(owner, promptMessage, "Nie znaleziono", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                    : MessageBox.Show(promptMessage, "Nie znaleziono", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
                 if (result == DialogResult.Yes)
                 {
