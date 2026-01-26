@@ -8,11 +8,14 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.ena.R;
 import com.example.ena.api.MessageDto;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHolder> {
+
     private final List<MessageDto> items = new ArrayList<>();
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM HH:mm");
 
     public void setItems(List<MessageDto> data) {
         items.clear();
@@ -32,14 +35,19 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         MessageDto item = items.get(position);
-        String title = item.tytul != null && !item.tytul.isEmpty() ? item.tytul : "Wiadomość #" + item.id;
-        holder.txtTitle.setText(title);
-        holder.txtBody.setText(item.tresc != null ? item.tresc : "");
-        String meta = "Nadawca: " + item.nadawcaId + " • Odbiorca: " + item.odbiorcaId;
-        if (item.dotyczyZwrotuId != null) {
-            meta += " • Zwrot: " + item.dotyczyZwrotuId;
+
+        holder.txtSender.setText(item.getSender() != null ? item.getSender() : "System");
+        holder.txtContent.setText(item.getContent());
+
+        try {
+            if (item.getCreatedAt() != null) {
+                holder.txtDate.setText(DATE_FMT.format(item.getCreatedAt()));
+            } else {
+                holder.txtDate.setText("");
+            }
+        } catch (Exception e) {
+            holder.txtDate.setText("");
         }
-        holder.txtMeta.setText(meta);
     }
 
     @Override
@@ -48,15 +56,16 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        final TextView txtTitle;
-        final TextView txtBody;
-        final TextView txtMeta;
+        // Deklarujemy pola jako publiczne lub finalne, aby Adapter je widział
+        final TextView txtSender;
+        final TextView txtDate;
+        final TextView txtContent;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
-            txtTitle = itemView.findViewById(R.id.txtMessageTitle);
-            txtBody = itemView.findViewById(R.id.txtMessageBody);
-            txtMeta = itemView.findViewById(R.id.txtMessageMeta);
+            txtSender = itemView.findViewById(R.id.txtSender);
+            txtDate = itemView.findViewById(R.id.txtDate);
+            txtContent = itemView.findViewById(R.id.txtContent);
         }
     }
 }

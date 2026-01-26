@@ -160,7 +160,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
         preselectStanProduktu(data.getStanProduktuId());
 
         boolean blokujPrzekazanie = "Zakończony".equalsIgnoreCase(safe(data.getStatusWewnetrzny()))
-            || "Archiwalny".equalsIgnoreCase(safe(data.getStatusWewnetrzny()));
+                || "Archiwalny".equalsIgnoreCase(safe(data.getStatusWewnetrzny()));
         btnForwardToSales.setEnabled(!blokujPrzekazanie);
         btnForwardToComplaints.setEnabled(!blokujPrzekazanie);
     }
@@ -176,9 +176,9 @@ public class ReturnDetailActivity extends AppCompatActivity {
                         stanProduktuStatuses.addAll(data);
                     }
                     ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                        ReturnDetailActivity.this,
-                        android.R.layout.simple_spinner_item,
-                        toStatusNames(stanProduktuStatuses)
+                            ReturnDetailActivity.this,
+                            android.R.layout.simple_spinner_item,
+                            toStatusNames(stanProduktuStatuses)
                     );
                     adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                     spinnerStanProduktu.setAdapter(adapter);
@@ -220,11 +220,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
             return;
         }
         new AlertDialog.Builder(this)
-            .setTitle("Przekaż do handlowca")
-            .setMessage("Czy na pewno chcesz zapisać zmiany i przekazać zwrot do handlowca?")
-            .setPositiveButton("Przekaż", (dialog, which) -> submitForwardToSales())
-            .setNegativeButton("Anuluj", null)
-            .show();
+                .setTitle("Przekaż do handlowca")
+                .setMessage("Czy na pewno chcesz zapisać zmiany i przekazać zwrot do handlowca?")
+                .setPositiveButton("Przekaż", (dialog, which) -> submitForwardToSales())
+                .setNegativeButton("Anuluj", null)
+                .show();
     }
 
     private void showForwardToComplaintsDialog() {
@@ -248,8 +248,8 @@ public class ReturnDetailActivity extends AppCompatActivity {
         }
         String uwagi = editUwagiMagazynu.getText().toString().trim();
         ReturnForwardToSalesRequest req = new ReturnForwardToSalesRequest(
-            stanId,
-            uwagi.isEmpty() ? null : uwagi
+                stanId,
+                uwagi.isEmpty() ? null : uwagi
         );
         btnForwardToSales.setEnabled(false);
         ApiClient client = new ApiClient(this);
@@ -419,10 +419,10 @@ public class ReturnDetailActivity extends AppCompatActivity {
             content.append("Brak dodatkowych adresów.");
         }
         new AlertDialog.Builder(this)
-            .setTitle("Adresy")
-            .setMessage(content.toString())
-            .setPositiveButton("OK", null)
-            .show();
+                .setTitle("Adresy")
+                .setMessage(content.toString())
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     private void appendAddressSection(StringBuilder builder, String title, String name, String address, String phone) {
@@ -490,75 +490,5 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
-    }
-
-    private String buildAssignedSalesLabel(ReturnDetailsDto data) {
-        String assignedName = safe(data.getAssignedSalesName());
-        String assignedId = data.getAssignedSalesId() != null ? String.valueOf(data.getAssignedSalesId()) : "";
-        if (!assignedName.isEmpty()) {
-            return assignedId.isEmpty() ? assignedName : assignedName + " (ID: " + assignedId + ")";
-        }
-        if (!assignedId.isEmpty()) {
-            return "ID: " + assignedId;
-        }
-        return "Brak informacji";
-    }
-
-    private ForwardToComplaintRequest buildComplaintRequest() {
-        String buyerName = safe(details.getBuyerName(), "");
-        String[] nameParts = splitName(buyerName);
-        ComplaintAddressDto address = new ComplaintAddressDto(
-            safe(details.getBuyerAddress(), details.getBuyerAddressRaw()),
-            null,
-            null
-        );
-        ComplaintCustomerDto customer = new ComplaintCustomerDto(
-            nameParts[0],
-            nameParts[1],
-            null,
-            emptyToNull(details.getBuyerPhone()),
-            address
-        );
-        ComplaintProductDto product = new ComplaintProductDto(
-            safe(details.getProductName(), "Nieznany produkt"),
-            emptyToNull(details.getInvoiceNumber()),
-            null
-        );
-        String przekazal = PairingManager.getPairedUser(this);
-        if (przekazal == null || przekazal.trim().isEmpty()) {
-            przekazal = "Magazyn";
-        }
-        return new ForwardToComplaintRequest(
-            returnId,
-            emptyToNull(details.getReason()),
-            emptyToNull(details.getUwagiMagazynu()),
-            null,
-            przekazal,
-            customer,
-            product
-        );
-    }
-
-    private String[] splitName(String fullName) {
-        if (fullName == null) {
-            return new String[] { "", "" };
-        }
-        String trimmed = fullName.trim();
-        if (trimmed.isEmpty()) {
-            return new String[] { "", "" };
-        }
-        String[] parts = trimmed.split("\\s+", 2);
-        if (parts.length == 1) {
-            return new String[] { parts[0], "" };
-        }
-        return parts;
-    }
-
-    private String emptyToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
     }
 }

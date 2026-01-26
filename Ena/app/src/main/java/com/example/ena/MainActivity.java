@@ -1,561 +1,147 @@
 package com.example.ena;
 
-import android.Manifest;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.View;
-import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AlertDialog;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.widget.Toolbar;
-import androidx.drawerlayout.widget.DrawerLayout;
-import com.example.ena.api.ApiConfig;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.ena.api.ApiClient;
-import com.example.ena.UserSession;
-import com.example.ena.ui.MessagesActivity;
 import com.example.ena.ui.LoginActivity;
+import com.example.ena.ui.MessagesActivity;
+import com.example.ena.ui.ModulesAdapter;
 import com.example.ena.ui.ReturnsListActivity;
 import com.example.ena.ui.SettingsActivity;
 import com.example.ena.ui.SummaryActivity;
-import com.google.android.material.navigation.NavigationView;
-import com.google.gson.Gson;
-import com.journeyapps.barcodescanner.ScanContract;
-import com.journeyapps.barcodescanner.ScanIntentResult;
-import com.journeyapps.barcodescanner.ScanOptions;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-import androidx.activity.result.ActivityResultLauncher;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private static final long PAIRING_STALE_MS = TimeUnit.SECONDS.toMillis(15);
-    private static final long PAIRING_REFRESH_MS = TimeUnit.SECONDS.toMillis(2);
-    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
-    private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .writeTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(5, TimeUnit.SECONDS)
-            .build();
 
-    private final Handler pairingHandler = new Handler(Looper.getMainLooper());
-    private final Runnable pairingRefresh = new Runnable() {
-        @Override
-        public void run() {
-            updatePairingHint(txtPairingHint);
-            pairingHandler.postDelayed(this, PAIRING_REFRESH_MS);
-        }
-    };
-    private TextView txtBaseUrl;
-    private TextView txtPhoneIp;
-    private TextView txtPairCode;
-    private TextView txtPairingHint;
     private TextView txtUserName;
-    private TextView txtCurrentModule;
-    private TextView txtModulesEmpty;
-    private DrawerLayout drawerLayout;
-    private NavigationView navigationView;
-    private TextView txtDrawerUser;
-    private TextView txtDrawerStatus;
-    private Button btnWarehouse;
-    private Button btnSales;
-    private Button btnSummary;
-    private Button btnMessages;
-    private Button btnSettings;
-
-    private final ActivityResultLauncher<ScanOptions> qrLauncher =
-            registerForActivityResult(new ScanContract(), this::handleQrResult);
+    private RecyclerView recyclerModules;
+    private ProgressBar loadingModules;
+    private TextView txtError;
+    private ImageButton btnLogout;
+    private ApiClient apiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 1. Sprawdzenie sesji
         if (!UserSession.isLoggedIn(this)) {
-            redirectToLogin();
+            startLogin();
             return;
         }
+
         setContentView(R.layout.activity_main);
 
-        drawerLayout = findViewById(R.id.drawerLayout);
-        navigationView = findViewById(R.id.navigationView);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this,
-                drawerLayout,
-                toolbar,
-                R.string.navigation_drawer_open,
-                R.string.navigation_drawer_close
-        );
-        drawerLayout.addDrawerListener(toggle);
-        toggle.syncState();
-
-        if (navigationView != null) {
-            navigationView.setNavigationItemSelectedListener(item -> {
-                int id = item.getItemId();
-                if (id == R.id.nav_warehouse) {
-                    openReturns("warehouse");
-                    setCurrentModuleLabel("Magazyn");
-                } else if (id == R.id.nav_sales) {
-                    openReturns("sales");
-                    setCurrentModuleLabel("Handlowiec");
-                } else if (id == R.id.nav_summary) {
-                    startActivity(new Intent(this, SummaryActivity.class));
-                    setCurrentModuleLabel("Zwroty");
-                } else if (id == R.id.nav_messages) {
-                    startActivity(new Intent(this, MessagesActivity.class));
-                    setCurrentModuleLabel("Wiadomości");
-                } else if (id == R.id.nav_settings) {
-                    startActivity(new Intent(this, SettingsActivity.class));
-                    setCurrentModuleLabel("Ustawienia");
-                } else if (id == R.id.nav_logout) {
-                    logout();
-                }
-                drawerLayout.closeDrawers();
-                return true;
-            });
-
-            if (navigationView.getHeaderCount() > 0) {
-                TextView headerUser = navigationView.getHeaderView(0).findViewById(R.id.txtDrawerUser);
-                TextView headerStatus = navigationView.getHeaderView(0).findViewById(R.id.txtDrawerStatus);
-                txtDrawerUser = headerUser;
-                txtDrawerStatus = headerStatus;
-            }
-        }
-
+        // 2. Inicjalizacja widoków
         txtUserName = findViewById(R.id.txtUserName);
-        txtCurrentModule = findViewById(R.id.txtCurrentModule);
-        txtModulesEmpty = findViewById(R.id.txtModulesEmpty);
-        txtBaseUrl = findViewById(R.id.txtBaseUrl);
-        txtPhoneIp = findViewById(R.id.txtPhoneIp);
-        txtPairCode = findViewById(R.id.txtPairCode);
-        txtPairingHint = findViewById(R.id.txtPairingHint);
-        Button btnScanQr = findViewById(R.id.btnScanQr);
-        Button btnResetPairing = findViewById(R.id.btnResetPairing);
-        btnWarehouse = findViewById(R.id.btnWarehouse);
-        btnSales = findViewById(R.id.btnSales);
-        btnSummary = findViewById(R.id.btnSummary);
-        btnMessages = findViewById(R.id.btnMessages);
-        btnSettings = findViewById(R.id.btnSettings);
+        recyclerModules = findViewById(R.id.recyclerModules);
+        loadingModules = findViewById(R.id.loadingModules);
+        txtError = findViewById(R.id.txtError);
+        btnLogout = findViewById(R.id.btnLogout);
 
-        updateUserName();
-        updateBaseUrlLabel(txtBaseUrl);
-        updatePhoneInfo(txtPhoneIp, txtPairCode);
-        updatePairingHint(txtPairingHint);
-        applyModuleVisibility(UserSession.getModules(this));
-        startBackgroundServer();
-        requestRuntimePermissions();
+        apiClient = new ApiClient(this);
 
-        btnScanQr.setOnClickListener(v -> startQrScan());
-        btnResetPairing.setOnClickListener(v -> confirmResetPairing());
-        btnWarehouse.setOnClickListener(v -> {
-            openReturns("warehouse");
-            setCurrentModuleLabel("Magazyn");
+        // 3. Ustawienie nagłówka
+        String userDisplay = UserSession.getDisplayName(this);
+        if (userDisplay == null || userDisplay.isEmpty()) userDisplay = UserSession.getLogin(this);
+        txtUserName.setText(userDisplay);
+
+        // 4. Konfiguracja siatki (2 kolumny - nowoczesny wygląd)
+        recyclerModules.setLayoutManager(new GridLayoutManager(this, 2));
+
+        // 5. Obsługa wylogowania
+        btnLogout.setOnClickListener(v -> {
+            UserSession.clear(this);
+            startLogin();
         });
-        btnSales.setOnClickListener(v -> {
-            openReturns("sales");
-            setCurrentModuleLabel("Handlowiec");
-        });
-        btnSummary.setOnClickListener(v -> {
-            startActivity(new Intent(this, SummaryActivity.class));
-            setCurrentModuleLabel("Zwroty");
-        });
-        btnMessages.setOnClickListener(v -> {
-            startActivity(new Intent(this, MessagesActivity.class));
-            setCurrentModuleLabel("Wiadomości");
-        });
-        btnSettings.setOnClickListener(v -> {
-            startActivity(new Intent(this, SettingsActivity.class));
-            setCurrentModuleLabel("Ustawienia");
-        });
+
+        // 6. Pobranie modułów
+        fetchModules();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (!UserSession.isLoggedIn(this)) {
-            redirectToLogin();
-            return;
-        }
-        updateUserName();
-        updateBaseUrlLabel(txtBaseUrl);
-        updatePhoneInfo(txtPhoneIp, txtPairCode);
-        updatePairingHint(txtPairingHint);
-        startPairingHintRefresh();
-        loadAssignedModules();
-    }
+    private void fetchModules() {
+        loadingModules.setVisibility(View.VISIBLE);
+        txtError.setVisibility(View.GONE);
 
-    @Override
-    protected void onPause() {
-        stopPairingHintRefresh();
-        super.onPause();
-    }
-
-    private void startPairingHintRefresh() {
-        pairingHandler.removeCallbacks(pairingRefresh);
-        pairingHandler.post(pairingRefresh);
-    }
-
-    private void stopPairingHintRefresh() {
-        pairingHandler.removeCallbacks(pairingRefresh);
-    }
-
-    private void updateBaseUrlLabel(TextView label) {
-        String baseUrl = ApiConfig.getBaseUrl(this);
-        if (baseUrl == null || baseUrl.isEmpty()) {
-            label.setText("API: brak konfiguracji");
-        } else {
-            label.setText("API: " + baseUrl);
-        }
-    }
-
-    private void updatePhoneInfo(TextView ipLabel, TextView codeLabel) {
-        String ip = NetworkUtils.getIPAddress(true);
-        if (ip == null || ip.isEmpty()) {
-            ip = "brak IP";
-        }
-        ipLabel.setText("Telefon IP: " + ip + ":8080");
-        String code = PairingManager.getOrCreateCode(this);
-        codeLabel.setText("Kod parowania: " + code);
-    }
-
-    private void updatePairingHint(TextView hintLabel) {
-        if (hintLabel == null) {
-            return;
-        }
-        String statusMessage = buildPairingStatusMessage();
-        hintLabel.setText(statusMessage);
-        updateDrawerStatus(statusMessage);
-    }
-
-    private String formatStaleDuration(long diffMs) {
-        long minutes = TimeUnit.MILLISECONDS.toMinutes(diffMs);
-        if (minutes <= 0) {
-            return "przed chwilą";
-        }
-        if (minutes == 1) {
-            return "1 minutę temu";
-        }
-        if (minutes < 5) {
-            return minutes + " minuty temu";
-        }
-        return minutes + " minut temu";
-    }
-
-    private void startQrScan() {
-        ScanOptions options = new ScanOptions();
-        options.setPrompt("Zeskanuj QR z komputera");
-        options.setBeepEnabled(true);
-        options.setOrientationLocked(true);
-        options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
-        qrLauncher.launch(options);
-    }
-
-    private void confirmResetPairing() {
-        new AlertDialog.Builder(this)
-                .setTitle("Rozłącz parowanie")
-                .setMessage("Czy na pewno chcesz wyczyścić parowanie? Telefon będzie można przypisać do innego użytkownika.")
-                .setPositiveButton("Tak, rozłącz", (dialog, which) -> resetPairing())
-                .setNegativeButton("Anuluj", null)
-                .show();
-    }
-
-    private void resetPairing() {
-        PairingManager.reset(this);
-        updateUserName();
-        updatePairingHint(txtPairingHint);
-        updatePhoneInfo(txtPhoneIp, txtPairCode);
-        showToast("Parowanie zostało wyczyszczone.");
-    }
-
-    private void handleQrResult(ScanIntentResult result) {
-        if (result.getContents() == null) {
-            return;
-        }
-
-        try {
-            QrPairingPayload payload = new Gson().fromJson(result.getContents(), QrPairingPayload.class);
-            if (payload == null || payload.pcIp == null || payload.pcIp.isEmpty() || payload.pcPort <= 0) {
-                Toast.makeText(this, "Niepoprawny QR parowania.", Toast.LENGTH_LONG).show();
-                return;
-            }
-
-            if (payload.apiBaseUrl != null && !payload.apiBaseUrl.isEmpty()) {
-                ApiConfig.setBaseUrl(this, payload.apiBaseUrl);
-                Config.saveServerUrl(this, payload.apiBaseUrl);
-            }
-
-            if (payload.user != null) {
-                PairingManager.setPairedUser(this, payload.user);
-            }
-
-            sendPairingRequest(payload);
-        } catch (Exception ex) {
-            Toast.makeText(this, "Błąd odczytu QR: " + ex.getMessage(), Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private void sendPairingRequest(QrPairingPayload payload) {
-        String phoneIp = NetworkUtils.getIPAddress(true);
-        if (phoneIp == null || phoneIp.isEmpty()) {
-            Toast.makeText(this, "Brak IP telefonu.", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        String pairingCode = PairingManager.getOrCreateCode(this);
-        QrPairingRequest requestPayload = new QrPairingRequest(payload.token, phoneIp, pairingCode);
-        String json = new Gson().toJson(requestPayload);
-
-        new Thread(() -> {
-            try {
-                String url = "http://" + payload.pcIp + ":" + payload.pcPort + "/pair";
-                RequestBody body = RequestBody.create(json, JSON);
-                Request request = new Request.Builder()
-                        .url(url)
-                        .post(body)
-                        .build();
-
-                try (Response response = CLIENT.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        showToast("Błąd parowania: HTTP " + response.code());
-                        return;
-                    }
-                }
-                showToast("Wysłano dane parowania do komputera.");
-            } catch (Exception ex) {
-                showToast("Błąd parowania: " + ex.getMessage());
-            }
-        }).start();
-    }
-
-    private void showToast(String message) {
-        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
-    }
-
-    private void startBackgroundServer() {
-        Intent intent = new Intent(this, BackgroundService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent);
-        } else {
-            startService(intent);
-        }
-    }
-
-    private void requestRuntimePermissions() {
-        String[] permissions;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions = new String[] {
-                    Manifest.permission.RECEIVE_SMS,
-                    Manifest.permission.READ_SMS,
-                    Manifest.permission.SEND_SMS,
-                    Manifest.permission.READ_PHONE_STATE,
-                    Manifest.permission.CALL_PHONE,
-                    Manifest.permission.READ_MEDIA_IMAGES,
-                    Manifest.permission.POST_NOTIFICATIONS
-            };
-        } else {
-            permissions = new String[] {
-                    Manifest.permission.RECEIVE_SMS,
-                    Manifest.permission.READ_SMS,
-                    Manifest.permission.SEND_SMS,
-                    Manifest.permission.READ_PHONE_STATE,
-                    Manifest.permission.CALL_PHONE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-            };
-        }
-        List<String> missing = new java.util.ArrayList<>();
-        for (String permission : permissions) {
-            if (ContextCompat.checkSelfPermission(this, permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                missing.add(permission);
-            }
-        }
-        if (!missing.isEmpty()) {
-            ActivityCompat.requestPermissions(this, missing.toArray(new String[0]), 1001);
-        }
-    }
-
-    private void openReturns(String mode) {
-        Intent intent = new Intent(this, ReturnsListActivity.class);
-        intent.putExtra(ReturnsListActivity.EXTRA_MODE, mode);
-        startActivity(intent);
-    }
-
-    private void updateUserName() {
-        String user = UserSession.getDisplayName(this);
-        if (user == null || user.isEmpty()) {
-            user = UserSession.getLogin(this);
-        }
-        if (user == null || user.isEmpty()) {
-            user = "Nie sparowano";
-        }
-        if (txtUserName != null) {
-            txtUserName.setText("Użytkownik: " + user);
-        }
-        if (txtDrawerUser != null) {
-            txtDrawerUser.setText("Użytkownik: " + user);
-        }
-    }
-
-    private void updateDrawerStatus(String status) {
-        if (txtDrawerStatus != null) {
-            txtDrawerStatus.setText(status);
-        }
-    }
-
-    private void setCurrentModuleLabel(String moduleName) {
-        if (txtCurrentModule != null && moduleName != null && !moduleName.isEmpty()) {
-            txtCurrentModule.setText(moduleName);
-        }
-    }
-
-    private String buildPairingStatusMessage() {
-        if (PairingManager.isPaired(this)) {
-            String user = PairingManager.getPairedUser(this);
-            long lastSeen = PairingManager.getLastSeen(this);
-            long now = System.currentTimeMillis();
-            boolean active = lastSeen > 0 && now - lastSeen <= PAIRING_STALE_MS;
-            if (active) {
-                if (user == null || user.isEmpty()) {
-                    return "Telefon sparowany z aplikacją. Połączenie aktywne.";
-                }
-                return "Telefon sparowany z użytkownikiem: " + user + ". Połączenie aktywne.";
-            }
-
-            String staleSuffix = lastSeen > 0 ? " Ostatni kontakt: " + formatStaleDuration(now - lastSeen) + "." : "";
-            if (user == null || user.isEmpty()) {
-                return "Telefon sparowany, ale brak połączenia z komputerem." + staleSuffix;
-            }
-            return "Telefon sparowany z użytkownikiem: " + user + ", ale brak połączenia z komputerem." + staleSuffix;
-        }
-
-        return "Hej! Jestem gotowy do pracy! Zeskanuj kod z aplikacji na Windows :)";
-    }
-
-    private void loadAssignedModules() {
-        ApiClient apiClient = new ApiClient(this);
         apiClient.fetchAssignedModules(new ApiClient.ApiCallback<List<String>>() {
             @Override
-            public void onSuccess(List<String> data) {
+            public void onSuccess(List<String> modules) {
                 runOnUiThread(() -> {
-                    UserSession.saveModules(MainActivity.this, data);
-                    applyModuleVisibility(data);
+                    loadingModules.setVisibility(View.GONE);
+                    if (modules == null || modules.isEmpty()) {
+                        txtError.setText("Brak przypisanych modułów.\nSkontaktuj się z administratorem.");
+                        txtError.setVisibility(View.VISIBLE);
+                        return;
+                    }
+                    setupMenu(modules);
                 });
             }
 
             @Override
             public void onError(String message) {
-                runOnUiThread(() -> applyModuleVisibility(UserSession.getModules(MainActivity.this)));
+                runOnUiThread(() -> {
+                    loadingModules.setVisibility(View.GONE);
+                    txtError.setText("Błąd: " + message + "\n(Dotknij aby odświeżyć)");
+                    txtError.setVisibility(View.VISIBLE);
+                    txtError.setOnClickListener(v -> fetchModules());
+                });
             }
         });
     }
 
-    private void applyModuleVisibility(List<String> modules) {
-        ensureModuleButtons();
-        boolean allowWarehouse = hasModule(modules, "Magazyn");
-        boolean allowSales = hasModule(modules, "Handlowiec");
-        boolean allowSummary = hasModule(modules, "Zwroty");
-        boolean allowMessages = hasModule(modules, "Wiadomosci") || hasModule(modules, "Wiadomości");
+    private void setupMenu(List<String> modules) {
+        ModulesAdapter adapter = new ModulesAdapter(modules, moduleName -> {
+            String key = moduleName.toLowerCase();
 
-        setVisible(btnWarehouse, allowWarehouse);
-        setVisible(btnSales, allowSales);
-        setVisible(btnSummary, allowSummary);
-        setVisible(btnMessages, allowMessages);
+            // --- ROUTING MODUŁÓW ---
 
-        if (navigationView != null) {
-            if (navigationView.getMenu().findItem(R.id.nav_warehouse) != null) {
-                navigationView.getMenu().findItem(R.id.nav_warehouse).setVisible(allowWarehouse);
+            if (key.contains("magazyn")) {
+                // Moduł Magazyniera: Skanowanie i przyjmowanie
+                openReturns("warehouse");
             }
-            if (navigationView.getMenu().findItem(R.id.nav_sales) != null) {
-                navigationView.getMenu().findItem(R.id.nav_sales).setVisible(allowSales);
+            else if (key.contains("handlowiec") || key.contains("sprzedaż")) {
+                // Moduł Handlowca: Decyzje
+                openReturns("sales");
             }
-            if (navigationView.getMenu().findItem(R.id.nav_summary) != null) {
-                navigationView.getMenu().findItem(R.id.nav_summary).setVisible(allowSummary);
+            else if (key.contains("zwroty") || key.contains("podsumowanie")) {
+                // Moduł Ogólny: Tabela/Przegląd
+                startActivity(new Intent(MainActivity.this, SummaryActivity.class));
             }
-            if (navigationView.getMenu().findItem(R.id.nav_messages) != null) {
-                navigationView.getMenu().findItem(R.id.nav_messages).setVisible(allowMessages);
+            else if (key.contains("wiadomości") || key.contains("wiadomosci")) {
+                startActivity(new Intent(MainActivity.this, MessagesActivity.class));
             }
-        }
+            else if (key.contains("ustawienia")) {
+                startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+            }
+            else {
+                Toast.makeText(MainActivity.this, "Moduł w przygotowaniu: " + moduleName, Toast.LENGTH_SHORT).show();
+            }
+        });
 
-        boolean anyModule = allowWarehouse || allowSales || allowSummary || allowMessages;
-        setVisible(txtModulesEmpty, !anyModule);
-        if (!anyModule && txtCurrentModule != null) {
-            txtCurrentModule.setText("Brak modułów");
-        }
+        recyclerModules.setAdapter(adapter);
     }
 
-    private boolean hasModule(List<String> modules, String name) {
-        if (modules == null || name == null) {
-            return false;
-        }
-        for (String module : modules) {
-            if (module != null && module.equalsIgnoreCase(name)) {
-                return true;
-            }
-        }
-        return false;
+    private void openReturns(String mode) {
+        Intent intent = new Intent(this, ReturnsListActivity.class);
+        intent.putExtra("mode", mode); // Przekazujemy tryb do ReturnsListActivity
+        startActivity(intent);
     }
 
-    private void setVisible(View view, boolean visible) {
-        if (view != null) {
-            view.setVisibility(visible ? View.VISIBLE : View.GONE);
-        }
-    }
-
-    private void ensureModuleButtons() {
-        if (btnWarehouse == null) {
-            btnWarehouse = findViewById(R.id.btnWarehouse);
-        }
-        if (btnSales == null) {
-            btnSales = findViewById(R.id.btnSales);
-        }
-        if (btnSummary == null) {
-            btnSummary = findViewById(R.id.btnSummary);
-        }
-        if (btnMessages == null) {
-            btnMessages = findViewById(R.id.btnMessages);
-        }
-    }
-
-    private void logout() {
-        UserSession.clear(this);
-        redirectToLogin();
-    }
-
-    private void redirectToLogin() {
+    private void startLogin() {
         Intent intent = new Intent(this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
-    }
-
-    static class QrPairingPayload {
-        String pcIp;
-        int pcPort;
-        String token;
-        String user;
-        String apiBaseUrl;
-    }
-
-    static class QrPairingRequest {
-        String token;
-        String phoneIp;
-        String pairingCode;
-
-        QrPairingRequest(String token, String phoneIp, String pairingCode) {
-            this.token = token;
-            this.phoneIp = phoneIp;
-            this.pairingCode = pairingCode;
-        }
     }
 }

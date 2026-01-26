@@ -2,72 +2,79 @@ package com.example.ena.ui;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
-import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.annotation.Nullable;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
 import com.example.ena.R;
 import com.example.ena.api.ApiClient;
 import com.example.ena.api.PaginatedResponse;
 import com.example.ena.api.ReturnListItemDto;
 import com.example.ena.api.ReturnSyncRequest;
 import com.example.ena.api.ReturnSyncResponse;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanIntentResult;
 import com.journeyapps.barcodescanner.ScanOptions;
+
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.function.IntConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import androidx.activity.result.ActivityResultLauncher;
 
 public class ReturnsListActivity extends AppCompatActivity {
+
     public static final String EXTRA_MODE = "mode";
     private static final int CAMERA_PERMISSION_REQUEST = 2001;
+    private static final String KEY_PENDING_SCAN = "pending_scan_code";
 
+    private RecyclerView recyclerView;
     private ReturnListAdapter adapter;
+    private SwipeRefreshLayout swipeRefresh;
     private ProgressBar progressBar;
-    private TextView txtEmpty;
-    private TextView txtHeader;
-    private TextView txtCount;
+    private TextView txtHeader, txtCount, txtEmpty;
+    private ImageButton btnBack, btnRefresh, btnSync, btnClearSearch;
     private EditText editSearch;
-    private Spinner spinnerStatusAllegro;
-    private Button btnFilterOczekujace;
-    private Button btnFilterNaDecyzje;
-    private Button btnFilterPoDecyzji;
-    private Button btnFilterWDrodze;
-    private Button btnFilterWszystkie;
-    private Button btnRefresh;
-    private Button btnSync;
-    private Button btnScanCode;
-    private View loadingOverlay;
-    private TextView txtLoadingMessage;
-    private String mode;
+    private FloatingActionButton btnScanCode;
+
+    // Kontener filtrów
+    private LinearLayout filtersContainer;
+    private Button btnFilter1, btnFilter2, btnFilter3;
+
+    private ApiClient apiClient;
+    private String currentMode = "warehouse";
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
-    private String currentStatusWewnetrzny;
-    private String currentStatusAllegro;
-    private boolean deliveredOnly;
-    private int pendingCount;
-    private int completedCount;
+
+    // Zmienne stanu filtrów
+    private String currentStatusWewnetrzny = null;
+    private String currentStatusAllegro = null;
+    private String pendingScannedCode = null;
 
     private final ActivityResultLauncher<ScanOptions> scanLauncher =
             registerForActivityResult(new ScanContract(), this::handleScanResult);
@@ -77,474 +84,312 @@ public class ReturnsListActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_returns_list);
 
-        mode = getIntent().getStringExtra(EXTRA_MODE);
+        if (getIntent().hasExtra(EXTRA_MODE)) {
+            currentMode = getIntent().getStringExtra(EXTRA_MODE);
+        }
+
+        apiClient = new ApiClient(this);
+        initViews();
+        setupRecyclerView();
+        setupListeners();
+
+        if (savedInstanceState != null) {
+            pendingScannedCode = savedInstanceState.getString(KEY_PENDING_SCAN);
+            if (pendingScannedCode != null) showManualReturnPrompt(pendingScannedCode);
+        }
+
+        // --- KLUCZOWA NAPRAWA LOGIKI STARTOWEJ ---
+        if ("sales".equals(currentMode)) {
+            setupSalesMode();
+        } else {
+            setupWarehouseMode();
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (pendingScannedCode != null) outState.putString(KEY_PENDING_SCAN, pendingScannedCode);
+    }
+
+    private void initViews() {
+        recyclerView = findViewById(R.id.listReturns);
+        swipeRefresh = findViewById(R.id.swipeRefresh);
         progressBar = findViewById(R.id.progress);
-        txtEmpty = findViewById(R.id.txtEmpty);
         txtHeader = findViewById(R.id.txtHeader);
         txtCount = findViewById(R.id.txtCount);
+        txtEmpty = findViewById(R.id.txtEmpty);
         editSearch = findViewById(R.id.editSearch);
-        spinnerStatusAllegro = findViewById(R.id.spinnerStatusAllegro);
-        btnFilterOczekujace = findViewById(R.id.btnFilterOczekujace);
-        btnFilterNaDecyzje = findViewById(R.id.btnFilterNaDecyzje);
-        btnFilterPoDecyzji = findViewById(R.id.btnFilterPoDecyzji);
-        btnFilterWDrodze = findViewById(R.id.btnFilterWDrodze);
-        btnFilterWszystkie = findViewById(R.id.btnFilterWszystkie);
+        btnBack = findViewById(R.id.btnBack);
         btnRefresh = findViewById(R.id.btnRefresh);
         btnSync = findViewById(R.id.btnSync);
+        btnClearSearch = findViewById(R.id.btnClearSearch);
         btnScanCode = findViewById(R.id.btnScanCode);
         loadingOverlay = findViewById(R.id.loadingOverlay);
         txtLoadingMessage = findViewById(R.id.txtLoadingMessage);
 
-        if ("sales".equals(mode)) {
-            txtHeader.setText("Handlowiec - moje zwroty");
+        // Filtry
+        filtersContainer = findViewById(R.id.filtersContainer); // Upewnij się, że ID w XML to filtersContainer
+        if (filtersContainer == null) {
+            // Fallback jeśli XML jest stary - pobieramy buttony bezpośrednio
+            btnFilter1 = findViewById(R.id.btnFilterOczekujace);
+            btnFilter2 = findViewById(R.id.btnFilterWDrodze);
+            btnFilter3 = findViewById(R.id.btnFilterWszystkie);
         } else {
-            txtHeader.setText("Magazyn - zwroty");
+            btnFilter1 = findViewById(R.id.btnFilterOczekujace);
+            btnFilter2 = findViewById(R.id.btnFilterWDrodze);
+            btnFilter3 = findViewById(R.id.btnFilterWszystkie);
         }
+    }
 
-        RecyclerView recyclerView = findViewById(R.id.listReturns);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new ReturnListAdapter(this::openDetails);
-        recyclerView.setAdapter(adapter);
+    private void setupWarehouseMode() {
+        txtHeader.setText("Magazyn: Przyjęcia");
+        btnSync.setVisibility(View.VISIBLE);
+        btnScanCode.setVisibility(View.VISIBLE);
+        editSearch.setHint("Skanuj kod paczki...");
 
-        setupFilters();
-        setupSearch();
-        btnRefresh.setOnClickListener(v -> loadReturns());
-        btnScanCode.setOnClickListener(v -> startCodeScan());
-        if ("sales".equals(mode)) {
-            btnSync.setVisibility(View.GONE);
-        } else {
-            btnSync.setOnClickListener(v -> syncReturns());
-        }
+        // Konfiguracja przycisków
+        btnFilter1.setText("Do przyjęcia");
+        btnFilter1.setOnClickListener(v -> applyFilter("Oczekuje na przyjęcie", null, v));
+
+        btnFilter2.setText("W drodze");
+        btnFilter2.setVisibility(View.VISIBLE);
+        btnFilter2.setOnClickListener(v -> applyFilter(null, "IN_TRANSIT", v));
+
+        btnFilter3.setText("Wszystkie");
+        btnFilter3.setOnClickListener(v -> applyFilter(null, null, v));
+
+        // Start: Do przyjęcia
+        applyFilter("Oczekuje na przyjęcie", null, btnFilter1);
+    }
+
+    private void setupSalesMode() {
+        txtHeader.setText("Moje Sprawy");
+        btnSync.setVisibility(View.GONE);
+        btnScanCode.setVisibility(View.GONE);
+        editSearch.setHint("Szukaj klienta, produktu...");
+
+        // Konfiguracja przycisków
+        btnFilter1.setText("Do decyzji");
+        btnFilter1.setOnClickListener(v -> applyFilter("Oczekuje na decyzję handlowca", null, v));
+
+        btnFilter2.setText("Zakończone");
+        btnFilter2.setVisibility(View.VISIBLE);
+        btnFilter2.setOnClickListener(v -> applyFilter("Zakończony", null, v));
+
+        btnFilter3.setText("Wszystkie");
+        btnFilter3.setOnClickListener(v -> applyFilter(null, null, v));
+
+        // Start: Do decyzji
+        applyFilter("Oczekuje na decyzję handlowca", null, btnFilter1);
+    }
+
+    private void applyFilter(String statusWew, String statusAll, View activeButton) {
+        this.currentStatusWewnetrzny = statusWew;
+        this.currentStatusAllegro = statusAll;
+        updateFilterVisuals((Button) activeButton);
         loadReturns();
     }
 
-    private void setupFilters() {
-        if ("sales".equals(mode)) {
-            setupSalesFilters();
-            return;
+    private void updateFilterVisuals(Button active) {
+        Button[] buttons = {btnFilter1, btnFilter2, btnFilter3};
+        int activeColor = ContextCompat.getColor(this, R.color.primary_color);
+        if (activeColor == 0) activeColor = Color.parseColor("#1976D2");
+
+        for (Button btn : buttons) {
+            if (btn == null) continue;
+            if (btn == active) {
+                btn.setBackgroundColor(activeColor);
+                btn.setTextColor(Color.WHITE);
+            } else {
+                btn.setBackgroundColor(Color.parseColor("#E0E0E0"));
+                btn.setTextColor(Color.parseColor("#333333"));
+            }
         }
-        List<String> statuses = Arrays.asList(
-                "Wszystkie",
-                "Dostarczono",
-                "W drodze",
-                "Gotowy do odbioru",
-                "Utworzono",
-                "Zwrócono prowizję"
-        );
-        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
-                this,
-                android.R.layout.simple_spinner_item,
-                statuses
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerStatusAllegro.setAdapter(adapter);
-
-        btnFilterOczekujace.setOnClickListener(v -> {
-            deliveredOnly = true;
-            currentStatusWewnetrzny = "Oczekuje na przyjęcie";
-            setActiveFilter(btnFilterOczekujace);
-            loadReturns();
-        });
-        btnFilterNaDecyzje.setOnClickListener(v -> {
-            deliveredOnly = false;
-            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
-            setActiveFilter(btnFilterNaDecyzje);
-            loadReturns();
-        });
-        btnFilterPoDecyzji.setOnClickListener(v -> {
-            deliveredOnly = false;
-            currentStatusWewnetrzny = "Zakończony";
-            setActiveFilter(btnFilterPoDecyzji);
-            loadReturns();
-        });
-        btnFilterWDrodze.setOnClickListener(v -> {
-            deliveredOnly = false;
-            currentStatusWewnetrzny = null;
-            currentStatusAllegro = "IN_TRANSIT";
-            spinnerStatusAllegro.setSelection(2);
-            setActiveFilter(btnFilterWDrodze);
-            loadReturns();
-        });
-        btnFilterWszystkie.setOnClickListener(v -> {
-            deliveredOnly = false;
-            currentStatusWewnetrzny = null;
-            currentStatusAllegro = null;
-            spinnerStatusAllegro.setSelection(0);
-            setActiveFilter(btnFilterWszystkie);
-            loadReturns();
-        });
-
-        spinnerStatusAllegro.setSelection(0);
-        spinnerStatusAllegro.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                if (position == 0) {
-                    currentStatusAllegro = null;
-                } else {
-                    currentStatusAllegro = translateStatusToApi(parent.getItemAtPosition(position).toString());
-                }
-                loadReturns();
-            }
-
-            @Override
-            public void onNothingSelected(android.widget.AdapterView<?> parent) {
-            }
-        });
-
-        setActiveFilter(btnFilterPoDecyzji);
-        currentStatusWewnetrzny = "Zakończony";
-        deliveredOnly = false;
     }
 
-    private void setupSalesFilters() {
-        spinnerStatusAllegro.setVisibility(View.GONE);
-        btnFilterOczekujace.setVisibility(View.GONE);
-        btnFilterWDrodze.setVisibility(View.GONE);
-        btnFilterWszystkie.setVisibility(View.GONE);
-
-        btnFilterNaDecyzje.setText("Nowe sprawy");
-        btnFilterPoDecyzji.setText("Zakończone");
-
-        btnFilterNaDecyzje.setOnClickListener(v -> {
-            deliveredOnly = false;
-            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
-            currentStatusAllegro = null;
-            setActiveFilter(btnFilterNaDecyzje);
-            loadReturns();
-        });
-        btnFilterPoDecyzji.setOnClickListener(v -> {
-            deliveredOnly = false;
-            currentStatusWewnetrzny = "Zakończony";
-            currentStatusAllegro = null;
-            setActiveFilter(btnFilterPoDecyzji);
-            loadReturns();
-        });
-
-        setActiveFilter(btnFilterNaDecyzje);
-        currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
-        currentStatusAllegro = null;
-        deliveredOnly = false;
-        updateSalesCounts();
+    private void setupRecyclerView() {
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new ReturnListAdapter(this::openReturnDetails);
+        recyclerView.setAdapter(adapter);
     }
 
-    private void setupSearch() {
+    private void setupListeners() {
+        btnBack.setOnClickListener(v -> finish());
+        swipeRefresh.setOnRefreshListener(this::loadReturns);
+        btnRefresh.setOnClickListener(v -> { swipeRefresh.setRefreshing(true); loadReturns(); });
+
+        // Obsługa szukania
+        btnClearSearch.setOnClickListener(v -> editSearch.setText(""));
         editSearch.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                btnClearSearch.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
                 searchHandler.removeCallbacksAndMessages(null);
-                searchHandler.postDelayed(ReturnsListActivity.this::loadReturns, 300);
+                searchHandler.postDelayed(() -> loadReturns(), 500);
             }
+            @Override public void afterTextChanged(Editable s) {}
+        });
 
-            @Override
-            public void afterTextChanged(Editable s) {
+        editSearch.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
+                String code = editSearch.getText().toString().trim();
+                if (!code.isEmpty()) {
+                    if ("warehouse".equals(currentMode)) findReturnByCode(code); else loadReturns();
+                }
+                return true;
             }
+            return false;
+        });
+
+        btnScanCode.setOnClickListener(v -> startCameraScan());
+
+        btnSync.setOnClickListener(v -> {
+            progressBar.setVisibility(View.VISIBLE);
+            apiClient.syncReturns(new ReturnSyncRequest(null, null), new ApiClient.ApiCallback<ReturnSyncResponse>() {
+                @Override public void onSuccess(ReturnSyncResponse data) {
+                    runOnUiThread(() -> {
+                        progressBar.setVisibility(View.GONE);
+                        String msg = "Pobrano: " + (data != null ? data.getReturnsProcessed() : 0);
+                        Toast.makeText(ReturnsListActivity.this, msg, Toast.LENGTH_SHORT).show();
+                        loadReturns();
+                    });
+                }
+                @Override public void onError(String msg) {
+                    runOnUiThread(() -> { progressBar.setVisibility(View.GONE); Toast.makeText(ReturnsListActivity.this, "Błąd: " + msg, Toast.LENGTH_SHORT).show(); });
+                }
+            });
         });
     }
 
     private void loadReturns() {
-        progressBar.setVisibility(View.VISIBLE);
+        if (!swipeRefresh.isRefreshing()) progressBar.setVisibility(View.VISIBLE);
         txtEmpty.setVisibility(View.GONE);
-        txtCount.setText("Wyświetlono: 0");
-        showLoadingOverlay("Wczytywanie zwrotów...");
 
-        ApiClient client = new ApiClient(this);
+        String query = buildQueryString();
+
         ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>> callback = new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
             @Override
             public void onSuccess(PaginatedResponse<ReturnListItemDto> data) {
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
-                    hideLoadingOverlay();
-                    List<ReturnListItemDto> items = data != null ? data.getItems() : null;
+                    swipeRefresh.setRefreshing(false);
+                    List<ReturnListItemDto> items = data != null ? data.getItems() : new ArrayList<>();
                     adapter.setItems(items);
-                    if (items == null || items.isEmpty()) {
-                        txtEmpty.setVisibility(View.VISIBLE);
-                    }
-                    int count = items == null ? 0 : items.size();
-                    txtCount.setText("Wyświetlono: " + count);
-                    if ("sales".equals(mode)) {
-                        updateSalesCounts();
-                    }
+                    txtCount.setText("Wyników: " + (data != null ? data.getTotalItems() : 0));
+                    if (items.isEmpty()) txtEmpty.setVisibility(View.VISIBLE);
                 });
             }
-
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
-                    hideLoadingOverlay();
-                    txtEmpty.setVisibility(View.VISIBLE);
-                    Toast.makeText(ReturnsListActivity.this, "Błąd: " + message, Toast.LENGTH_LONG).show();
+                    swipeRefresh.setRefreshing(false);
+                    Toast.makeText(ReturnsListActivity.this, "Błąd: " + message, Toast.LENGTH_SHORT).show();
                 });
             }
         };
 
-        String query = buildQueryString();
-        if ("sales".equals(mode)) {
-            client.fetchAssignedReturns(query, callback);
+        // RÓŻNE ENDPOINTY DLA RÓŻNYCH RÓL
+        if ("sales".equals(currentMode)) {
+            apiClient.fetchAssignedReturns(query, callback);
         } else {
-            client.fetchReturns(query, callback);
-        }
-    }
-
-    private void openDetails(ReturnListItemDto item) {
-        openDetailsById(item.getId());
-    }
-
-    private void openDetailsById(int returnId) {
-        Intent intent;
-        if ("sales".equals(mode)) {
-            intent = new Intent(this, SalesReturnDetailActivity.class);
-            intent.putExtra(SalesReturnDetailActivity.EXTRA_RETURN_ID, returnId);
-        } else {
-            intent = new Intent(this, ReturnDetailActivity.class);
-            intent.putExtra(ReturnDetailActivity.EXTRA_RETURN_ID, returnId);
-        }
-        startActivity(intent);
-    }
-
-    private void syncReturns() {
-        progressBar.setVisibility(View.VISIBLE);
-        btnSync.setEnabled(false);
-        ApiClient client = new ApiClient(this);
-        ReturnSyncRequest request = new ReturnSyncRequest(null, null);
-        client.syncReturns(request, new ApiClient.ApiCallback<ReturnSyncResponse>() {
-            @Override
-            public void onSuccess(ReturnSyncResponse data) {
-                runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    btnSync.setEnabled(true);
-                    String message = "Synchronizacja zakończona.";
-                    if (data != null) {
-                        message = "Synchronizacja: " + data.getReturnsProcessed() + " zwrotów (konta: "
-                                + data.getAccountsProcessed() + ").";
-                        if (data.getErrors() != null && !data.getErrors().isEmpty()) {
-                            message += " Błędy: " + TextUtils.join("; ", data.getErrors());
-                        }
-                    }
-                    Toast.makeText(ReturnsListActivity.this, message, Toast.LENGTH_LONG).show();
-                    loadReturns();
-                });
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    btnSync.setEnabled(true);
-                    Toast.makeText(ReturnsListActivity.this, "Błąd synchronizacji: " + message, Toast.LENGTH_LONG).show();
-                });
-            }
-        });
-    }
-
-    private void setActiveFilter(Button activeButton) {
-        Button[] buttons = new Button[] {
-                btnFilterOczekujace,
-                btnFilterNaDecyzje,
-                btnFilterPoDecyzji,
-                btnFilterWDrodze,
-                btnFilterWszystkie
-        };
-        for (Button button : buttons) {
-            if (button == activeButton) {
-                button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_blue_light));
-            } else {
-                button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.darker_gray));
-            }
+            apiClient.fetchReturns(query, callback);
         }
     }
 
     private String buildQueryString() {
-        StringBuilder sb = new StringBuilder("?");
-        sb.append("page=1&pageSize=100");
+        StringBuilder sb = new StringBuilder("?page=1&pageSize=100");
+        String search = editSearch.getText().toString().trim();
+        if (!search.isEmpty()) sb.append("&search=").append(encode(search));
 
-        String searchValue = editSearch.getText().toString().trim();
-        if (!searchValue.isEmpty()) {
-            sb.append("&search=").append(encode(searchValue));
-        }
+        if (currentStatusWewnetrzny != null) sb.append("&statusWewnetrzny=").append(encode(currentStatusWewnetrzny));
+        if (currentStatusAllegro != null) sb.append("&statusAllegro=").append(encode(currentStatusAllegro));
 
-        String statusWew = currentStatusWewnetrzny;
-        if (statusWew != null && !statusWew.isEmpty()) {
-            sb.append("&statusWewnetrzny=").append(encode(statusWew));
-        }
-
-        String statusAll = currentStatusAllegro;
-        if (statusAll != null && !statusAll.isEmpty()) {
-            sb.append("&statusAllegro=").append(encode(statusAll));
-        } else if (deliveredOnly) {
-            sb.append("&statusAllegro=DELIVERED");
-        }
-
+        sb.append("&sortBy=CreatedAt&sortDesc=true");
         return sb.toString();
     }
 
-    private void updateSalesCounts() {
-        ApiClient client = new ApiClient(this);
-        fetchSalesCount(client, "Oczekuje na decyzję handlowca", count -> {
-            pendingCount = count;
-            btnFilterNaDecyzje.setText("Nowe sprawy (" + pendingCount + ")");
-        });
-        fetchSalesCount(client, "Zakończony", count -> {
-            completedCount = count;
-            btnFilterPoDecyzji.setText("Zakończone (" + completedCount + ")");
-        });
+    private String encode(String value) {
+        try { return URLEncoder.encode(value, StandardCharsets.UTF_8.toString()); } catch (Exception e) { return value; }
     }
 
-    private void fetchSalesCount(ApiClient client, String status, IntConsumer callback) {
-        String query = "?page=1&pageSize=1&statusWewnetrzny=" + encode(status);
-        client.fetchAssignedReturns(query, new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
-            @Override
-            public void onSuccess(PaginatedResponse<ReturnListItemDto> data) {
-                int total = data != null ? data.getTotalItems() : 0;
-                runOnUiThread(() -> callback.accept(total));
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> callback.accept(0));
-            }
-        });
-    }
-
-    private String translateStatusToApi(String status) {
-        if ("Dostarczono".equals(status)) return "DELIVERED";
-        if ("W drodze".equals(status)) return "IN_TRANSIT";
-        if ("Gotowy do odbioru".equals(status)) return "READY_FOR_PICKUP";
-        if ("Utworzono".equals(status)) return "CREATED";
-        if ("Zwrócono prowizję".equals(status)) return "COMMISSION_REFUNDED";
-        return status;
-    }
-
-    private void startCodeScan() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.CAMERA }, CAMERA_PERMISSION_REQUEST);
+    private void startCameraScan() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST);
             return;
         }
         ScanOptions options = new ScanOptions();
-        options.setPrompt("Zeskanuj kod kreskowy lub QR");
+        options.setPrompt("Zeskanuj kod");
         options.setBeepEnabled(true);
         options.setOrientationLocked(true);
-        options.setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES);
+        options.setCaptureActivity(com.journeyapps.barcodescanner.CaptureActivity.class);
         scanLauncher.launch(options);
     }
 
     private void handleScanResult(ScanIntentResult result) {
-        if (result.getContents() == null) {
-            return;
+        if (result.getContents() != null) {
+            String code = result.getContents().trim();
+            editSearch.setText(code);
+            findReturnByCode(code);
         }
-        String code = result.getContents().trim();
-        if (code.isEmpty()) {
-            return;
-        }
-        String coreCode = extractCoreWaybill(code);
-        searchHandler.removeCallbacksAndMessages(null);
-        editSearch.setText(coreCode);
-        findReturnByCode(coreCode);
     }
 
     private void findReturnByCode(String code) {
         progressBar.setVisibility(View.VISIBLE);
-        showLoadingOverlay("Szukam zwrotu...");
-        ApiClient client = new ApiClient(this);
-        String query = "?page=1&pageSize=100&search=" + encode(code);
-        ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>> callback = new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
+        String cleanCode = extractCoreWaybill(code);
+        String query = "?page=1&pageSize=1&search=" + encode(cleanCode);
+
+        apiClient.fetchReturns(query, new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
             @Override
             public void onSuccess(PaginatedResponse<ReturnListItemDto> data) {
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
-                    hideLoadingOverlay();
-                    List<ReturnListItemDto> items = data != null ? data.getItems() : null;
-                    adapter.setItems(items);
-                    int count = items == null ? 0 : items.size();
-                    txtCount.setText("Wyświetlono: " + count);
-                    txtEmpty.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
-
-                    if (count == 1) {
-                        openDetails(items.get(0));
-                        return;
-                    }
-                    if (count == 0) {
-                        if ("sales".equals(mode)) {
-                            Toast.makeText(ReturnsListActivity.this, "Brak zwrotu dla kodu: " + code, Toast.LENGTH_LONG).show();
-                        } else {
-                            showManualReturnPrompt(code);
-                        }
+                    if (data != null && data.getItems() != null && !data.getItems().isEmpty()) {
+                        openReturnDetails(data.getItems().get(0));
+                    } else {
+                        pendingScannedCode = cleanCode;
+                        showManualReturnPrompt(cleanCode);
                     }
                 });
             }
-
             @Override
-            public void onError(String message) {
-                runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    hideLoadingOverlay();
-                    Toast.makeText(ReturnsListActivity.this, "Nie znaleziono zwrotu: " + message, Toast.LENGTH_LONG).show();
-                    loadReturns();
-                });
+            public void onError(String msg) {
+                runOnUiThread(() -> { progressBar.setVisibility(View.GONE); Toast.makeText(ReturnsListActivity.this, "Błąd: " + msg, Toast.LENGTH_SHORT).show(); });
             }
-        };
-
-        if ("sales".equals(mode)) {
-            client.fetchAssignedReturns(query, callback);
-        } else {
-            client.fetchReturns(query, callback);
-        }
+        });
     }
 
     private void showManualReturnPrompt(String code) {
+        pendingScannedCode = code;
         new AlertDialog.Builder(this)
-            .setTitle("Nie znaleziono zwrotu")
-            .setMessage("Nie znaleziono zwrotu dla numeru listu: " + code + ".\n\nCzy chcesz dodać nowy zwrot ręcznie?")
-            .setPositiveButton("Dodaj ręcznie", (dialog, which) -> openManualReturnForm(code))
-            .setNegativeButton("Anuluj", null)
-            .show();
+                .setTitle("Brak zwrotu")
+                .setMessage("Nie znaleziono: " + code + "\nCzy dodać ręcznie?")
+                .setPositiveButton("Tak", (d, w) -> {
+                    pendingScannedCode = null;
+                    Intent intent = new Intent(this, ManualReturnActivity.class);
+                    intent.putExtra(ManualReturnActivity.EXTRA_WAYBILL, code);
+                    startActivity(intent);
+                })
+                .setNegativeButton("Nie", (d, w) -> pendingScannedCode = null)
+                .show();
     }
 
-    private void openManualReturnForm(String waybill) {
-        Intent intent = new Intent(this, ManualReturnActivity.class);
-        intent.putExtra(ManualReturnActivity.EXTRA_WAYBILL, waybill);
+    private String extractCoreWaybill(String input) {
+        if (input == null) return "";
+        Matcher dpdMatch = Pattern.compile("^%.{7}([a-zA-Z0-9]{14})").matcher(input);
+        if (dpdMatch.find()) return dpdMatch.group(1);
+        return input.replaceAll("[^a-zA-Z0-9]", "");
+    }
+
+    private void openReturnDetails(ReturnListItemDto item) {
+        Intent intent;
+        if ("sales".equals(currentMode)) {
+            intent = new Intent(this, SalesReturnDetailActivity.class);
+        } else {
+            intent = new Intent(this, ReturnDetailActivity.class);
+        }
+        intent.putExtra("return_id", item.getId());
         startActivity(intent);
-    }
-
-    private String extractCoreWaybill(String scannedText) {
-        if (scannedText == null || scannedText.trim().isEmpty()) {
-            return "";
-        }
-        Matcher dpdMatch = Pattern.compile("^%.{7}([a-zA-Z0-9]{14})").matcher(scannedText);
-        if (dpdMatch.find()) {
-            return dpdMatch.group(1);
-        }
-        Matcher genericMatch = Pattern.compile("[a-zA-Z0-9]{10,}").matcher(scannedText);
-        if (genericMatch.find()) {
-            return genericMatch.group();
-        }
-        return scannedText.replaceAll("[^a-zA-Z0-9]", "");
-    }
-
-    private String encode(@Nullable String value) {
-        if (value == null) {
-            return "";
-        }
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
-    }
-
-    private void showLoadingOverlay(String message) {
-        if (txtLoadingMessage != null) {
-            txtLoadingMessage.setText(message);
-        }
-        if (loadingOverlay != null) {
-            loadingOverlay.setVisibility(View.VISIBLE);
-        }
-    }
-
-    private void hideLoadingOverlay() {
-        if (loadingOverlay != null) {
-            loadingOverlay.setVisibility(View.GONE);
-        }
     }
 }
