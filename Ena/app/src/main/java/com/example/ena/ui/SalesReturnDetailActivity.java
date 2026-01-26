@@ -181,9 +181,9 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                         decyzje.addAll(data);
                     }
                     ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                        SalesReturnDetailActivity.this,
-                        android.R.layout.simple_spinner_item,
-                        toStatusNames(decyzje)
+                            SalesReturnDetailActivity.this,
+                            android.R.layout.simple_spinner_item,
+                            toStatusNames(decyzje)
                     );
                     adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                     spinnerDecyzja.setAdapter(adapter);
@@ -253,13 +253,13 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             return;
         }
         new AlertDialog.Builder(this)
-            .setTitle("Zatwierdź decyzję")
-            .setMessage(forwardToComplaints
-                ? "Czy na pewno chcesz zapisać decyzję i przekazać zwrot do reklamacji?"
-                : "Czy na pewno chcesz zapisać decyzję dla tego zwrotu?")
-            .setPositiveButton("Zapisz", (dialog, which) -> submitDecision(forwardToComplaints))
-            .setNegativeButton("Anuluj", null)
-            .show();
+                .setTitle("Zatwierdź decyzję")
+                .setMessage(forwardToComplaints
+                        ? "Czy na pewno chcesz zapisać decyzję i przekazać zwrot do reklamacji?"
+                        : "Czy na pewno chcesz zapisać decyzję dla tego zwrotu?")
+                .setPositiveButton("Zapisz", (dialog, which) -> submitDecision(forwardToComplaints))
+                .setNegativeButton("Anuluj", null)
+                .show();
     }
 
     private void submitDecision(boolean forwardToComplaints) {
@@ -328,34 +328,34 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         String comment = editKomentarz.getText().toString().trim();
 
         ComplaintAddressDto address = new ComplaintAddressDto(
-            safe(details.getBuyerAddress(), details.getBuyerAddressRaw()),
-            null,
-            null
+                safe(details.getBuyerAddress(), details.getBuyerAddressRaw()),
+                null,
+                null
         );
         ComplaintCustomerDto customer = new ComplaintCustomerDto(
-            nameParts[0],
-            nameParts[1],
-            null,
-            emptyToNull(details.getBuyerPhone()),
-            address
+                nameParts[0],
+                nameParts[1],
+                null,
+                emptyToNull(details.getBuyerPhone()),
+                address
         );
         ComplaintProductDto product = new ComplaintProductDto(
-            safe(details.getProductName(), "Nieznany produkt"),
-            emptyToNull(details.getInvoiceNumber()),
-            null
+                safe(details.getProductName(), "Nieznany produkt"),
+                emptyToNull(details.getInvoiceNumber()),
+                null
         );
         String przekazal = PairingManager.getPairedUser(this);
         if (TextUtils.isEmpty(przekazal)) {
             przekazal = "Handlowiec";
         }
         return new ForwardToComplaintRequest(
-            returnId,
-            emptyToNull(details.getReason()),
-            emptyToNull(details.getUwagiMagazynu()),
-            TextUtils.isEmpty(comment) ? null : comment,
-            przekazal,
-            customer,
-            product
+                returnId,
+                emptyToNull(details.getReason()),
+                emptyToNull(details.getUwagiMagazynu()),
+                TextUtils.isEmpty(comment) ? null : comment,
+                przekazal,
+                customer,
+                product
         );
     }
 
@@ -366,11 +366,11 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         EditText input = new EditText(this);
         input.setHint("Komentarz dla magazynu (opcjonalnie)");
         new AlertDialog.Builder(this)
-            .setTitle("Przekaż do magazynu")
-            .setView(input)
-            .setPositiveButton("Przekaż", (dialog, which) -> forwardToWarehouse(input.getText().toString().trim()))
-            .setNegativeButton("Anuluj", null)
-            .show();
+                .setTitle("Przekaż do magazynu")
+                .setView(input)
+                .setPositiveButton("Przekaż", (dialog, which) -> forwardToWarehouse(input.getText().toString().trim()))
+                .setNegativeButton("Anuluj", null)
+                .show();
     }
 
     private void forwardToWarehouse(String comment) {
@@ -430,11 +430,11 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         spinner.setAdapter(adapter);
 
         new AlertDialog.Builder(this)
-            .setTitle("Odrzuć zwrot")
-            .setView(view)
-            .setPositiveButton("Odrzuć", (dialog, which) -> submitRejection(spinner, editReason))
-            .setNegativeButton("Anuluj", null)
-            .show();
+                .setTitle("Odrzuć zwrot")
+                .setView(view)
+                .setPositiveButton("Odrzuć", (dialog, which) -> submitRejection(spinner, editReason))
+                .setNegativeButton("Anuluj", null)
+                .show();
     }
 
     private void submitRejection(Spinner spinner, EditText editReason) {
@@ -446,7 +446,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         RejectionReasonItem selected = (RejectionReasonItem) spinner.getSelectedItem();
         String reasonText = editReason.getText().toString().trim();
         RejectCustomerReturnRequest request = new RejectCustomerReturnRequest(
-            new ReturnRejectionDto(selected.code, reasonText.isEmpty() ? null : reasonText)
+                new ReturnRejectionDto(selected.code, reasonText.isEmpty() ? null : reasonText)
         );
 
         btnOdrzucZwrot.setEnabled(false);

@@ -10,125 +10,125 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-    <TextView
-        android:id="@+id/txtHeader"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Lista zwrotów"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-
-        <EditText
-            android:id="@+id/editSearch"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Szukaj po numerze, liście, kliencie..."
-            android:inputType="text" />
-
-        <Button
-            android:id="@+id/btnScanCode"
+        <TextView
+            android:id="@+id/txtHeader"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Skanuj" />
-
-        <Button
-            android:id="@+id/btnRefresh"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Odśwież" />
-
-        <Button
-            android:id="@+id/btnSync"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Synchronizuj" />
-    </LinearLayout>
-
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:fillViewport="true">
+            android:text="Lista zwrotów"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
         <LinearLayout
-            android:id="@+id/layoutFilters"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/btnFilterOczekujace"
-                android:layout_width="wrap_content"
+            <EditText
+                android:id="@+id/editSearch"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Oczekuje na przyjęcie" />
+                android:layout_weight="1"
+                android:hint="Szukaj po numerze, liście, kliencie..."
+                android:inputType="text" />
 
             <Button
-                android:id="@+id/btnFilterNaDecyzje"
+                android:id="@+id/btnScanCode"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="Oczekuje na decyzję" />
+                android:text="Skanuj" />
 
             <Button
-                android:id="@+id/btnFilterPoDecyzji"
+                android:id="@+id/btnRefresh"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="Po decyzji" />
+                android:text="Odśwież" />
 
             <Button
-                android:id="@+id/btnFilterWDrodze"
+                android:id="@+id/btnSync"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="W drodze do nas" />
-
-            <Button
-                android:id="@+id/btnFilterWszystkie"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Wszystkie" />
+                android:text="Synchronizuj" />
         </LinearLayout>
-    </HorizontalScrollView>
 
-    <Spinner
-        android:id="@+id/spinnerStatusAllegro"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp" />
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fillViewport="true">
 
-    <TextView
-        android:id="@+id/txtCount"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="Wyświetlono: 0" />
+            <LinearLayout
+                android:id="@+id/layoutFilters"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-    <ProgressBar
-        android:id="@+id/progress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:visibility="gone" />
+                <Button
+                    android:id="@+id/btnFilterOczekujace"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Oczekuje na przyjęcie" />
 
-    <TextView
-        android:id="@+id/txtEmpty"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="Brak danych"
-        android:visibility="gone" />
+                <Button
+                    android:id="@+id/btnFilterNaDecyzje"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Oczekuje na decyzję" />
+
+                <Button
+                    android:id="@+id/btnFilterPoDecyzji"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Po decyzji" />
+
+                <Button
+                    android:id="@+id/btnFilterWDrodze"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="W drodze do nas" />
+
+                <Button
+                    android:id="@+id/btnFilterWszystkie"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Wszystkie" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <Spinner
+            android:id="@+id/spinnerStatusAllegro"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:id="@+id/txtCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Wyświetlono: 0" />
+
+        <ProgressBar
+            android:id="@+id/progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/txtEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Brak danych"
+            android:visibility="gone" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/listReturns"

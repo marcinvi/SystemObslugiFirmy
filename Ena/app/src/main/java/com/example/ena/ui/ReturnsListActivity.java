@@ -498,11 +498,11 @@ public class ReturnsListActivity extends AppCompatActivity {
 
     private void showManualReturnPrompt(String code) {
         new AlertDialog.Builder(this)
-            .setTitle("Nie znaleziono zwrotu")
-            .setMessage("Nie znaleziono zwrotu dla numeru listu: " + code + ".\n\nCzy chcesz dodać nowy zwrot ręcznie?")
-            .setPositiveButton("Dodaj ręcznie", (dialog, which) -> openManualReturnForm(code))
-            .setNegativeButton("Anuluj", null)
-            .show();
+                .setTitle("Nie znaleziono zwrotu")
+                .setMessage("Nie znaleziono zwrotu dla numeru listu: " + code + ".\n\nCzy chcesz dodać nowy zwrot ręcznie?")
+                .setPositiveButton("Dodaj ręcznie", (dialog, which) -> openManualReturnForm(code))
+                .setNegativeButton("Anuluj", null)
+                .show();
     }
 
     private void openManualReturnForm(String waybill) {

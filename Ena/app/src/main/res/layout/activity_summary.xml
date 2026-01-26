@@ -1,23 +1,148 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="#F8F9FA">
 
-    <TextView
-        android:id="@+id/txtSummaryHeader"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Podsumowanie zwrotów"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/txtSummaryContent"
+    <LinearLayout
+        android:id="@+id/headerContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text=""
-        android:textSize="14sp" />
-</LinearLayout>
+        android:background="@color/white"
+        android:elevation="4dp"
+        android:orientation="vertical"
+        android:paddingBottom="12dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp">
+
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_revert"
+                app:tint="#333333" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:text="Przegląd Zwrotów"
+                android:textColor="#333333"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btnRefresh"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_popup_sync"
+                app:tint="#333333" />
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:clipToPadding="false"
+            android:paddingHorizontal="16dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnFilterPending"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Oczekujące"
+                    android:textSize="13sp"
+                    android:background="@drawable/bg_spinner"
+                    android:layout_marginEnd="8dp"
+                    style="?android:attr/borderlessButtonStyle"/>
+
+                <Button
+                    android:id="@+id/btnFilterAction"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Po decyzji"
+                    android:textSize="13sp"
+                    android:background="@drawable/bg_spinner"
+                    android:layout_marginEnd="8dp"
+                    style="?android:attr/borderlessButtonStyle"/>
+
+                <Button
+                    android:id="@+id/btnFilterDone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Zakończone"
+                    android:textSize="13sp"
+                    android:background="@drawable/bg_spinner"
+                    android:layout_marginEnd="8dp"
+                    style="?android:attr/borderlessButtonStyle"/>
+
+                <Button
+                    android:id="@+id/btnFilterOther"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Problemy"
+                    android:textSize="13sp"
+                    android:background="@drawable/bg_spinner"
+                    android:textColor="#D32F2F"
+                    style="?android:attr/borderlessButtonStyle"/>
+            </LinearLayout>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@+id/headerContainer"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerSummary"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="8dp"
+            android:clipToPadding="false"/>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/headerContainer"
+        android:indeterminateTint="#1976D2"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/txtNoData"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Brak danych w tej kategorii"
+        android:textColor="#9E9E9E"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/headerContainer"
+        android:visibility="gone"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

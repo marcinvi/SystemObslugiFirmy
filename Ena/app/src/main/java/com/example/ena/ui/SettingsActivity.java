@@ -2,85 +2,98 @@ package com.example.ena.ui;
 
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
-import androidx.activity.result.ActivityResultLauncher;
+
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.ena.Config;
+import com.example.ena.PairingManager;
 import com.example.ena.R;
 import com.example.ena.api.ApiConfig;
-import com.google.zxing.client.android.Intents;
-import com.journeyapps.barcodescanner.ScanContract;
-import com.journeyapps.barcodescanner.ScanIntentResult;
-import com.journeyapps.barcodescanner.ScanOptions;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.google.android.material.textfield.TextInputEditText;
 
 public class SettingsActivity extends AppCompatActivity {
-    private EditText editBaseUrl;
 
-    private final ActivityResultLauncher<ScanOptions> qrLauncher =
-            registerForActivityResult(new ScanContract(), this::handleQrResult);
+    private TextInputEditText inputIp, inputPort;
+    private TextView txtPairingInfo;
+    private Button btnSaveServer, btnResetPairing;
+    private ImageButton btnBack;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
-        editBaseUrl = findViewById(R.id.editBaseUrl);
-        Button btnSave = findViewById(R.id.btnSaveBaseUrl);
-        Button btnScanQr = findViewById(R.id.btnScanQr);
-
-        editBaseUrl.setText(ApiConfig.getBaseUrl(this));
-
-        btnSave.setOnClickListener(v -> {
-            ApiConfig.setBaseUrl(this, editBaseUrl.getText().toString());
-            Toast.makeText(this, "Zapisano", Toast.LENGTH_SHORT).show();
-            finish();
-        });
-
-        btnScanQr.setOnClickListener(v -> startQrScan());
+        initViews();
+        loadCurrentSettings();
     }
 
-    private void startQrScan() {
-        ScanOptions options = new ScanOptions();
-        options.setPrompt("Zeskanuj QR z adresem API");
-        options.setBeepEnabled(true);
-        options.setOrientationLocked(true);
-        options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
-        options.addExtra(Intents.Scan.CHARACTER_SET, "UTF-8");
-        qrLauncher.launch(options);
+    private void initViews() {
+        inputIp = findViewById(R.id.inputIp);
+        inputPort = findViewById(R.id.inputPort);
+        txtPairingInfo = findViewById(R.id.txtPairingInfo);
+        btnSaveServer = findViewById(R.id.btnSaveServer);
+        btnResetPairing = findViewById(R.id.btnResetPairing);
+        btnBack = findViewById(R.id.btnBack);
+
+        btnBack.setOnClickListener(v -> finish());
+        btnSaveServer.setOnClickListener(v -> saveServerSettings());
+        btnResetPairing.setOnClickListener(v -> confirmResetPairing());
     }
 
-    private void handleQrResult(ScanIntentResult result) {
-        if (result == null || result.getContents() == null) {
-            return;
-        }
-        String contents = result.getContents().trim();
-        String baseUrl = parseBaseUrl(contents);
-        if (baseUrl == null || baseUrl.isEmpty()) {
-            Toast.makeText(this, "Nieprawidłowy kod QR.", Toast.LENGTH_LONG).show();
-            return;
-        }
-        editBaseUrl.setText(baseUrl);
-        Toast.makeText(this, "Wczytano adres API z QR.", Toast.LENGTH_SHORT).show();
-    }
-
-    private String parseBaseUrl(String contents) {
-        if (contents == null || contents.isEmpty()) {
-            return "";
-        }
-        String baseUrl = contents;
-        if (contents.startsWith("{")) {
-            try {
-                JSONObject obj = new JSONObject(contents);
-                baseUrl = obj.optString("apiBaseUrl", "");
-            } catch (JSONException ignored) {
-                baseUrl = contents;
+    private void loadCurrentSettings() {
+        String fullUrl = ApiConfig.getBaseUrl(this);
+        // Próbujemy wyciągnąć IP i Port z URL dla wygody użytkownika
+        // Oczekujemy formatu: http://192.168.1.X:PORT
+        if (fullUrl != null) {
+            String clean = fullUrl.replace("http://", "").replace("https://", "");
+            String[] parts = clean.split(":");
+            if (parts.length > 0) inputIp.setText(parts[0]);
+            if (parts.length > 1) {
+                // Usuwamy ew. ścieżki po porcie
+                String port = parts[1].split("/")[0];
+                inputPort.setText(port);
             }
         }
-        if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
-            baseUrl = "http://" + baseUrl;
+
+        String user = PairingManager.getPairedUser(this);
+        if (user != null && !user.isEmpty()) {
+            txtPairingInfo.setText("Sparowano dla użytkownika: " + user);
+        } else {
+            txtPairingInfo.setText("Urządzenie niesparowane.");
         }
-        return baseUrl.trim();
+    }
+
+    private void saveServerSettings() {
+        String ip = inputIp.getText().toString().trim();
+        String port = inputPort.getText().toString().trim();
+
+        if (ip.isEmpty() || port.isEmpty()) {
+            Toast.makeText(this, "Wprowadź IP i Port", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String newUrl = "http://" + ip + ":" + port;
+        ApiConfig.setBaseUrl(this, newUrl);
+        // Jeśli masz klasę Config do zapisu, użyj jej też:
+        Config.saveServerUrl(this, newUrl);
+
+        Toast.makeText(this, "Zapisano! Zrestartuj aplikację.", Toast.LENGTH_LONG).show();
+    }
+
+    private void confirmResetPairing() {
+        new AlertDialog.Builder(this)
+                .setTitle("Reset Parowania")
+                .setMessage("Czy na pewno chcesz usunąć powiązanie z komputerem?")
+                .setPositiveButton("Tak", (d, w) -> {
+                    PairingManager.reset(this);
+                    loadCurrentSettings();
+                    Toast.makeText(this, "Zresetowano.", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Nie", null)
+                .show();
     }
 }

@@ -84,7 +84,9 @@ public class ApiClient {
         if (parsed != null && isLocalNetworkHost(parsed.host())) return UNSAFE_TLS_CLIENT;
         return CLIENT;
     }
-
+    public void lookupReturn(String code, ApiCallback<ReturnDetailsDto> callback) {
+        fetchReturnByCode(code, callback); // Po prostu przekieruj do istniejącej metody
+    }
     private boolean isLocalNetworkHost(String host) {
         if (host == null) return false;
         if (host.equals("localhost") || host.equals("127.0.0.1")) return true;
@@ -314,7 +316,13 @@ public class ApiClient {
         return message;
     }
 
-    // --- METODY WYMAGANE PRZEZ TWOJE ACTIVITY (BŁĘDY Z OBRAZKA) ---
+    // --- METODY WYMAGANE PRZEZ TWOJE ACTIVITY ---
+
+    // NOWA METODA: Pobieranie listy użytkowników
+    public void fetchUsers(ApiCallback<List<String>> callback) {
+        Type type = new TypeToken<ApiResponse<List<String>>>(){}.getType();
+        get("api/auth/users", type, callback);
+    }
 
     public void fetchReturns(String query, ApiCallback<PaginatedResponse<ReturnListItemDto>> callback) {
         Type type = new TypeToken<ApiResponse<PaginatedResponse<ReturnListItemDto>>>(){}.getType();
