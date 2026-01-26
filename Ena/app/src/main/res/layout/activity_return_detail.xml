@@ -237,6 +237,18 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:text="Przypisany handlowiec" />
+
+                <TextView
+                    android:id="@+id/txtAssignedSales"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Brak danych" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
                     android:text="Oceń stan produktu" />
 
                 <Spinner
@@ -260,28 +272,107 @@
                     android:gravity="top"
                     android:inputType="textMultiLine" />
             </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@android:color/white"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dziennik zwrotu"
+                    android:textStyle="bold"
+                    android:textColor="#1976D2"
+                    android:textSize="16sp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/listWarehouseActions"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:layout_marginTop="12dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <EditText
+                        android:id="@+id/editWarehouseAction"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Wpis do dziennika" />
+
+                    <Button
+                        android:id="@+id/btnWarehouseAddAction"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="Dodaj" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnAddResendInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Dodaj info o ponownej wysyłce" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:padding="12dp"
         android:gravity="end"
         android:background="#E0E0E0">
 
-        <Button
-            android:id="@+id/btnCancel"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Anuluj" />
+            android:orientation="horizontal"
+            android:gravity="end">
 
-        <Button
-            android:id="@+id/btnForwardToSales"
-            android:layout_width="wrap_content"
+            <Button
+                android:id="@+id/btnCancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Anuluj" />
+
+            <Button
+                android:id="@+id/btnCloseReturn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="Zamknij zwrot" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:text="Przekaż do Handlowca" />
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <Button
+                android:id="@+id/btnForwardToComplaints"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Przekaż do reklamacji" />
+
+            <Button
+                android:id="@+id/btnForwardToSales"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="Przekaż do handlowca" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

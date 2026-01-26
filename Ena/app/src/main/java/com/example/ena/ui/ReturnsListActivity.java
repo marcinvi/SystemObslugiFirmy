@@ -125,6 +125,8 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnSync = findViewById(R.id.btnSync);
         btnClearSearch = findViewById(R.id.btnClearSearch);
         btnScanCode = findViewById(R.id.btnScanCode);
+        loadingOverlay = findViewById(R.id.loadingOverlay);
+        txtLoadingMessage = findViewById(R.id.txtLoadingMessage);
 
         // Filtry
         filtersContainer = findViewById(R.id.filtersContainer); // Upewnij się, że ID w XML to filtersContainer

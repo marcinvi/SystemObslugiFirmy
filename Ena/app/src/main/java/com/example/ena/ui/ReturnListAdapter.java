@@ -13,8 +13,10 @@ import com.example.ena.api.ReturnListItemDto;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.ViewHolder> {
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM HH:mm");
 
     public interface OnItemClickListener {
         void onItemClick(ReturnListItemDto item);
@@ -94,6 +96,7 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             txtRef = itemView.findViewById(R.id.txtRef);
+            txtDate = itemView.findViewById(R.id.txtDate);
             txtProduct = itemView.findViewById(R.id.txtProduct);
             txtBuyer = itemView.findViewById(R.id.txtBuyer);
             txtAction = itemView.findViewById(R.id.txtAction);
@@ -101,5 +104,22 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
             statusStrip = itemView.findViewById(R.id.statusStrip);
             decisionContainer = itemView.findViewById(R.id.decisionContainer);
         }
+        return DecisionStyle.OTHER;
+    }
+
+    private static class DecisionStyle {
+        final int stripColor;
+        final int containerColor;
+        final int textColor;
+
+        private DecisionStyle(int stripColor, int containerColor, int textColor) {
+            this.stripColor = stripColor;
+            this.containerColor = containerColor;
+            this.textColor = textColor;
+        }
+
+        static final DecisionStyle STOCK = new DecisionStyle(0xFF43A047, 0xFFE8F5E9, 0xFF2E7D32);
+        static final DecisionStyle RESEND = new DecisionStyle(0xFFFF8F00, 0xFFFFF3E0, 0xFFF57C00);
+        static final DecisionStyle OTHER = new DecisionStyle(0xFFE53935, 0xFFFFEBEE, 0xFFC62828);
     }
 }
