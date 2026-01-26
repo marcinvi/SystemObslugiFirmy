@@ -45,6 +45,7 @@ public class ReturnsListActivity extends AppCompatActivity {
     public static final String EXTRA_MODE = "mode";
     private static final int CAMERA_PERMISSION_REQUEST = 2001;
     private static final String STATE_PENDING_MANUAL_CODE = "pending_manual_code";
+    private static final String STATUS_WEW_OCZEKUJE_NA_PRZYJECIE = "Oczekuje na przyjęcie";
 
     private ReturnListAdapter adapter;
     private ProgressBar progressBar;
@@ -239,26 +240,26 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnFilterOczekujace.setText("Dostarczone");
 
         btnFilterOczekujace.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "9";
+            currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_NA_PRZYJECIE;
             currentStatusAllegro = "DELIVERED";
             setActiveFilter(btnFilterOczekujace);
             loadReturns();
         });
         btnFilterWDrodze.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "9";
+            currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_NA_PRZYJECIE;
             currentStatusAllegro = "IN_TRANSIT";
             setActiveFilter(btnFilterWDrodze);
             loadReturns();
         });
         btnFilterWszystkie.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "9";
+            currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_NA_PRZYJECIE;
             currentStatusAllegro = null;
             setActiveFilter(btnFilterWszystkie);
             loadReturns();
         });
 
         setActiveFilter(btnFilterWszystkie);
-        currentStatusWewnetrzny = "9";
+        currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_NA_PRZYJECIE;
         currentStatusAllegro = null;
     }
 
