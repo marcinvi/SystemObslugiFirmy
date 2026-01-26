@@ -45,6 +45,7 @@ public class ReturnsListActivity extends AppCompatActivity {
     public static final String EXTRA_MODE = "mode";
     private static final int CAMERA_PERMISSION_REQUEST = 2001;
     private static final String STATE_PENDING_MANUAL_CODE = "pending_manual_code";
+    private static final String STATUS_WEW_OCZEKUJE_NA_PRZYJECIE = "Oczekuje na przyjęcie";
 
     private ReturnListAdapter adapter;
     private ProgressBar progressBar;
@@ -63,6 +64,7 @@ public class ReturnsListActivity extends AppCompatActivity {
     private FloatingActionButton btnScanCode;
     private View loadingOverlay;
     private TextView txtLoadingMessage;
+    private View filtersDecisionRow;
     private String mode;
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private String currentStatusWewnetrzny;
@@ -100,6 +102,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnScanCode = findViewById(R.id.btnScanCode);
         loadingOverlay = findViewById(R.id.loadingOverlay);
         txtLoadingMessage = findViewById(R.id.txtLoadingMessage);
+        filtersDecisionRow = findViewById(R.id.filtersDecisionRow);
 
         if ("sales".equals(mode)) {
             txtHeader.setText("Handlowiec - moje zwroty");
@@ -109,9 +112,14 @@ public class ReturnsListActivity extends AppCompatActivity {
 
         RecyclerView recyclerView = findViewById(R.id.listReturns);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        ReturnListAdapter.DisplayMode displayMode = "sales".equals(mode)
-                ? ReturnListAdapter.DisplayMode.WAREHOUSE_STATUS
-                : ReturnListAdapter.DisplayMode.DECISION;
+        ReturnListAdapter.DisplayMode displayMode;
+        if ("sales".equals(mode)) {
+            displayMode = ReturnListAdapter.DisplayMode.WAREHOUSE_STATUS;
+        } else if ("warehouse".equals(mode)) {
+            displayMode = ReturnListAdapter.DisplayMode.WAREHOUSE_SCANNER;
+        } else {
+            displayMode = ReturnListAdapter.DisplayMode.DECISION;
+        }
         adapter = new ReturnListAdapter(this::openDetails, displayMode);
         recyclerView.setAdapter(adapter);
 
@@ -146,6 +154,10 @@ public class ReturnsListActivity extends AppCompatActivity {
     private void setupFilters() {
         if ("sales".equals(mode)) {
             setupSalesFilters();
+            return;
+        }
+        if ("warehouse".equals(mode)) {
+            setupWarehouseFilters();
             return;
         }
         spinnerStatusAllegro.setVisibility(View.GONE);
@@ -191,6 +203,9 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnFilterOczekujace.setVisibility(View.GONE);
         btnFilterWDrodze.setVisibility(View.GONE);
         btnFilterWszystkie.setVisibility(View.GONE);
+        if (filtersDecisionRow != null) {
+            filtersDecisionRow.setVisibility(View.VISIBLE);
+        }
 
         btnFilterNaDecyzje.setText("Nowe sprawy");
         btnFilterPoDecyzji.setText("Zakończone");
@@ -202,7 +217,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             loadReturns();
         });
         btnFilterPoDecyzji.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Zakończony";
+            currentStatusWewnetrzny = "Po decyzji";
             currentStatusAllegro = null;
             setActiveFilter(btnFilterPoDecyzji);
             loadReturns();
@@ -218,31 +233,34 @@ public class ReturnsListActivity extends AppCompatActivity {
         spinnerStatusAllegro.setVisibility(View.GONE);
         btnFilterNaDecyzje.setVisibility(View.GONE);
         btnFilterPoDecyzji.setVisibility(View.GONE);
+        if (filtersDecisionRow != null) {
+            filtersDecisionRow.setVisibility(View.GONE);
+        }
 
         btnFilterOczekujace.setText("Dostarczone");
 
         btnFilterOczekujace.setOnClickListener(v -> {
-            currentStatusWewnetrzny = null;
+            currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_NA_PRZYJECIE;
             currentStatusAllegro = "DELIVERED";
             setActiveFilter(btnFilterOczekujace);
             loadReturns();
         });
         btnFilterWDrodze.setOnClickListener(v -> {
-            currentStatusWewnetrzny = null;
+            currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_NA_PRZYJECIE;
             currentStatusAllegro = "IN_TRANSIT";
             setActiveFilter(btnFilterWDrodze);
             loadReturns();
         });
         btnFilterWszystkie.setOnClickListener(v -> {
-            currentStatusWewnetrzny = null;
+            currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_NA_PRZYJECIE;
             currentStatusAllegro = null;
             setActiveFilter(btnFilterWszystkie);
             loadReturns();
         });
 
-        setActiveFilter(btnFilterOczekujace);
-        currentStatusWewnetrzny = null;
-        currentStatusAllegro = "DELIVERED";
+        setActiveFilter(btnFilterWszystkie);
+        currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_NA_PRZYJECIE;
+        currentStatusAllegro = null;
     }
 
     private void setupSearch() {
@@ -404,7 +422,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             pendingCount = count;
             btnFilterNaDecyzje.setText("Nowe sprawy (" + pendingCount + ")");
         });
-        fetchSalesCount(client, "Zakończony", count -> {
+        fetchSalesCount(client, "Po decyzji", count -> {
             completedCount = count;
             btnFilterPoDecyzji.setText("Zakończone (" + completedCount + ")");
         });
