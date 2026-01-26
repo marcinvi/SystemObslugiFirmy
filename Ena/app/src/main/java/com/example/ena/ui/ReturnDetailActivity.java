@@ -5,6 +5,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -135,11 +136,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
         }
         String referenceNumber = safe(data.getReferenceNumber());
         txtHeaderNumber.setText(referenceNumber.isEmpty() ? "Zwrot" : "Zwrot #" + referenceNumber);
-        txtHeaderStatus.setText("Status: " + safe(data.getStatusWewnetrzny()));
+        txtHeaderStatus.setText(safe(data.getStatusWewnetrzny(), "Brak statusu"));
 
         txtProductName.setText(safe(data.getProductName(), "Brak"));
         txtOfferId.setText(safe(data.getOfferId(), "Brak"));
-        txtQuantity.setText(valueOrPlaceholder(data.getQuantity()));
+        txtQuantity.setText("Ilość: " + valueOrPlaceholder(data.getQuantity()));
         txtReason.setText(safe(data.getReason(), data.isManual() ? "Brak (zwrot ręczny)" : "Brak"));
 
         txtWaybill.setText(safe(data.getWaybill(), "Brak"));
@@ -238,6 +239,19 @@ public class ReturnDetailActivity extends AppCompatActivity {
                 .setPositiveButton("Przekaż", (dialog, which) -> submitForwardToComplaints())
                 .setNegativeButton("Anuluj", null)
                 .show();
+    }
+
+    private void showForwardToComplaintsDialog() {
+        if (details == null) {
+            Toast.makeText(this, "Brak danych zwrotu", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("Przekaż do reklamacji")
+            .setMessage("Czy na pewno chcesz przekazać zwrot do działu reklamacji?")
+            .setPositiveButton("Przekaż", (dialog, which) -> submitForwardToComplaints())
+            .setNegativeButton("Anuluj", null)
+            .show();
     }
 
     private void submitForwardToSales() {
