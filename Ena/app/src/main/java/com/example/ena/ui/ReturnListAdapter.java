@@ -21,7 +21,9 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
 
     public enum DisplayMode {
         DECISION,
-        WAREHOUSE_STATUS
+        WAREHOUSE_STATUS,
+        WAREHOUSE_SCANNER,
+        SUMMARY
     }
 
     public interface OnItemClickListener {
@@ -82,7 +84,7 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         holder.txtProduct.setText(item.getProductName() != null ? item.getProductName() : "Brak produktu");
         holder.txtBuyer.setText(item.getBuyerName() != null ? item.getBuyerName() : "");
         holder.txtDate.setText(formatDate(item.getCreatedAt()));
-        holder.txtStatusAllegro.setText(formatStatusAllegro(item));
+        holder.txtStatusAllegro.setText(formatStatusLine(item));
 
         String labelText = resolveActionLabel(item);
         holder.txtAction.setText(labelText.toUpperCase(Locale.ROOT));
@@ -160,6 +162,20 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         return DecisionStyle.OTHER;
     }
 
+    private DecisionStyle resolveWarehouseStatusStyle(String statusLabel) {
+        if (statusLabel == null) {
+            return DecisionStyle.NEUTRAL;
+        }
+        String normalized = statusLabel.trim().toLowerCase(Locale.ROOT);
+        if (normalized.contains("dostarcz")) {
+            return DecisionStyle.STOCK;
+        }
+        if (normalized.contains("w drodze") || normalized.contains("in_transit")) {
+            return new DecisionStyle(0xFFFB8C00, 0xFFFFF3E0, 0xFFEF6C00);
+        }
+        return DecisionStyle.NEUTRAL;
+    }
+
     private static class DecisionStyle {
         final int stripColor;
         final int containerColor;
@@ -179,12 +195,34 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
     }
 
     private String resolveActionLabel(ReturnListItemDto item) {
+        if (displayMode == DisplayMode.WAREHOUSE_SCANNER) {
+            return resolveWarehouseStatusLabel(item);
+        }
         if (displayMode == DisplayMode.WAREHOUSE_STATUS) {
             String stan = item.getStanProduktu();
             return stan == null || stan.trim().isEmpty() ? "Brak oceny magazynu" : "Stan produktu: " + stan;
         }
         String decision = item.getDecyzjaHandlowca();
         return decision == null || decision.trim().isEmpty() ? "Brak decyzji" : decision;
+    }
+
+    private String resolveWarehouseStatusLabel(ReturnListItemDto item) {
+        if (item == null) {
+            return "Brak statusu";
+        }
+        String status = item.getStatusAllegro();
+        if (status == null || status.trim().isEmpty()) {
+            return "Brak statusu";
+        }
+        return translateStatusAllegro(status.trim());
+    }
+
+    private String formatStatusLine(ReturnListItemDto item) {
+        if (displayMode == DisplayMode.WAREHOUSE_SCANNER) {
+            String waybill = item != null ? item.getWaybill() : null;
+            return "Numer listu: " + (waybill == null || waybill.trim().isEmpty() ? "-" : waybill.trim());
+        }
+        return formatStatusAllegro(item);
     }
 
     private String formatStatusAllegro(ReturnListItemDto item) {
@@ -232,6 +270,9 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         if (item == null) {
             return 3;
         }
+        if (displayMode == DisplayMode.SUMMARY) {
+            return summaryPriority(item);
+        }
         String status = item.getStatusAllegro();
         if (status == null) {
             return 3;
@@ -246,5 +287,26 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
             default:
                 return 3;
         }
+    }
+
+    private int summaryPriority(ReturnListItemDto item) {
+        String decyzja = item.getDecyzjaHandlowca();
+        String statusWew = item.getStatusWewnetrzny();
+        boolean hasDecision = decyzja != null && !decyzja.trim().isEmpty();
+        if (!hasDecision && statusWew != null) {
+            String normalized = statusWew.toLowerCase(Locale.ROOT);
+            hasDecision = normalized.contains("po decyzji")
+                    || normalized.contains("archiwal");
+        }
+        if (hasDecision) {
+            return 0;
+        }
+        if (statusWew != null) {
+            String normalized = statusWew.toLowerCase(Locale.ROOT);
+            if (normalized.contains("oczekuje na decyzję")) {
+                return 1;
+            }
+        }
+        return 2;
     }
 }
