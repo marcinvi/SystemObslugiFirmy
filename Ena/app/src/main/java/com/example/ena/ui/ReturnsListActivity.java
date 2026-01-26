@@ -11,6 +11,7 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -39,6 +40,7 @@ import java.util.function.IntConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import androidx.activity.result.ActivityResultLauncher;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class ReturnsListActivity extends AppCompatActivity {
     public static final String EXTRA_MODE = "mode";
@@ -56,9 +58,9 @@ public class ReturnsListActivity extends AppCompatActivity {
     private Button btnFilterPoDecyzji;
     private Button btnFilterWDrodze;
     private Button btnFilterWszystkie;
-    private Button btnRefresh;
-    private Button btnSync;
-    private Button btnScanCode;
+    private ImageButton btnRefresh;
+    private ImageButton btnSync;
+    private FloatingActionButton btnScanCode;
     private View loadingOverlay;
     private TextView txtLoadingMessage;
     private String mode;
