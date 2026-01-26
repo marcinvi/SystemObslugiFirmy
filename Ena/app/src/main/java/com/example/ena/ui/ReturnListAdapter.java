@@ -96,14 +96,23 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
 
     private DecisionStyle resolveDecisionStyle(String decision) {
         if (decision == null) {
-            return DecisionStyle.OTHER;
+            return DecisionStyle.NEUTRAL;
         }
         String normalized = decision.trim().toLowerCase();
-        if (normalized.contains("stan")) {
+        if (normalized.isEmpty() || normalized.contains("brak")) {
+            return DecisionStyle.NEUTRAL;
+        }
+        if (normalized.contains("półk") || normalized.contains("polk")) {
             return DecisionStyle.STOCK;
         }
         if (normalized.contains("wysyłka") || normalized.contains("wysylka") || normalized.contains("ponowna")) {
             return DecisionStyle.RESEND;
+        }
+        if (normalized.contains("reklam")) {
+            return DecisionStyle.COMPLAINT;
+        }
+        if (normalized.contains("inne")) {
+            return DecisionStyle.OTHER;
         }
         return DecisionStyle.OTHER;
     }
@@ -120,7 +129,9 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         }
 
         static final DecisionStyle STOCK = new DecisionStyle(0xFF43A047, 0xFFE8F5E9, 0xFF2E7D32);
-        static final DecisionStyle RESEND = new DecisionStyle(0xFFFF8F00, 0xFFFFF3E0, 0xFFF57C00);
-        static final DecisionStyle OTHER = new DecisionStyle(0xFFE53935, 0xFFFFEBEE, 0xFFC62828);
+        static final DecisionStyle RESEND = new DecisionStyle(0xFF1E88E5, 0xFFE3F2FD, 0xFF1565C0);
+        static final DecisionStyle COMPLAINT = new DecisionStyle(0xFFFF8F00, 0xFFFFF3E0, 0xFFF57C00);
+        static final DecisionStyle OTHER = new DecisionStyle(0xFFD32F2F, 0xFFFFEBEE, 0xFFC62828);
+        static final DecisionStyle NEUTRAL = new DecisionStyle(0xFF9E9E9E, 0xFFF5F5F5, 0xFF616161);
     }
 }

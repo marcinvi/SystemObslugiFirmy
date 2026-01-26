@@ -55,9 +55,15 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private ProgressBar progressBar;
 
     private ReturnActionAdapter actionAdapter;
-    private final List<StatusDto> decyzje = new ArrayList<>();
+    private final List<DecisionItem> decyzje = new ArrayList<>();
     private ReturnDetailsDto details;
     private int returnId;
+    private static final String[] REQUIRED_DECISIONS = new String[]{
+            "Na półkę",
+            "Ponowna wysyłka",
+            "Reklamacje",
+            "Inne"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -148,9 +154,13 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     decyzje.clear();
                     if (data != null) {
-                        decyzje.addAll(data);
+                        decyzje.addAll(buildDecisionItems(data));
                     }
-                    // decyzje gotowe do użycia w dialogu
+                    if (!hasAllRequiredDecisions()) {
+                        Toast.makeText(SalesReturnDetailActivity.this,
+                                "Brakuje wymaganych decyzji: Na półkę, Ponowna wysyłka, Reklamacje, Inne.",
+                                Toast.LENGTH_LONG).show();
+                    }
                 });
             }
 
@@ -181,6 +191,10 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Brak dostępnych decyzji handlowca.", Toast.LENGTH_SHORT).show();
             return;
         }
+        if (!hasAllRequiredDecisions()) {
+            Toast.makeText(this, "Brak pełnej listy decyzji. Uzupełnij konfigurację statusów.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
@@ -191,7 +205,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_spinner_item,
-                toStatusNames(decyzje)
+                toDecisionNames(decyzje)
         );
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
@@ -226,21 +240,21 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                     Toast.makeText(this, "Wybierz decyzję handlowca.", Toast.LENGTH_SHORT).show();
                     return;
                 }
+                String decisionName = getDecisionNameFromSpinner(spinner);
+                if ("Inne".equalsIgnoreCase(decisionName) && commentInput.getText().toString().trim().isEmpty()) {
+                    Toast.makeText(this, "Dla decyzji 'Inne' wymagany jest komentarz.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 submitDecision(decisionId, commentInput.getText().toString().trim(), false);
                 dialog.dismiss();
             });
             complaintsButton.setOnClickListener(v -> {
-                int decisionId = getDecisionIdFromSpinner(spinner);
-                if (decisionId <= 0) {
-                    Toast.makeText(this, "Wybierz decyzję handlowca.", Toast.LENGTH_SHORT).show();
+                DecisionItem complaintDecision = getDecisionByName("Reklamacje");
+                if (complaintDecision == null) {
+                    Toast.makeText(this, "Brak decyzji 'Reklamacje' w konfiguracji.", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                String decisionName = getDecisionNameFromSpinner(spinner);
-                if (!isComplaintsDecisionSelected(decisionName)) {
-                    Toast.makeText(this, "Wybierz decyzję 'Przekaż do reklamacji'.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                submitDecision(decisionId, commentInput.getText().toString().trim(), true);
+                submitDecision(complaintDecision.id, commentInput.getText().toString().trim(), true);
                 dialog.dismiss();
             });
         });
@@ -426,7 +440,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         if (index < 0 || index >= decyzje.size()) {
             return 0;
         }
-        return decyzje.get(index).getId();
+        return decyzje.get(index).id;
     }
 
     private String getDecisionNameFromSpinner(Spinner spinner) {
@@ -434,7 +448,7 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         if (index < 0 || index >= decyzje.size()) {
             return "";
         }
-        return decyzje.get(index).getNazwa();
+        return decyzje.get(index).displayName;
     }
 
     private int getDecisionIndexById(Integer decisionId) {
@@ -442,17 +456,17 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             return -1;
         }
         for (int i = 0; i < decyzje.size(); i++) {
-            if (decyzje.get(i).getId() == decisionId) {
+            if (decyzje.get(i).id == decisionId) {
                 return i;
             }
         }
         return -1;
     }
 
-    private List<String> toStatusNames(List<StatusDto> statuses) {
+    private List<String> toDecisionNames(List<DecisionItem> items) {
         List<String> names = new ArrayList<>();
-        for (StatusDto status : statuses) {
-            names.add(status.getNazwa());
+        for (DecisionItem item : items) {
+            names.add(item.displayName);
         }
         return names;
     }
@@ -491,7 +505,73 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private boolean isComplaintsDecisionSelected(String decisionName) {
-        return "Przekaż do reklamacji".equalsIgnoreCase(decisionName);
+    private boolean hasAllRequiredDecisions() {
+        for (String required : REQUIRED_DECISIONS) {
+            if (getDecisionByName(required) == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private DecisionItem getDecisionByName(String displayName) {
+        for (DecisionItem item : decyzje) {
+            if (item.displayName.equalsIgnoreCase(displayName)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private List<DecisionItem> buildDecisionItems(List<StatusDto> statuses) {
+        List<DecisionItem> result = new ArrayList<>();
+        for (String required : REQUIRED_DECISIONS) {
+            DecisionItem matched = null;
+            for (StatusDto status : statuses) {
+                String normalized = normalizeDecisionName(status.getNazwa());
+                if (required.equalsIgnoreCase(normalized)) {
+                    matched = new DecisionItem(status.getId(), required, status.getNazwa());
+                    break;
+                }
+            }
+            if (matched != null) {
+                result.add(matched);
+            }
+        }
+        return result;
+    }
+
+    private String normalizeDecisionName(String name) {
+        if (name == null) {
+            return "";
+        }
+        String trimmed = name.trim();
+        switch (trimmed) {
+            case "Na półkę":
+                return "Na półkę";
+            case "Ponowna wysyłka":
+            case "Ponowna wysylka":
+                return "Ponowna wysyłka";
+            case "Reklamacje":
+            case "Przekaż do reklamacji":
+            case "Przekaz do reklamacji":
+                return "Reklamacje";
+            case "Inne":
+                return "Inne";
+            default:
+                return "";
+        }
+    }
+
+    private static class DecisionItem {
+        final int id;
+        final String displayName;
+        final String dbName;
+
+        DecisionItem(int id, String displayName, String dbName) {
+            this.id = id;
+            this.displayName = displayName;
+            this.dbName = dbName;
+        }
     }
 }

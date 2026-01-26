@@ -34,6 +34,8 @@ namespace Reklamacje_Dane
             this.label10 = new System.Windows.Forms.Label();
             this.comboStanProduktu = new System.Windows.Forms.ComboBox();
             this.label9 = new System.Windows.Forms.Label();
+            this.lblOpiekunValue = new System.Windows.Forms.Label();
+            this.labelOpiekun = new System.Windows.Forms.Label();
             this.lblCardMagazynTitle = new System.Windows.Forms.Label();
             this.cardPanelKupujacy = new Reklamacje_Dane.CardPanel();
             this.btnShowOtherAddresses = new System.Windows.Forms.Button();
@@ -133,13 +135,15 @@ namespace Reklamacje_Dane
             this.cardPanelMagazyn.Controls.Add(this.label10);
             this.cardPanelMagazyn.Controls.Add(this.comboStanProduktu);
             this.cardPanelMagazyn.Controls.Add(this.label9);
+            this.cardPanelMagazyn.Controls.Add(this.lblOpiekunValue);
+            this.cardPanelMagazyn.Controls.Add(this.labelOpiekun);
             this.cardPanelMagazyn.Controls.Add(this.lblCardMagazynTitle);
             this.cardPanelMagazyn.Dock = System.Windows.Forms.DockStyle.Top;
             this.cardPanelMagazyn.Location = new System.Drawing.Point(11, 337);
             this.cardPanelMagazyn.Margin = new System.Windows.Forms.Padding(2, 2, 2, 8);
             this.cardPanelMagazyn.Name = "cardPanelMagazyn";
             this.cardPanelMagazyn.Padding = new System.Windows.Forms.Padding(1);
-            this.cardPanelMagazyn.Size = new System.Drawing.Size(641, 187);
+            this.cardPanelMagazyn.Size = new System.Drawing.Size(641, 212);
             this.cardPanelMagazyn.TabIndex = 3;
             // 
             // txtUwagiMagazynu
@@ -148,19 +152,19 @@ namespace Reklamacje_Dane
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.txtUwagiMagazynu.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.txtUwagiMagazynu.Location = new System.Drawing.Point(15, 114);
+            this.txtUwagiMagazynu.Location = new System.Drawing.Point(15, 138);
             this.txtUwagiMagazynu.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.txtUwagiMagazynu.Multiline = true;
             this.txtUwagiMagazynu.Name = "txtUwagiMagazynu";
             this.txtUwagiMagazynu.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtUwagiMagazynu.Size = new System.Drawing.Size(612, 58);
+            this.txtUwagiMagazynu.Size = new System.Drawing.Size(612, 60);
             this.txtUwagiMagazynu.TabIndex = 5;
             // 
             // label10
             // 
             this.label10.AutoSize = true;
             this.label10.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(238)));
-            this.label10.Location = new System.Drawing.Point(12, 95);
+            this.label10.Location = new System.Drawing.Point(12, 119);
             this.label10.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(101, 15);
@@ -174,7 +178,7 @@ namespace Reklamacje_Dane
             this.comboStanProduktu.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboStanProduktu.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.comboStanProduktu.FormattingEnabled = true;
-            this.comboStanProduktu.Location = new System.Drawing.Point(15, 62);
+            this.comboStanProduktu.Location = new System.Drawing.Point(15, 86);
             this.comboStanProduktu.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.comboStanProduktu.Name = "comboStanProduktu";
             this.comboStanProduktu.Size = new System.Drawing.Size(612, 23);
@@ -184,19 +188,43 @@ namespace Reklamacje_Dane
             // 
             this.label9.AutoSize = true;
             this.label9.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(238)));
-            this.label9.Location = new System.Drawing.Point(12, 43);
+            this.label9.Location = new System.Drawing.Point(12, 67);
             this.label9.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(115, 15);
             this.label9.TabIndex = 2;
             this.label9.Text = "Oceń stan produktu:";
             // 
+            // lblOpiekunValue
+            // 
+            this.lblOpiekunValue.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblOpiekunValue.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblOpiekunValue.ForeColor = System.Drawing.Color.Black;
+            this.lblOpiekunValue.Location = new System.Drawing.Point(15, 44);
+            this.lblOpiekunValue.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.lblOpiekunValue.Name = "lblOpiekunValue";
+            this.lblOpiekunValue.Size = new System.Drawing.Size(612, 15);
+            this.lblOpiekunValue.TabIndex = 7;
+            this.lblOpiekunValue.Text = "Brak danych";
+            // 
+            // labelOpiekun
+            // 
+            this.labelOpiekun.AutoSize = true;
+            this.labelOpiekun.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.labelOpiekun.Location = new System.Drawing.Point(12, 25);
+            this.labelOpiekun.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.labelOpiekun.Name = "labelOpiekun";
+            this.labelOpiekun.Size = new System.Drawing.Size(176, 15);
+            this.labelOpiekun.TabIndex = 6;
+            this.labelOpiekun.Text = "Opiekun i adresat decyzji:";
+            // 
             // lblCardMagazynTitle
             // 
             this.lblCardMagazynTitle.AutoSize = true;
             this.lblCardMagazynTitle.Font = new System.Drawing.Font("Segoe UI", 10.8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(238)));
             this.lblCardMagazynTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(25)))), ((int)(((byte)(118)))), ((int)(((byte)(210)))));
-            this.lblCardMagazynTitle.Location = new System.Drawing.Point(11, 12);
+            this.lblCardMagazynTitle.Location = new System.Drawing.Point(11, 4);
             this.lblCardMagazynTitle.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.lblCardMagazynTitle.Name = "lblCardMagazynTitle";
             this.lblCardMagazynTitle.Size = new System.Drawing.Size(123, 20);
@@ -608,6 +636,8 @@ namespace Reklamacje_Dane
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.ComboBox comboStanProduktu;
         private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.Label lblOpiekunValue;
+        private System.Windows.Forms.Label labelOpiekun;
         private System.Windows.Forms.Button btnShowOtherAddresses;
         private System.Windows.Forms.Label lblBuyerPhone;
         private System.Windows.Forms.Label label16;

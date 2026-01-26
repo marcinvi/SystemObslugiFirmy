@@ -141,7 +141,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
         txtProductName.setText(safe(data.getProductName(), "Brak"));
         txtOfferId.setText(safe(data.getOfferId(), "Brak"));
         txtQuantity.setText("Ilość: " + valueOrPlaceholder(data.getQuantity()));
-        txtReason.setText(safe(data.getReason(), data.isManual() ? "Brak (zwrot ręczny)" : "Brak"));
+        String reasonText = formatReason(data.getReason());
+        if (reasonText.isEmpty()) {
+            reasonText = data.isManual() ? "Brak (zwrot ręczny)" : "Brak";
+        }
+        txtReason.setText(reasonText);
 
         txtWaybill.setText(safe(data.getWaybill(), "Brak"));
         txtCarrier.setText(safe(data.getCarrierName(), "Brak"));
@@ -502,7 +506,79 @@ public class ReturnDetailActivity extends AppCompatActivity {
         if (!assignedId.isEmpty()) {
             return "ID: " + assignedId;
         }
-        return "Brak informacji";
+        return "Brak przypisanego opiekuna";
+    }
+
+    private String formatReason(String reason) {
+        if (reason == null || reason.trim().isEmpty()) {
+            return "";
+        }
+        String trimmed = reason.trim();
+        String code = extractReasonCode(trimmed);
+        if (code.isEmpty()) {
+            return trimmed;
+        }
+        String translated = translateReasonCode(code);
+        String suffix = trimmed.substring(code.length()).trim();
+        String description = translated.isEmpty() ? code : translated + " (" + code + ")";
+        if (suffix.isEmpty()) {
+            return description;
+        }
+        if (suffix.startsWith(":")) {
+            suffix = suffix.substring(1).trim();
+        }
+        if (suffix.startsWith("(") && suffix.endsWith(")")) {
+            suffix = suffix.substring(1, suffix.length() - 1).trim();
+        }
+        return suffix.isEmpty() ? description : description + " — " + suffix;
+    }
+
+    private String extractReasonCode(String reason) {
+        int end = 0;
+        while (end < reason.length()) {
+            char ch = reason.charAt(end);
+            if (Character.isLetterOrDigit(ch) || ch == '_') {
+                end++;
+            } else {
+                break;
+            }
+        }
+        if (end == 0) {
+            return "";
+        }
+        String code = reason.substring(0, end);
+        return code.equals(code.toUpperCase()) ? code : "";
+    }
+
+    private String translateReasonCode(String code) {
+        switch (code) {
+            case "DONT_LIKE_IT":
+                return "Nie podoba się";
+            case "NOT_AS_DESCRIBED":
+                return "Nie zgodny z opisem";
+            case "DAMAGED":
+                return "Uszkodzony";
+            case "MISSING_PARTS":
+                return "Brakujące elementy";
+            case "WRONG_ITEM":
+                return "Niewłaściwy produkt";
+            case "NO_LONGER_NEEDED":
+                return "Niepotrzebny";
+            case "BETTER_PRICE_FOUND":
+                return "Znaleziono lepszą cenę";
+            case "ORDERED_BY_MISTAKE":
+                return "Zakup przez pomyłkę";
+            case "DEFECTIVE":
+                return "Wadliwy";
+            case "DELIVERED_TOO_LATE":
+                return "Dostarczony zbyt późno";
+            case "PRODUCT_DOES_NOT_WORK":
+                return "Produkt nie działa";
+            case "QUALITY_UNSATISFACTORY":
+                return "Niezadowalająca jakość";
+            default:
+                return "";
+        }
     }
 
     private ForwardToComplaintRequest buildComplaintRequest() {
