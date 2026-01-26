@@ -11,10 +11,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.Intent;
+
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.ena.PairingManager;
 import com.example.ena.R;
 import com.example.ena.api.ApiClient;
@@ -30,6 +32,7 @@ import com.example.ena.api.ReturnForwardToWarehouseRequest;
 import com.example.ena.api.RejectCustomerReturnRequest;
 import com.example.ena.api.ReturnRejectionDto;
 import com.example.ena.api.StatusDto;
+
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -534,15 +537,15 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
 
     private String[] splitName(String fullName) {
         if (fullName == null) {
-            return new String[] { "", "" };
+            return new String[]{"", ""};
         }
         String trimmed = fullName.trim();
         if (trimmed.isEmpty()) {
-            return new String[] { "", "" };
+            return new String[]{"", ""};
         }
         String[] parts = trimmed.split("\\s+", 2);
         if (parts.length == 1) {
-            return new String[] { parts[0], "" };
+            return new String[]{parts[0], ""};
         }
         return parts;
     }
