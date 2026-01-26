@@ -507,48 +507,6 @@ namespace Reklamacje_Dane
             return string.Empty;
         }
 
-        private async Task<string> GetOpiekunInfoAsync()
-        {
-            if (_dbDataRow == null || _dbDataRow["AllegroAccountId"] == DBNull.Value)
-            {
-                return "Zwrot ręczny — brak opiekuna";
-            }
-
-            int accountId = Convert.ToInt32(_dbDataRow["AllegroAccountId"]);
-            var opiekunIdObj = await _dbServiceMagazyn.ExecuteScalarAsync(
-                "SELECT OpiekunId FROM AllegroAccountOpiekun WHERE AllegroAccountId = @id",
-                new MySqlParameter("@id", accountId));
-
-            if (opiekunIdObj == null || opiekunIdObj == DBNull.Value)
-            {
-                return "Brak przypisanego opiekuna konta";
-            }
-
-            int opiekunId = Convert.ToInt32(opiekunIdObj);
-            string opiekunName = (await _dbServiceBaza.ExecuteScalarAsync(
-                "SELECT `Nazwa Wyświetlana` FROM Uzytkownicy WHERE Id = @id",
-                new MySqlParameter("@id", opiekunId)))?.ToString() ?? "Nieznany";
-
-            var zastepcaIdObj = await _dbServiceMagazyn.ExecuteScalarAsync(
-                "SELECT ZastepcaId FROM Delegacje " +
-                "WHERE UzytkownikId = @opiekunId " +
-                "AND CURDATE() BETWEEN DataOd AND DataDo " +
-                "AND CzyAktywna = 1",
-                new MySqlParameter("@opiekunId", opiekunId));
-
-            if (zastepcaIdObj != null && zastepcaIdObj != DBNull.Value)
-            {
-                int zastepcaId = Convert.ToInt32(zastepcaIdObj);
-                string zastepcaName = (await _dbServiceBaza.ExecuteScalarAsync(
-                    "SELECT `Nazwa Wyświetlana` FROM Uzytkownicy WHERE Id = @id",
-                    new MySqlParameter("@id", zastepcaId)))?.ToString() ?? "Nieznany";
-
-                return $"Opiekun: {opiekunName} → Adresat: {zastepcaName} (delegacja)";
-            }
-
-            return $"Opiekun: {opiekunName} → Adresat: {opiekunName}";
-        }
-
         private string TranslateReturnReasonType(string reasonType)
         {
             if (string.IsNullOrWhiteSpace(reasonType))
