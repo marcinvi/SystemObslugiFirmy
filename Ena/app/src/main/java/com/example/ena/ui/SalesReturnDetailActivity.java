@@ -152,8 +152,16 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         if (details != null && details.isManual()) {
             showManualInfoDialog();
         } else {
-            showDecisionDialog();
+            ensureDecisionsThenShowDialog();
         }
+    }
+
+    private void ensureDecisionsThenShowDialog() {
+        if (!decyzje.isEmpty()) {
+            showDecisionDialog();
+            return;
+        }
+        loadDecyzje(this::showDecisionDialog);
     }
 
     private void showManualInfoDialog() {
@@ -195,6 +203,10 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     }
 
     private void loadDecyzje() {
+        loadDecyzje(null);
+    }
+
+    private void loadDecyzje(Runnable onLoaded) {
         ApiClient client = new ApiClient(this);
         client.fetchStatuses("DecyzjaHandlowca", new ApiClient.ApiCallback<List<StatusDto>>() {
             @Override
@@ -209,12 +221,20 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                                 "Brakuje wymaganych decyzji: Na półkę, Ponowna wysyłka, Reklamacje, Inne.",
                                 Toast.LENGTH_LONG).show();
                     }
+                    if (onLoaded != null) {
+                        onLoaded.run();
+                    }
                 });
             }
 
             @Override
             public void onError(String message) {
-                runOnUiThread(() -> Toast.makeText(SalesReturnDetailActivity.this, "Błąd statusów: " + message, Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> {
+                    Toast.makeText(SalesReturnDetailActivity.this, "Błąd statusów: " + message, Toast.LENGTH_LONG).show();
+                    if (onLoaded != null) {
+                        onLoaded.run();
+                    }
+                });
             }
         });
     }
