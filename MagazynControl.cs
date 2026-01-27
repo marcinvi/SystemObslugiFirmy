@@ -27,6 +27,7 @@ namespace Reklamacje_Dane
         private Timer _syncTimer;
         private Button _currentFilterButton;
         private KomunikatorControl _komunikatorControl;
+        private string _uwagiMagazynuColumnName;
 
         public struct ProgressReport
         {
@@ -150,33 +151,54 @@ namespace Reklamacje_Dane
                 });
                 try
                 {
-                    var selectedAccountItem = (AllegroAccountItem)comboAllegroAccounts.SelectedItem;
-                    var accountsToFetch = new List<AllegroAccountItem>();
-                    if (selectedAccountItem.Id == 0)
+                    var apiSyncAvailable = false;
+                    try
                     {
-                        accountsToFetch.AddRange(((List<AllegroAccountItem>)comboAllegroAccounts.DataSource).Where(a => a.Id != 0));
+                        apiSyncAvailable = ApiSyncService.Instance != null
+                                           && ApiSyncService.Instance.IsInitialized
+                                           && ApiSyncService.Instance.IsAuthenticated;
+                    }
+                    catch
+                    {
+                        apiSyncAvailable = false;
+                    }
+
+                    int totalProcessed;
+
+                    if (apiSyncAvailable)
+                    {
+                        totalProcessed = await SyncReturnsFromApiAsync(progress);
                     }
                     else
                     {
-                        accountsToFetch.Add(selectedAccountItem);
-                    }
-                    int totalProcessed = 0;
-                    int accountsCount = accountsToFetch.Count;
-                    for (int i = 0; i < accountsCount; i++)
-                    {
-                        var account = accountsToFetch[i];
-                        progress.Report(new ProgressReport { Message = $"Sprawdzam konto: {account.AccountName} ({i + 1}/{accountsCount})..." });
-                        using (var con = Database.GetNewOpenConnection())
+                        var selectedAccountItem = (AllegroAccountItem)comboAllegroAccounts.SelectedItem;
+                        var accountsToFetch = new List<AllegroAccountItem>();
+                        if (selectedAccountItem.Id == 0)
                         {
-                            var apiClient = await DatabaseHelper.GetApiClientForAccountAsync(account.Id, con);
-                            if (apiClient != null)
+                            accountsToFetch.AddRange(((List<AllegroAccountItem>)comboAllegroAccounts.DataSource).Where(a => a.Id != 0));
+                        }
+                        else
+                        {
+                            accountsToFetch.Add(selectedAccountItem);
+                        }
+                        totalProcessed = 0;
+                        int accountsCount = accountsToFetch.Count;
+                        for (int i = 0; i < accountsCount; i++)
+                        {
+                            var account = accountsToFetch[i];
+                            progress.Report(new ProgressReport { Message = $"Sprawdzam konto: {account.AccountName} ({i + 1}/{accountsCount})..." });
+                            using (var con = Database.GetNewOpenConnection())
                             {
-                                string dateFrom = DateTime.UtcNow.AddDays(-60).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
-                                var filters = new Dictionary<string, string> { { "createdAt.gte", dateFrom } };
-                                var result = await apiClient.GetCustomerReturnsAsync(limit: 1000, filters: filters);
-                                if (result?.CustomerReturns != null && result.CustomerReturns.Count > 0)
+                                var apiClient = await DatabaseHelper.GetApiClientForAccountAsync(account.Id, con);
+                                if (apiClient != null)
                                 {
-                                    totalProcessed += await SaveReturnsToDbAsync(result.CustomerReturns, account.Id, apiClient, progress);
+                                    string dateFrom = DateTime.UtcNow.AddDays(-60).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
+                                    var filters = new Dictionary<string, string> { { "createdAt.gte", dateFrom } };
+                                    var result = await apiClient.GetCustomerReturnsAsync(limit: 1000, filters: filters);
+                                    if (result?.CustomerReturns != null && result.CustomerReturns.Count > 0)
+                                    {
+                                        totalProcessed += await SaveReturnsToDbAsync(result.CustomerReturns, account.Id, apiClient, progress);
+                                    }
                                 }
                             }
                         }
@@ -335,6 +357,274 @@ namespace Reklamacje_Dane
                 MessageBox.Show("Nie udało się wczytać kont Allegro: " + ex.Message, "Błąd",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private async Task<int> SyncReturnsFromApiAsync(IProgress<ProgressReport> progress)
+        {
+            progress?.Report(new ProgressReport { Message = "Pobieram zwroty z API..." });
+
+            var magazynReturns = await ApiSyncService.Instance.GetZwrotyMagazynAsync();
+            var handloweReturns = await ApiSyncService.Instance.GetZwrotyHandloweAsync();
+            var allReturns = magazynReturns
+                .Concat(handloweReturns)
+                .GroupBy(r => r.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            if (allReturns.Count == 0)
+            {
+                return 0;
+            }
+
+            var statusMaps = await LoadStatusMapsAsync();
+            statusMaps.TryGetValue("StatusWewnetrzny", out var statusWewnetrznyMap);
+            statusMaps.TryGetValue("StanProduktu", out var stanProduktuMap);
+            statusMaps.TryGetValue("DecyzjaHandlowca", out var decyzjaMap);
+
+            var uwagiColumn = await ResolveUwagiMagazynuColumnNameAsync();
+
+            var processed = 0;
+            using (var con = MagazynDatabaseHelper.GetConnection())
+            {
+                await con.OpenAsync();
+                using (var transaction = con.BeginTransaction())
+                {
+                    for (int i = 0; i < allReturns.Count; i++)
+                    {
+                        var listItem = allReturns[i];
+                        progress?.Report(new ProgressReport
+                        {
+                            Current = i + 1,
+                            Total = allReturns.Count,
+                            Message = $"Synchronizuję zwrot {listItem.ReferenceNumber ?? listItem.Id.ToString()} ({i + 1}/{allReturns.Count})..."
+                        });
+
+                        var details = await ApiSyncService.Instance.GetZwrotDetailsAsync(listItem.Id);
+                        var returnId = details?.Id ?? listItem.Id;
+                        var referenceNumber = details?.ReferenceNumber ?? listItem.ReferenceNumber;
+
+                        var createdAt = details?.CreatedAt != default
+                            ? details.CreatedAt
+                            : listItem.CreatedAt;
+
+                        var statusWewnetrznyId = details?.StatusWewnetrzny != null
+                            ? TryGetStatusId(statusWewnetrznyMap, details.StatusWewnetrzny)
+                            : TryGetStatusId(statusWewnetrznyMap, listItem.StatusWewnetrzny);
+
+                        var stanProduktuId = details?.StanProduktuId
+                            ?? TryGetStatusId(stanProduktuMap, details?.StanProduktuName)
+                            ?? TryGetStatusId(stanProduktuMap, listItem.StanProduktu);
+
+                        var decyzjaHandlowcaId = details?.DecyzjaHandlowcaId
+                            ?? TryGetStatusId(decyzjaMap, details?.DecyzjaHandlowcaName)
+                            ?? TryGetStatusId(decyzjaMap, listItem.DecyzjaHandlowca);
+
+                        var buyerName = details?.BuyerName ?? listItem.BuyerName;
+                        var deliveryName = details?.DeliveryName;
+
+                        var buyerSplit = SplitName(buyerName);
+                        var deliverySplit = SplitName(deliveryName);
+
+                        var jsonDetails = JsonConvert.SerializeObject(details ?? (object)listItem);
+
+                        int? existingId = null;
+                        using (var findCmd = new MySqlCommand(
+                                   "SELECT Id FROM AllegroCustomerReturns WHERE Id = @id OR ReferenceNumber = @ref LIMIT 1",
+                                   con, transaction))
+                        {
+                            findCmd.Parameters.AddWithValue("@id", returnId);
+                            findCmd.Parameters.AddWithValue("@ref", referenceNumber);
+                            var existingObj = await findCmd.ExecuteScalarAsync();
+                            if (existingObj != null && existingObj != DBNull.Value)
+                            {
+                                existingId = Convert.ToInt32(existingObj);
+                            }
+                        }
+
+                        if (existingId.HasValue)
+                        {
+                            using (var updateCmd = new MySqlCommand($@"
+                                UPDATE AllegroCustomerReturns
+                                SET ReferenceNumber = @ReferenceNumber,
+                                    OrderId = COALESCE(@OrderId, OrderId),
+                                    AllegroReturnId = COALESCE(@AllegroReturnId, AllegroReturnId),
+                                    BuyerLogin = COALESCE(@BuyerLogin, BuyerLogin),
+                                    CreatedAt = @CreatedAt,
+                                    StatusAllegro = COALESCE(@StatusAllegro, StatusAllegro),
+                                    Waybill = COALESCE(@Waybill, Waybill),
+                                    CarrierName = COALESCE(@CarrierName, CarrierName),
+                                    InvoiceNumber = COALESCE(@InvoiceNumber, InvoiceNumber),
+                                    ProductName = COALESCE(@ProductName, ProductName),
+                                    OfferId = COALESCE(@OfferId, OfferId),
+                                    Quantity = COALESCE(@Quantity, Quantity),
+                                    {uwagiColumn} = COALESCE(@UwagiMagazynu, {uwagiColumn}),
+                                    StatusWewnetrznyId = COALESCE(@StatusWewnetrznyId, StatusWewnetrznyId),
+                                    StanProduktuId = COALESCE(@StanProduktuId, StanProduktuId),
+                                    DecyzjaHandlowcaId = COALESCE(@DecyzjaHandlowcaId, DecyzjaHandlowcaId),
+                                    HandlowiecOpiekunId = COALESCE(@HandlowiecOpiekunId, HandlowiecOpiekunId),
+                                    IsManual = @IsManual,
+                                    BuyerFullName = COALESCE(@BuyerFullName, BuyerFullName),
+                                    Buyer_FirstName = COALESCE(@BuyerFirstName, Buyer_FirstName),
+                                    Buyer_LastName = COALESCE(@BuyerLastName, Buyer_LastName),
+                                    Buyer_Street = COALESCE(@BuyerStreet, Buyer_Street),
+                                    Buyer_PhoneNumber = COALESCE(@BuyerPhone, Buyer_PhoneNumber),
+                                    Delivery_FirstName = COALESCE(@DeliveryFirstName, Delivery_FirstName),
+                                    Delivery_LastName = COALESCE(@DeliveryLastName, Delivery_LastName),
+                                    Delivery_Street = COALESCE(@DeliveryStreet, Delivery_Street),
+                                    Delivery_PhoneNumber = COALESCE(@DeliveryPhone, Delivery_PhoneNumber),
+                                    JsonDetails = @JsonDetails
+                                WHERE Id = @Id",
+                                con, transaction))
+                            {
+                                FillApiReturnParameters(updateCmd, details, listItem, buyerSplit, deliverySplit, createdAt,
+                                    statusWewnetrznyId, stanProduktuId, decyzjaHandlowcaId, referenceNumber, jsonDetails);
+                                updateCmd.Parameters.AddWithValue("@Id", existingId.Value);
+                                await updateCmd.ExecuteNonQueryAsync();
+                            }
+                        }
+                        else
+                        {
+                            using (var insertCmd = new MySqlCommand($@"
+                                INSERT INTO AllegroCustomerReturns (
+                                    Id, ReferenceNumber, OrderId, AllegroReturnId, BuyerLogin, CreatedAt, StatusAllegro,
+                                    Waybill, CarrierName, InvoiceNumber, ProductName, OfferId, Quantity, {uwagiColumn},
+                                    StatusWewnetrznyId, StanProduktuId, DecyzjaHandlowcaId, HandlowiecOpiekunId, IsManual,
+                                    BuyerFullName, Buyer_FirstName, Buyer_LastName, Buyer_Street, Buyer_PhoneNumber,
+                                    Delivery_FirstName, Delivery_LastName, Delivery_Street, Delivery_PhoneNumber, JsonDetails
+                                ) VALUES (
+                                    @Id, @ReferenceNumber, @OrderId, @AllegroReturnId, @BuyerLogin, @CreatedAt, @StatusAllegro,
+                                    @Waybill, @CarrierName, @InvoiceNumber, @ProductName, @OfferId, @Quantity, @UwagiMagazynu,
+                                    @StatusWewnetrznyId, @StanProduktuId, @DecyzjaHandlowcaId, @HandlowiecOpiekunId, @IsManual,
+                                    @BuyerFullName, @BuyerFirstName, @BuyerLastName, @BuyerStreet, @BuyerPhone,
+                                    @DeliveryFirstName, @DeliveryLastName, @DeliveryStreet, @DeliveryPhone, @JsonDetails
+                                )",
+                                con, transaction))
+                            {
+                                FillApiReturnParameters(insertCmd, details, listItem, buyerSplit, deliverySplit, createdAt,
+                                    statusWewnetrznyId, stanProduktuId, decyzjaHandlowcaId, referenceNumber, jsonDetails);
+                                insertCmd.Parameters.AddWithValue("@Id", returnId);
+                                await insertCmd.ExecuteNonQueryAsync();
+                            }
+                        }
+
+                        processed++;
+                    }
+
+                    transaction.Commit();
+                }
+            }
+
+            return processed;
+        }
+
+        private static (string FirstName, string LastName) SplitName(string fullName)
+        {
+            if (string.IsNullOrWhiteSpace(fullName))
+            {
+                return (null, null);
+            }
+
+            var parts = fullName.Trim().Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length == 1 ? (parts[0], null) : (parts[0], parts[1]);
+        }
+
+        private async Task<Dictionary<string, Dictionary<string, int>>> LoadStatusMapsAsync()
+        {
+            var result = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+            var dt = await _dbServiceMagazyn.GetDataTableAsync("SELECT Id, Nazwa, TypStatusu FROM Statusy");
+
+            foreach (DataRow row in dt.Rows)
+            {
+                var type = row["TypStatusu"]?.ToString() ?? string.Empty;
+                var name = row["Nazwa"]?.ToString() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(name))
+                {
+                    continue;
+                }
+
+                if (!result.TryGetValue(type, out var map))
+                {
+                    map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                    result[type] = map;
+                }
+
+                map[name] = Convert.ToInt32(row["Id"]);
+            }
+
+            return result;
+        }
+
+        private static int? TryGetStatusId(Dictionary<string, int> map, string name)
+        {
+            if (map == null || string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            return map.TryGetValue(name, out var id) ? id : (int?)null;
+        }
+
+        private async Task<string> ResolveUwagiMagazynuColumnNameAsync()
+        {
+            if (!string.IsNullOrWhiteSpace(_uwagiMagazynuColumnName))
+            {
+                return _uwagiMagazynuColumnName;
+            }
+
+            var query = @"
+                SELECT COLUMN_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'AllegroCustomerReturns'
+                  AND COLUMN_NAME IN ('UwagiMagazynu', 'UwagiMagazyn')
+                LIMIT 1";
+
+            var result = await _dbServiceMagazyn.ExecuteScalarAsync(query);
+            _uwagiMagazynuColumnName = result?.ToString() ?? "UwagiMagazynu";
+            return _uwagiMagazynuColumnName;
+        }
+
+        private static void FillApiReturnParameters(
+            MySqlCommand command,
+            ZwrotSzczegolyApi details,
+            ZwrotApi listItem,
+            (string FirstName, string LastName) buyerSplit,
+            (string FirstName, string LastName) deliverySplit,
+            DateTime createdAt,
+            int? statusWewnetrznyId,
+            int? stanProduktuId,
+            int? decyzjaHandlowcaId,
+            string referenceNumber,
+            string jsonDetails)
+        {
+            command.Parameters.AddWithValue("@ReferenceNumber", referenceNumber);
+            command.Parameters.AddWithValue("@OrderId", details?.OrderId);
+            command.Parameters.AddWithValue("@AllegroReturnId", details?.AllegroReturnId);
+            command.Parameters.AddWithValue("@BuyerLogin", details?.BuyerLogin);
+            command.Parameters.AddWithValue("@CreatedAt", createdAt);
+            command.Parameters.AddWithValue("@StatusAllegro", details?.StatusAllegro ?? listItem?.StatusAllegro);
+            command.Parameters.AddWithValue("@Waybill", details?.Waybill ?? listItem?.Waybill);
+            command.Parameters.AddWithValue("@CarrierName", details?.CarrierName);
+            command.Parameters.AddWithValue("@InvoiceNumber", details?.InvoiceNumber);
+            command.Parameters.AddWithValue("@ProductName", details?.ProductName ?? listItem?.ProductName);
+            command.Parameters.AddWithValue("@OfferId", details?.OfferId);
+            command.Parameters.AddWithValue("@Quantity", details?.Quantity);
+            command.Parameters.AddWithValue("@UwagiMagazynu", details?.UwagiMagazynu);
+            command.Parameters.AddWithValue("@StatusWewnetrznyId", statusWewnetrznyId);
+            command.Parameters.AddWithValue("@StanProduktuId", stanProduktuId);
+            command.Parameters.AddWithValue("@DecyzjaHandlowcaId", decyzjaHandlowcaId);
+            command.Parameters.AddWithValue("@HandlowiecOpiekunId", listItem?.HandlowiecId);
+            command.Parameters.AddWithValue("@IsManual", details?.IsManual ?? listItem?.IsManual ?? false);
+            command.Parameters.AddWithValue("@BuyerFullName", details?.BuyerName ?? listItem?.BuyerName);
+            command.Parameters.AddWithValue("@BuyerFirstName", buyerSplit.FirstName);
+            command.Parameters.AddWithValue("@BuyerLastName", buyerSplit.LastName);
+            command.Parameters.AddWithValue("@BuyerStreet", details?.BuyerAddress);
+            command.Parameters.AddWithValue("@BuyerPhone", details?.BuyerPhone);
+            command.Parameters.AddWithValue("@DeliveryFirstName", deliverySplit.FirstName);
+            command.Parameters.AddWithValue("@DeliveryLastName", deliverySplit.LastName);
+            command.Parameters.AddWithValue("@DeliveryStreet", details?.DeliveryAddress);
+            command.Parameters.AddWithValue("@DeliveryPhone", details?.DeliveryPhone);
+            command.Parameters.AddWithValue("@JsonDetails", jsonDetails);
         }
 
         private async Task LoadReturnsFromDbAsync()
