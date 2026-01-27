@@ -2,15 +2,18 @@ using System.Data.Common;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using ReklamacjeAPI.Data;
 using ReklamacjeAPI.DTOs;
+using ReklamacjeAPI.Models;
 
 namespace ReklamacjeAPI.Services;
 
 public class ReturnsService
 {
     private readonly IConfiguration _configuration;
+    private readonly ApplicationDbContext _context;
     private readonly AllegroApiClient _allegroApiClient;
     private string? _uwagiMagazynuColumn;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -18,9 +21,10 @@ public class ReturnsService
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public ReturnsService(IConfiguration configuration, AllegroApiClient allegroApiClient)
+    public ReturnsService(IConfiguration configuration, ApplicationDbContext context, AllegroApiClient allegroApiClient)
     {
         _configuration = configuration;
+        _context = context;
         _allegroApiClient = allegroApiClient;
     }
 
@@ -1107,17 +1111,52 @@ public class ReturnsService
         };
     }
 
-    public async Task ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request)
+    public async Task<int?> ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request, int userId)
     {
-        var opisUsterki = BuildComplaintDescription(
-            request.PowodKlienta,
-            request.UwagiMagazynu,
-            request.UwagiHandlowca,
-            request.Przekazal);
+        var klient = await EnsureKlientAsync(request.DaneKlienta);
+        var produkt = await EnsureProduktAsync(request.Produkt);
+
+        var zgloszenie = new Zgloszenie
+        {
+            NrZgloszenia = await GenerateZgloszenieNumberAsync(),
+            IdKlienta = klient.Id,
+            IdProduktu = produkt?.Id,
+            Usterka = request.PowodKlienta,
+            Priorytet = "Normalny",
+            PrzypisanyDo = null,
+            StatusOgolny = "Nowe",
+            Uwagi = request.UwagiHandlowca,
+            DataZgloszenia = DateTime.UtcNow,
+            DataModyfikacji = DateTime.UtcNow
+        };
+
+        _context.Zgloszenia.Add(zgloszenie);
+        await _context.SaveChangesAsync();
+
+        _context.Dzialania.Add(new Dzialanie
+        {
+            IdZgloszenia = zgloszenie.Id,
+            IdUzytkownika = userId,
+            TypDzialania = "utworzenie",
+            Opis = "Zgłoszenie utworzone z poziomu zwrotu",
+            StatusNowy = "Nowe",
+            DataDzialania = DateTime.UtcNow
+        });
+
+        await _context.SaveChangesAsync();
 
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
-        await InsertNiezarejestrowanyZwrotAsync(connection, returnId, request, opisUsterki);
+        var query = "UPDATE AllegroCustomerReturns SET ZgloszenieId = @zgloszenieId WHERE Id = @id";
+        await using var updateCommand = new MySqlCommand(query, connection);
+        updateCommand.Parameters.AddWithValue("@zgloszenieId", zgloszenie.Id);
+        updateCommand.Parameters.AddWithValue("@id", returnId);
+        await updateCommand.ExecuteNonQueryAsync();
+
+        await AddReturnActionInternalAsync(connection, returnId, request.Przekazal,
+            $"Przekazano do reklamacji. Zgłoszenie: {zgloszenie.NrZgloszenia} (ID {zgloszenie.Id}).");
+
+        return zgloszenie.Id;
     }
 
     public async Task<ReturnDetailsDto?> GetReturnByCodeAsync(string code)
@@ -1723,100 +1762,76 @@ public class ReturnsService
         };
     }
 
-    private static string BuildComplaintDescription(
-        string? powodKlienta,
-        string? uwagiMagazynu,
-        string? uwagiHandlowca,
-        string? przekazal)
+    private async Task<Klient> EnsureKlientAsync(ComplaintCustomerDto customer)
     {
-        var sb = new StringBuilder();
-        if (!string.IsNullOrWhiteSpace(powodKlienta))
+        var fullName = $"{customer.Imie} {customer.Nazwisko}".Trim();
+        if (!string.IsNullOrWhiteSpace(customer.Email))
         {
-            sb.AppendLine($"Powód klienta: {powodKlienta}");
+            var existing = await _context.Klienci.FirstOrDefaultAsync(k => k.Email == customer.Email);
+            if (existing != null)
+            {
+                return existing;
+            }
         }
 
-        if (!string.IsNullOrWhiteSpace(uwagiMagazynu))
+        if (!string.IsNullOrWhiteSpace(customer.Telefon))
         {
-            sb.AppendLine($"Uwagi magazynu: {uwagiMagazynu}");
+            var existing = await _context.Klienci.FirstOrDefaultAsync(k => k.Telefon == customer.Telefon);
+            if (existing != null)
+            {
+                return existing;
+            }
         }
 
-        if (!string.IsNullOrWhiteSpace(uwagiHandlowca))
+        var klient = new Klient
         {
-            sb.AppendLine($"Uwagi handlowca: {uwagiHandlowca}");
-        }
+            ImieNazwisko = fullName,
+            Email = customer.Email,
+            Telefon = customer.Telefon,
+            Adres = customer.Adres?.Ulica,
+            KodPocztowy = customer.Adres?.Kod,
+            Miasto = customer.Adres?.Miasto,
+            DataDodania = DateTime.UtcNow
+        };
 
-        if (!string.IsNullOrWhiteSpace(przekazal))
-        {
-            sb.AppendLine($"Przekazał: {przekazal}");
-        }
-
-        return sb.ToString().Trim();
+        _context.Klienci.Add(klient);
+        await _context.SaveChangesAsync();
+        return klient;
     }
 
-    private static async Task InsertNiezarejestrowanyZwrotAsync(
-        MySqlConnection connection,
-        int returnId,
-        ForwardToComplaintRequest request,
-        string opisUsterki)
+    private async Task<Produkt?> EnsureProduktAsync(ComplaintProductDto product)
     {
-        var customer = request.DaneKlienta ?? new ComplaintCustomerDto();
-        var address = customer.Adres ?? new ComplaintAddressDto();
-        var product = request.Produkt ?? new ComplaintProductDto();
-        var imie = customer.Imie ?? string.Empty;
-        var nazwisko = customer.Nazwisko ?? string.Empty;
-        var email = customer.Email ?? string.Empty;
-        var telefon = customer.Telefon ?? string.Empty;
-        var ulica = address.Ulica ?? string.Empty;
-        var kod = address.Kod ?? string.Empty;
-        var miasto = address.Miasto ?? string.Empty;
-        var pelneImie = $"{imie} {nazwisko}".Trim();
-        var daneKlientaZbiorczo = $"{pelneImie} | {ulica}, {kod} {miasto} | tel: {telefon}"
-            + (string.IsNullOrWhiteSpace(email) ? string.Empty : $" | e-mail: {email}");
-        var nazwaProduktu = product.Nazwa ?? string.Empty;
-        var numerFaktury = product.NrFaktury ?? string.Empty;
-        var numerSeryjny = string.IsNullOrWhiteSpace(product.NrSeryjny) ? "Brak" : product.NrSeryjny;
-        var przekazal = request.Przekazal ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(product.Nazwa))
+        {
+            return null;
+        }
 
-        const string insertQuery = @"
-            INSERT INTO NiezarejestrowaneZwrotyReklamacyjne
-            (
-                DataPrzekazania, PrzekazanePrzez, IdZwrotuWMagazynie,
-                DaneKlienta, DaneProduktu, NumerFaktury, NumerSeryjny, UwagiMagazynu, KomentarzHandlowca,
-                ImieKlienta, NazwiskoKlienta, EmailKlienta, TelefonKlienta,
-                AdresUlica, AdresKodPocztowy, AdresMiasto,
-                NazwaProduktu, NIP, DataZakupu, OpisUsterki
-            )
-            VALUES
-            (
-                @data, @kto, @idZw,
-                @daneKlienta, @daneProduktu, @fv, @sn, @uwagiMag, @komHandl,
-                @imie, @nazw, @email, @tel,
-                @ulica, @kod, @miasto,
-                @nazwaProd, @nip, @dataZakupu, @opis
-            );";
+        var existing = await _context.Produkty.FirstOrDefaultAsync(p => p.Nazwa == product.Nazwa);
+        if (existing != null)
+        {
+            return existing;
+        }
 
-        await using var insertCommand = new MySqlCommand(insertQuery, connection);
-        insertCommand.Parameters.AddWithValue("@data", DateTime.Now);
-        insertCommand.Parameters.AddWithValue("@kto", przekazal);
-        insertCommand.Parameters.AddWithValue("@idZw", returnId);
-        insertCommand.Parameters.AddWithValue("@daneKlienta", daneKlientaZbiorczo);
-        insertCommand.Parameters.AddWithValue("@daneProduktu", nazwaProduktu);
-        insertCommand.Parameters.AddWithValue("@fv", numerFaktury);
-        insertCommand.Parameters.AddWithValue("@sn", numerSeryjny);
-        insertCommand.Parameters.AddWithValue("@uwagiMag", request.UwagiMagazynu ?? string.Empty);
-        insertCommand.Parameters.AddWithValue("@komHandl", request.UwagiHandlowca ?? string.Empty);
-        insertCommand.Parameters.AddWithValue("@imie", imie);
-        insertCommand.Parameters.AddWithValue("@nazw", nazwisko);
-        insertCommand.Parameters.AddWithValue("@email", email);
-        insertCommand.Parameters.AddWithValue("@tel", telefon);
-        insertCommand.Parameters.AddWithValue("@ulica", ulica);
-        insertCommand.Parameters.AddWithValue("@kod", kod);
-        insertCommand.Parameters.AddWithValue("@miasto", miasto);
-        insertCommand.Parameters.AddWithValue("@nazwaProd", nazwaProduktu);
-        insertCommand.Parameters.AddWithValue("@nip", string.Empty);
-        insertCommand.Parameters.AddWithValue("@dataZakupu", DBNull.Value);
-        insertCommand.Parameters.AddWithValue("@opis", opisUsterki);
-        await insertCommand.ExecuteNonQueryAsync();
+        var produkt = new Produkt
+        {
+            Nazwa = product.Nazwa,
+            NumerSeryjny = product.NrSeryjny,
+            DataDodania = DateTime.UtcNow
+        };
+
+        _context.Produkty.Add(produkt);
+        await _context.SaveChangesAsync();
+        return produkt;
+    }
+
+    private async Task<string> GenerateZgloszenieNumberAsync()
+    {
+        var lastZgloszenie = await _context.Zgloszenia
+            .OrderByDescending(z => z.Id)
+            .FirstOrDefaultAsync();
+
+        var nextNumber = lastZgloszenie != null ? lastZgloszenie.Id + 1 : 1;
+        return $"R/{nextNumber}/{DateTime.UtcNow.Year}";
     }
 
     private sealed record AllegroAccountInfo(int Id, string Name);

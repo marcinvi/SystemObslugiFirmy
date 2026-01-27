@@ -333,29 +333,24 @@ public class ReturnsController : ControllerBase
     [HttpPost("{id:int}/forward-to-complaints")]
     public async Task<ActionResult<ApiResponse<object>>> ForwardToComplaints(int id, [FromBody] ForwardToComplaintRequest request)
     {
-        if (request == null)
-        {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Brak danych żądania."));
-        }
-
         if (request.ReturnId != 0 && request.ReturnId != id)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Niezgodny identyfikator zwrotu."));
         }
 
-        if (request.ReturnId == 0)
+        var userId = GetUserIdFromClaims();
+        if (!userId.HasValue)
         {
-            request.ReturnId = id;
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
         }
 
-        if (string.IsNullOrWhiteSpace(request.Przekazal))
+        var complaintId = await _returnsService.ForwardToComplaintsAsync(id, request, userId.Value);
+        if (!complaintId.HasValue)
         {
-            request.Przekazal = GetUserDisplayName();
+            return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się przekazać do reklamacji."));
         }
 
-        await _returnsService.ForwardToComplaintsAsync(id, request);
-
-        return Ok(ApiResponse<object>.SuccessResponse(new { id }));
+        return Ok(ApiResponse<object>.SuccessResponse(new { id, complaintId }));
     }
 
     private int? GetUserIdFromClaims()

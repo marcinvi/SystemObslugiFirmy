@@ -199,7 +199,6 @@ namespace Reklamacje_Dane
 
             // Karta: Panel Magazynu
             txtUwagiMagazynu.Text = GetUwagiMagazynuValue();
-            lblOpiekunValue.Text = await GetOpiekunInfoAsync();
         }
 
         private void btnShowOtherAddresses_Click(object sender, EventArgs e)

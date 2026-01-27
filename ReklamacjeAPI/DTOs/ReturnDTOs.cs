@@ -14,6 +14,8 @@ public class ReturnListItemDto
     public string? DecyzjaHandlowca { get; set; }
     public int? HandlowiecId { get; set; }
     public bool IsManual { get; set; }
+    public string Opiekun { get; set; }        // Np. Imie i Nazwisko handlowca przypisanego do klienta
+    public string AdresatDecyzji { get; set; } // Kto podj¹³/ma podj¹æ decyzjê
 }
 
 public class ReturnDetailsDto
