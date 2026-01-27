@@ -365,6 +365,27 @@ W aplikacji Windows Form:
 private const string ApiBaseUrl = "https://localhost:5001/api/";
 ```
 
+### Skąd wziąć `http://<IP_SERWERA>:<PORT>`?
+
+**IP serwera** to adres maszyny, na której uruchomione jest `ReklamacjeAPI`.  
+Najczęściej:
+
+- **Linux/Mac:** `hostname -I` (pierwszy adres IPv4)  
+- **Windows:** `ipconfig` → sekcja „IPv4 Address”
+
+**Port** zależy od uruchomienia:
+- **Lokalnie (dotnet run / start.sh / start.ps1):** `5000` (HTTP) lub `5001` (HTTPS)
+- **Docker (docker-compose):** `5000`/`5001` mapowane na `80`/`443` w kontenerze
+- **Produkcja z reverse proxy:** zwykle `80`/`443`
+
+Przykład dla urządzeń w tej samej sieci:
+```
+http://192.168.1.50:5000
+https://192.168.1.50:5001
+```
+
+Jeśli aplikacje klienckie mają się synchronizować automatycznie, **wszystkie muszą wskazywać ten sam adres bazowy API**.
+
 ---
 
 ## 📝 Logi

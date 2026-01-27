@@ -91,10 +91,30 @@ echo -e "${CYAN}==================================${NC}"
 echo -e "${CYAN}  Starting API...${NC}"
 echo -e "${CYAN}==================================${NC}"
 echo ""
+
+# Try to detect server IP for LAN access
+SERVER_IP=""
+if command -v hostname &> /dev/null; then
+    SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+fi
+if [ -z "$SERVER_IP" ] && command -v ipconfig &> /dev/null; then
+    SERVER_IP=$(ipconfig getifaddr en0 2>/dev/null)
+fi
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP="<IP_SERWERA>"
+fi
+
 echo -e "${YELLOW}API will be available at:${NC}"
 echo "  - HTTP:  http://localhost:5000 (or http://<LAN-IP>:5000 from mobile)"
 echo "  - HTTPS: https://localhost:5001"
 echo "  - Swagger: http://localhost:5000"
+echo ""
+echo -e "${YELLOW}For other devices on the network use:${NC}"
+echo "  - HTTP:  http://${SERVER_IP}:5000"
+echo "  - HTTPS: https://${SERVER_IP}:5001"
+echo ""
+echo -e "${YELLOW}Tip:${NC} If other devices cannot connect, set:"
+echo "  export ASPNETCORE_URLS=\"http://0.0.0.0:5000;https://0.0.0.0:5001\""
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
 echo ""

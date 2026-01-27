@@ -85,10 +85,30 @@ Write-Host "==================================" -ForegroundColor Cyan
 Write-Host "  Starting API..." -ForegroundColor Cyan
 Write-Host "==================================" -ForegroundColor Cyan
 Write-Host ""
+
+$serverIp = "<IP_SERWERA>"
+try {
+    $ipCandidates = Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
+        $_.IPAddress -and $_.IPAddress -ne "127.0.0.1" -and $_.PrefixOrigin -ne "WellKnown"
+    }
+    if ($ipCandidates) {
+        $serverIp = $ipCandidates[0].IPAddress
+    }
+} catch {
+    $serverIp = "<IP_SERWERA>"
+}
+
 Write-Host "API will be available at:" -ForegroundColor Yellow
 Write-Host "  - HTTP:  http://localhost:5000 (or http://<LAN-IP>:5000 from mobile)" -ForegroundColor White
 Write-Host "  - HTTPS: https://localhost:5001" -ForegroundColor White
 Write-Host "  - Swagger: http://localhost:5000" -ForegroundColor White
+Write-Host ""
+Write-Host "For other devices on the network use:" -ForegroundColor Yellow
+Write-Host "  - HTTP:  http://$serverIp`:5000" -ForegroundColor White
+Write-Host "  - HTTPS: https://$serverIp`:5001" -ForegroundColor White
+Write-Host ""
+Write-Host "Tip: If other devices cannot connect, set:" -ForegroundColor Yellow
+Write-Host "  `$env:ASPNETCORE_URLS = ""http://0.0.0.0:5000;https://0.0.0.0:5001""" -ForegroundColor White
 Write-Host ""
 Write-Host "Press Ctrl+C to stop" -ForegroundColor Gray
 Write-Host ""
