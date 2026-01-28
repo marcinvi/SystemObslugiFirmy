@@ -1411,52 +1411,14 @@ public class ReturnsService
         };
     }
 
-    public async Task<int?> ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request, int userId)
+    public async Task<int?> ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request)
     {
-        var klient = await EnsureKlientAsync(request.DaneKlienta);
-        var produkt = await EnsureProduktAsync(request.Produkt);
-
-        var zgloszenie = new Zgloszenie
-        {
-            NrZgloszenia = await GenerateZgloszenieNumberAsync(),
-            IdKlienta = klient.Id,
-            IdProduktu = produkt?.Id,
-            Usterka = request.PowodKlienta,
-            Priorytet = "Normalny",
-            PrzypisanyDo = null,
-            StatusOgolny = "Nowe",
-            Uwagi = request.UwagiHandlowca,
-            DataZgloszenia = DateTime.UtcNow,
-            DataModyfikacji = DateTime.UtcNow
-        };
-
-        _context.Zgloszenia.Add(zgloszenie);
-        await _context.SaveChangesAsync();
-
-        _context.Dzialania.Add(new Dzialanie
-        {
-            IdZgloszenia = zgloszenie.Id,
-            IdUzytkownika = userId,
-            TypDzialania = "utworzenie",
-            Opis = "Zgłoszenie utworzone z poziomu zwrotu",
-            StatusNowy = "Nowe",
-            DataDzialania = DateTime.UtcNow
-        });
-
-        await _context.SaveChangesAsync();
-
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
-        var query = "UPDATE AllegroCustomerReturns SET ZgloszenieId = @zgloszenieId WHERE Id = @id";
-        await using var updateCommand = new MySqlCommand(query, connection);
-        updateCommand.Parameters.AddWithValue("@zgloszenieId", zgloszenie.Id);
-        updateCommand.Parameters.AddWithValue("@id", returnId);
-        await updateCommand.ExecuteNonQueryAsync();
 
-        await AddReturnActionInternalAsync(connection, returnId, request.Przekazal,
-            $"Przekazano do reklamacji. Zgłoszenie: {zgloszenie.NrZgloszenia} (ID {zgloszenie.Id}).");
+        await InsertUnregisteredComplaintAsync(connection, returnId, request);
 
-        return zgloszenie.Id;
+        return 0;
     }
 
     public async Task<ReturnDetailsDto?> GetReturnByCodeAsync(string code)
@@ -2000,6 +1962,68 @@ public class ReturnsService
         _context.Produkty.Add(produkt);
         await _context.SaveChangesAsync();
         return produkt;
+    }
+
+    private static async Task InsertUnregisteredComplaintAsync(MySqlConnection connection, int returnId, ForwardToComplaintRequest request)
+    {
+        var customer = request.DaneKlienta ?? new ComplaintCustomerDto();
+        var address = customer.Adres ?? new ComplaintAddressDto();
+        var product = request.Produkt ?? new ComplaintProductDto();
+
+        var fullName = $"{customer.Imie} {customer.Nazwisko}".Trim();
+        var daneKlientaZbiorczo = string.Join(" | ", new[]
+        {
+            fullName,
+            $"{address.Ulica}, {address.Kod} {address.Miasto}".Trim(),
+            string.IsNullOrWhiteSpace(customer.Telefon) ? null : $"tel: {customer.Telefon}",
+            string.IsNullOrWhiteSpace(customer.Email) ? null : $"e-mail: {customer.Email}"
+        }.Where(value => !string.IsNullOrWhiteSpace(value)));
+
+        const string insertSql = @"
+            INSERT INTO NiezarejestrowaneZwrotyReklamacyjne
+            (
+                DataPrzekazania, PrzekazanePrzez, IdZwrotuWMagazynie,
+                DaneKlienta, DaneProduktu, NumerFaktury, NumerSeryjny, UwagiMagazynu, KomentarzHandlowca,
+                ImieKlienta, NazwiskoKlienta, EmailKlienta, TelefonKlienta,
+                AdresUlica, AdresKodPocztowy, AdresMiasto,
+                NazwaProduktu, NIP, DataZakupu, OpisUsterki
+            )
+            VALUES
+            (
+                @data, @kto, @idZw,
+                @daneKlienta, @daneProduktu, @fv, @sn, @uwagiMag, @komHandl,
+                @imie, @nazw, @email, @tel,
+                @ulica, @kod, @miasto,
+                @nazwaProd, @nip, @dataZakupu, @opis
+            );";
+
+        await using var cmd = new MySqlCommand(insertSql, connection);
+        cmd.Parameters.AddWithValue("@data", DateTime.Now);
+        cmd.Parameters.AddWithValue("@kto", request.Przekazal ?? string.Empty);
+        cmd.Parameters.AddWithValue("@idZw", returnId);
+
+        cmd.Parameters.AddWithValue("@daneKlienta", string.IsNullOrWhiteSpace(daneKlientaZbiorczo) ? DBNull.Value : daneKlientaZbiorczo);
+        cmd.Parameters.AddWithValue("@daneProduktu", string.IsNullOrWhiteSpace(product.Nazwa) ? DBNull.Value : product.Nazwa);
+        cmd.Parameters.AddWithValue("@fv", string.IsNullOrWhiteSpace(product.NrFaktury) ? DBNull.Value : product.NrFaktury);
+        cmd.Parameters.AddWithValue("@sn", string.IsNullOrWhiteSpace(product.NrSeryjny) ? DBNull.Value : product.NrSeryjny);
+        cmd.Parameters.AddWithValue("@uwagiMag", string.IsNullOrWhiteSpace(request.UwagiMagazynu) ? DBNull.Value : request.UwagiMagazynu);
+        cmd.Parameters.AddWithValue("@komHandl", string.IsNullOrWhiteSpace(request.UwagiHandlowca) ? DBNull.Value : request.UwagiHandlowca);
+
+        cmd.Parameters.AddWithValue("@imie", string.IsNullOrWhiteSpace(customer.Imie) ? DBNull.Value : customer.Imie);
+        cmd.Parameters.AddWithValue("@nazw", string.IsNullOrWhiteSpace(customer.Nazwisko) ? DBNull.Value : customer.Nazwisko);
+        cmd.Parameters.AddWithValue("@email", string.IsNullOrWhiteSpace(customer.Email) ? DBNull.Value : customer.Email);
+        cmd.Parameters.AddWithValue("@tel", string.IsNullOrWhiteSpace(customer.Telefon) ? DBNull.Value : customer.Telefon);
+
+        cmd.Parameters.AddWithValue("@ulica", string.IsNullOrWhiteSpace(address.Ulica) ? DBNull.Value : address.Ulica);
+        cmd.Parameters.AddWithValue("@kod", string.IsNullOrWhiteSpace(address.Kod) ? DBNull.Value : address.Kod);
+        cmd.Parameters.AddWithValue("@miasto", string.IsNullOrWhiteSpace(address.Miasto) ? DBNull.Value : address.Miasto);
+
+        cmd.Parameters.AddWithValue("@nazwaProd", string.IsNullOrWhiteSpace(product.Nazwa) ? DBNull.Value : product.Nazwa);
+        cmd.Parameters.AddWithValue("@nip", DBNull.Value);
+        cmd.Parameters.AddWithValue("@dataZakupu", DBNull.Value);
+        cmd.Parameters.AddWithValue("@opis", string.IsNullOrWhiteSpace(request.PowodKlienta) ? DBNull.Value : request.PowodKlienta);
+
+        await cmd.ExecuteNonQueryAsync();
     }
 
     private async Task<string> GenerateZgloszenieNumberAsync()
