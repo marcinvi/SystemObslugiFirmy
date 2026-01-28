@@ -115,11 +115,6 @@ public class ReturnsService
                                 ? ret.Id
                                 : ret.ReferenceNumber;
                             Console.WriteLine($"[SYNC RETURN] Konto: {account.Name} (ID: {account.Id}) Zwrot: {returnLabel}");
-                            processedInAccount++;
-                            if (progress != null)
-                            {
-                                _progressService.UpdateReturn(progress, processedInAccount, totalInAccount ?? processedInAccount, returnLabel);
-                            }
                             AllegroApiClient.OrderDetailsDto? orderDetails = null;
                             string? invoiceNumber = null;
 
