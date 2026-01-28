@@ -14,10 +14,10 @@ namespace ReklamacjeAPI.Controllers;
 public class ReturnsController : ControllerBase
 {
     private readonly ReturnsService _returnsService;
-    private readonly ReturnSyncProgressService? _progressService;
+    private readonly ReturnSyncProgressService _progressService;
     private readonly ILogger<ReturnsController> _logger;
 
-    public ReturnsController(ReturnsService returnsService, ILogger<ReturnsController> logger, ReturnSyncProgressService? progressService = null)
+    public ReturnsController(ReturnsService returnsService, ReturnSyncProgressService progressService, ILogger<ReturnsController> logger)
     {
         _returnsService = returnsService;
         _progressService = progressService;
@@ -95,11 +95,6 @@ public class ReturnsController : ControllerBase
     [HttpPost("sync/start")]
     public ActionResult<ApiResponse<ReturnSyncJobResponse>> StartSync([FromBody] ReturnSyncRequest? request)
     {
-        if (_progressService == null)
-        {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<ReturnSyncJobResponse>.ErrorResponse("Synchronizacja asynchroniczna nie jest dostpna (brak usugi postpu)."));
-        }
-
         var userDisplayName = GetUserDisplayName();
         var job = _progressService.StartJob(userDisplayName);
 
@@ -129,11 +124,6 @@ public class ReturnsController : ControllerBase
     [HttpGet("sync/status/{jobId}")]
     public ActionResult<ApiResponse<ReturnSyncProgress>> GetSyncStatus(string jobId)
     {
-        if (_progressService == null)
-        {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<ReturnSyncProgress>.ErrorResponse("Synchronizacja asynchroniczna nie jest dostpna (brak usugi postpu)."));
-        }
-
         var job = _progressService.GetJob(jobId);
         if (job == null)
         {
