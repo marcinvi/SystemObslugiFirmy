@@ -97,6 +97,9 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
         btnCancel = findViewById(R.id.btnCancel);
         btnCloseReturn = findViewById(R.id.btnCloseReturn);
+        if (btnCloseReturn != null) {
+            btnCloseReturn.setVisibility(View.GONE);
+        }
 
         btnAddResendInfo = findViewById(R.id.btnAddResendInfo);
         editWarehouseAction = findViewById(R.id.editWarehouseAction);
@@ -113,8 +116,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
         btnForwardToComplaints.setOnClickListener(v -> showForwardToComplaintsDialog());
         btnWarehouseAddAction.setOnClickListener(v -> submitWarehouseAction());
 
-        // ZMIANA: Ukrycie zbędnych przycisków (Zamknij, Anuluj, Ponowna wysyłka) - zostawiamy tylko przekazania
-        if (btnCloseReturn != null) btnCloseReturn.setVisibility(View.GONE);
+        // ZMIANA: Ukrycie zbędnych przycisków (Anuluj) - zostawiamy tylko przekazania
         if (btnCancel != null) btnCancel.setVisibility(View.GONE);
         // btnAddResendInfo zostawiam widoczne, bo może być potrzebne do logowania zdarzeń,
         // ale jeśli chcesz ukryć też "Dodaj info o ponownej wysyłce", odkomentuj linię niżej:
@@ -130,7 +132,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
         if (isReadOnly) {
             btnForwardToSales.setVisibility(View.GONE);
-            // btnCloseReturn już jest GONE
         }
 
         loadStatuses();
@@ -195,10 +196,26 @@ public class ReturnDetailActivity extends AppCompatActivity {
         editUwagiMagazynu.setText(safe(data.getUwagiMagazynu()));
         preselectStanProduktu(data.getStanProduktuId());
 
-        boolean blokujPrzekazanie = "Po decyzji".equalsIgnoreCase(safe(data.getStatusWewnetrzny()))
-                || "Archiwalny".equalsIgnoreCase(safe(data.getStatusWewnetrzny()));
+        boolean isPoDecyzji = "Po decyzji".equalsIgnoreCase(safe(data.getStatusWewnetrzny()));
+        boolean blokujPrzekazanie = "Archiwalny".equalsIgnoreCase(safe(data.getStatusWewnetrzny()));
         btnForwardToSales.setEnabled(!blokujPrzekazanie);
         btnForwardToComplaints.setEnabled(!blokujPrzekazanie);
+
+        if (isPoDecyzji) {
+            btnForwardToSales.setVisibility(View.GONE);
+            btnForwardToComplaints.setText("Przekazany fizycznie na reklamacje");
+            btnCloseReturn.setText("Zwrot zakończony");
+            if (!isReadOnly) {
+                btnCloseReturn.setVisibility(View.VISIBLE);
+                btnCloseReturn.setOnClickListener(v -> confirmCloseReturn());
+            } else {
+                btnCloseReturn.setVisibility(View.GONE);
+            }
+        } else {
+            btnForwardToSales.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
+            btnForwardToComplaints.setText("Reklamacja / inne");
+            btnCloseReturn.setVisibility(View.GONE);
+        }
     }
 
     private void loadStatuses() {
@@ -268,9 +285,14 @@ public class ReturnDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Brak danych zwrotu", Toast.LENGTH_SHORT).show();
             return;
         }
+        boolean isPoDecyzji = "Po decyzji".equalsIgnoreCase(safe(details.getStatusWewnetrzny()));
+        String title = isPoDecyzji ? "Przekazanie do reklamacji" : "Przekaż do reklamacji";
+        String message = isPoDecyzji
+                ? "Czy potwierdzasz fizyczne przekazanie zwrotu do działu reklamacji?"
+                : "Czy na pewno chcesz przekazać zwrot do działu reklamacji?";
         new AlertDialog.Builder(this)
-                .setTitle("Przekaż do reklamacji")
-                .setMessage("Czy na pewno chcesz przekazać zwrot do działu reklamacji?")
+                .setTitle(title)
+                .setMessage(message)
                 .setPositiveButton("Przekaż", (dialog, which) -> submitForwardToComplaints())
                 .setNegativeButton("Anuluj", null)
                 .show();
@@ -373,8 +395,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private void closeReturn() {
         btnCloseReturn.setEnabled(false);
         ApiClient client = new ApiClient(this);
-        String actionText = "Zamknięto zwrot (potwierdzono wykonanie decyzji).";
-        client.addReturnAction(returnId, new ReturnActionCreateRequest(actionText), new ApiClient.ApiCallback<Void>() {
+        client.completeReturn(returnId, new ApiClient.ApiCallback<Void>() {
             @Override
             public void onSuccess(Void data) {
                 runOnUiThread(() -> {

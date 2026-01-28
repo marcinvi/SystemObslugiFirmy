@@ -166,7 +166,8 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                 editDecisionComment.setVisibility(View.GONE);
             }
         } else {
-            btnComplaint.setText("ZATWIERDŹ DECYZJĘ");
+            boolean isPoDecyzji = "Po decyzji".equalsIgnoreCase(safe(details.getStatusWewnetrzny()));
+            btnComplaint.setText(isPoDecyzji ? "ZMIEŃ DECYZJĘ" : "ZATWIERDŹ DECYZJĘ");
             if (decisionTemplatesContainer != null) {
                 decisionTemplatesContainer.setVisibility(View.VISIBLE);
             }

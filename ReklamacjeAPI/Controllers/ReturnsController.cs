@@ -29,11 +29,21 @@ public class ReturnsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? statusWewnetrzny = null,
+        [FromQuery] string? excludeStatusWewnetrzny = null,
         [FromQuery] string? statusAllegro = null,
         [FromQuery] int? handlowiecId = null,
-        [FromQuery] string? search = null)
+        [FromQuery] string? search = null,
+        [FromQuery] bool sortByLastAction = false)
     {
-        var data = await _returnsService.GetReturnsAsync(page, pageSize, statusWewnetrzny, statusAllegro, handlowiecId, search);
+        var data = await _returnsService.GetReturnsAsync(
+            page,
+            pageSize,
+            statusWewnetrzny,
+            excludeStatusWewnetrzny,
+            statusAllegro,
+            handlowiecId,
+            search,
+            sortByLastAction);
         return Ok(ApiResponse<PaginatedResponse<ReturnListItemDto>>.SuccessResponse(data));
     }
 
@@ -42,8 +52,10 @@ public class ReturnsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? statusWewnetrzny = null,
+        [FromQuery] string? excludeStatusWewnetrzny = null,
         [FromQuery] string? statusAllegro = null,
-        [FromQuery] string? search = null)
+        [FromQuery] string? search = null,
+        [FromQuery] bool sortByLastAction = false)
     {
         var userId = GetUserIdFromClaims();
         if (!userId.HasValue)
@@ -58,7 +70,15 @@ public class ReturnsController : ControllerBase
                 new PaginatedResponse<ReturnListItemDto> { Page = page, PageSize = pageSize, TotalItems = 0 }));
         }
 
-        var data = await _returnsService.GetReturnsAsync(page, pageSize, statusWewnetrzny, statusAllegro, userId, search);
+        var data = await _returnsService.GetReturnsAsync(
+            page,
+            pageSize,
+            statusWewnetrzny,
+            excludeStatusWewnetrzny,
+            statusAllegro,
+            userId,
+            search,
+            sortByLastAction);
         return Ok(ApiResponse<PaginatedResponse<ReturnListItemDto>>.SuccessResponse(data));
     }
 
@@ -136,7 +156,7 @@ public class ReturnsController : ControllerBase
     [HttpPatch("{id:int}/warehouse")]
     public async Task<ActionResult<ApiResponse<object>>> UpdateWarehouse(int id, [FromBody] ReturnWarehouseUpdateRequest request)
     {
-        var success = await _returnsService.UpdateWarehouseAsync(id, request);
+        var success = await _returnsService.UpdateWarehouseAsync(id, request, GetUserDisplayName());
         if (!success)
         {
             return NotFound(ApiResponse<object>.ErrorResponse("Return not found."));
@@ -408,7 +428,7 @@ public class ReturnsController : ControllerBase
         if (request.ReturnId == 0)
             request.ReturnId = id;
 
-        var complaintId = await _returnsService.ForwardToComplaintsAsync(id, request);
+        var complaintId = await _returnsService.ForwardToComplaintsAsync(id, request, GetUserDisplayName());
         if (!complaintId.HasValue)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się przekazać do reklamacji."));
@@ -425,8 +445,30 @@ public class ReturnsController : ControllerBase
 
     private string GetUserDisplayName()
     {
-        return User.FindFirst("DisplayName")?.Value
-            ?? User.Identity?.Name
-            ?? "System";
+        var displayName = User.FindFirst("DisplayName")?.Value;
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            return displayName;
+        }
+
+        var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+        if (!string.IsNullOrWhiteSpace(login))
+        {
+            return login;
+        }
+
+        return "System";
+    }
+
+    [HttpPost("{id:int}/complete")]
+    public async Task<ActionResult<ApiResponse<object>>> CompleteReturn(int id)
+    {
+        var success = await _returnsService.CompleteReturnAsync(id, GetUserDisplayName());
+        if (!success)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się zakończyć zwrotu."));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { id }));
     }
 }

@@ -19,6 +19,9 @@ paths:
           name: statusWewnetrzny
           schema: { type: string }
         - in: query
+          name: excludeStatusWewnetrzny
+          schema: { type: string }
+        - in: query
           name: statusAllegro
           schema: { type: string }
         - in: query
@@ -27,6 +30,9 @@ paths:
         - in: query
           name: search
           schema: { type: string }
+        - in: query
+          name: sortByLastAction
+          schema: { type: boolean, default: false }
       responses:
         '200':
           description: Returns list
@@ -104,6 +110,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReturnDecisionResponse'
+  /api/returns/{id}/complete:
+    post:
+      summary: Mark return as completed
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Completed
   /api/returns/manual:
     post:
       summary: Create manual return
