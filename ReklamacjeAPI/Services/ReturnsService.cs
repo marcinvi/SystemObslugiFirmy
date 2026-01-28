@@ -15,27 +15,45 @@ public class ReturnsService
     private readonly IConfiguration _configuration;
     private readonly ApplicationDbContext _context;
     private readonly AllegroApiClient _allegroApiClient;
+    private readonly ReturnSyncProgressService? _progressService;
     private string? _uwagiMagazynuColumn;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public ReturnsService(IConfiguration configuration, ApplicationDbContext context, AllegroApiClient allegroApiClient)
+    public ReturnsService(
+        IConfiguration configuration,
+        ApplicationDbContext context,
+        AllegroApiClient allegroApiClient,
+        IServiceProvider serviceProvider)
     {
         _configuration = configuration;
         _context = context;
         _allegroApiClient = allegroApiClient;
+        _progressService = serviceProvider.GetService<ReturnSyncProgressService>();
     }
 
     public async Task<ReturnSyncResponse> SyncReturnsFromAllegroAsync(ReturnSyncRequest? request, string userDisplayName)
     {
         Console.WriteLine($"[SYNC START] Rozpoczynam synchronizację. Użytkownik: {userDisplayName}");
+        return await SyncReturnsFromAllegroInternalAsync(request, userDisplayName, null);
+    }
+
+    public async Task<ReturnSyncResponse> SyncReturnsFromAllegroInternalAsync(
+        ReturnSyncRequest? request,
+        string userDisplayName,
+        ReturnSyncProgress? progress)
+    {
         var startedAt = DateTime.UtcNow;
         var daysBack = request?.DaysBack ?? 60;
         if (daysBack <= 0) daysBack = 60;
 
         var accounts = await GetAuthorizedAccountsAsync(request?.AccountId);
+        if (progress != null)
+        {
+            progress.TotalAccounts = accounts.Count;
+        }
 
         var response = new ReturnSyncResponse
         {
@@ -46,6 +64,10 @@ public class ReturnsService
         if (accounts.Count == 0)
         {
             response.Errors.Add("Brak autoryzowanych kont Allegro.");
+            if (progress != null && _progressService != null)
+            {
+                _progressService.Fail(progress, "Brak autoryzowanych kont Allegro.");
+            }
             return response;
         }
 
@@ -58,13 +80,20 @@ public class ReturnsService
             defaultStatusId = await GetDefaultWarehouseStatusIdAsync(conn);
         }
 
-        foreach (var account in accounts)
+        for (var accountIndex = 0; accountIndex < accounts.Count; accountIndex++)
         {
+            var account = accounts[accountIndex];
             Console.WriteLine($"[SYNC ACCOUNT] Konto: {account.Name} (ID: {account.Id})");
+            if (progress != null && _progressService != null)
+            {
+                _progressService.UpdateAccount(progress, accountIndex + 1, accounts.Count, account.Name, account.Id);
+            }
             try
             {
                 int offset = 0;
                 const int limit = 100;
+                var processedInAccount = 0;
+                int? totalInAccount = null;
 
                 while (true)
                 {
@@ -72,6 +101,7 @@ public class ReturnsService
 
                     var list = await _allegroApiClient.GetCustomerReturnsAsync(account.Id, limit, offset, filters);
                     var returns = list?.CustomerReturns ?? new List<AllegroApiClient.CustomerReturnDto>();
+                    totalInAccount ??= list?.Count ?? returns.Count;
 
                     if (returns.Count == 0) break;
 
@@ -81,6 +111,15 @@ public class ReturnsService
                     {
                         try
                         {
+                            var returnLabel = string.IsNullOrWhiteSpace(ret.ReferenceNumber)
+                                ? ret.Id
+                                : ret.ReferenceNumber;
+                            Console.WriteLine($"[SYNC RETURN] Konto: {account.Name} (ID: {account.Id}) Zwrot: {returnLabel}");
+                            processedInAccount++;
+                            if (progress != null && _progressService != null)
+                            {
+                                _progressService.UpdateReturn(progress, processedInAccount, totalInAccount ?? processedInAccount, returnLabel);
+                            }
                             AllegroApiClient.OrderDetailsDto? orderDetails = null;
                             string? invoiceNumber = null;
 
@@ -103,6 +142,10 @@ public class ReturnsService
                         }
                         catch (Exception itemEx)
                         {
+                            if (progress != null && _progressService != null)
+                            {
+                                _progressService.AddError(progress, $"Zwrot {ret.ReferenceNumber}: {itemEx.Message}");
+                            }
                             Console.WriteLine($"[SYNC ITEM ERROR] {ret.ReferenceNumber}: {itemEx.Message}");
                         }
                     }
@@ -117,6 +160,10 @@ public class ReturnsService
             catch (Exception ex)
             {
                 response.Errors.Add($"Błąd konta {account.Name}: {ex.Message}");
+                if (progress != null && _progressService != null)
+                {
+                    _progressService.AddError(progress, $"Konto {account.Name}: {ex.Message}");
+                }
                 Console.WriteLine(ex.ToString());
             }
         }
@@ -138,6 +185,15 @@ public class ReturnsService
         }
 
         response.FinishedAt = DateTime.UtcNow;
+        if (progress != null && _progressService != null)
+        {
+            _progressService.Complete(progress, new ReturnSyncSummary
+            {
+                AccountsProcessed = response.AccountsProcessed,
+                ReturnsFetched = response.ReturnsFetched,
+                ReturnsProcessed = response.ReturnsProcessed
+            });
+        }
         return response;
     }
 

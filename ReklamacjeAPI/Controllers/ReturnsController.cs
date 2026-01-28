@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using System.Text;
 using ReklamacjeAPI.DTOs;
@@ -12,10 +14,14 @@ namespace ReklamacjeAPI.Controllers;
 public class ReturnsController : ControllerBase
 {
     private readonly ReturnsService _returnsService;
+    private readonly ReturnSyncProgressService? _progressService;
+    private readonly ILogger<ReturnsController> _logger;
 
-    public ReturnsController(ReturnsService returnsService)
+    public ReturnsController(ReturnsService returnsService, ILogger<ReturnsController> logger, IServiceProvider serviceProvider)
     {
         _returnsService = returnsService;
+        _progressService = serviceProvider.GetService<ReturnSyncProgressService>();
+        _logger = logger;
     }
 
     [HttpGet]
@@ -84,6 +90,57 @@ public class ReturnsController : ControllerBase
     {
         var result = await _returnsService.SyncReturnsFromAllegroAsync(request, GetUserDisplayName());
         return Ok(ApiResponse<ReturnSyncResponse>.SuccessResponse(result));
+    }
+
+    [HttpPost("sync/start")]
+    public ActionResult<ApiResponse<ReturnSyncJobResponse>> StartSync([FromBody] ReturnSyncRequest? request)
+    {
+        if (_progressService == null)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<ReturnSyncJobResponse>.ErrorResponse("Synchronizacja asynchroniczna nie jest dostepna (brak uslugi postepu)."));
+        }
+
+        var userDisplayName = GetUserDisplayName();
+        var job = _progressService.StartJob(userDisplayName);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _returnsService.SyncReturnsFromAllegroInternalAsync(request, userDisplayName, job);
+            }
+            catch (Exception ex)
+            {
+                _progressService.Fail(job, ex.Message);
+                _logger.LogError(ex, "Synchronizacja zwrotow zakonczona bledem. JobId={JobId}", job.JobId);
+            }
+        });
+
+        var response = new ReturnSyncJobResponse
+        {
+            JobId = job.JobId,
+            StartedAt = job.StartedAt,
+            Status = job.Status.ToString()
+        };
+
+        return Accepted(ApiResponse<ReturnSyncJobResponse>.SuccessResponse(response));
+    }
+
+    [HttpGet("sync/status/{jobId}")]
+    public ActionResult<ApiResponse<ReturnSyncProgress>> GetSyncStatus(string jobId)
+    {
+        if (_progressService == null)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<ReturnSyncProgress>.ErrorResponse("Synchronizacja asynchroniczna nie jest dostepna (brak uslugi postepu)."));
+        }
+
+        var job = _progressService.GetJob(jobId);
+        if (job == null)
+        {
+            return NotFound(ApiResponse<ReturnSyncProgress>.ErrorResponse("Nie znaleziono zadania synchronizacji."));
+        }
+
+        return Ok(ApiResponse<ReturnSyncProgress>.SuccessResponse(job));
     }
 
     [HttpPatch("{id:int}/warehouse")]

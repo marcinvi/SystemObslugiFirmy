@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using ReklamacjeAPI.Data;
+using ReklamacjeAPI.Security;
 using ReklamacjeAPI.Services;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,6 +78,22 @@ builder.Services.AddScoped<AllegroCredentialsService>();
 builder.Services.AddScoped<ModulesService>();    // <--- TEGO BRAKUJE dla modułów
 builder.Services.AddScoped<MessagesService>();   // <--- To będzie potrzebne dla Wiadomości
 builder.Services.AddScoped<FileService>();
+builder.Services.AddSingleton<ReturnSyncProgressService>();
+
+var masterKeySecret = builder.Configuration["Security:MasterKeySecret"];
+if (string.IsNullOrWhiteSpace(masterKeySecret))
+{
+    throw new InvalidOperationException("Brak konfiguracji Security:MasterKeySecret. Ustaw klucz główny szyfrowania przed uruchomieniem API.");
+}
+
+using (var kdf = new Rfc2898DeriveBytes(
+    masterKeySecret,
+    EncryptionHelper.Salt,
+    50_000,
+    HashAlgorithmName.SHA256))
+{
+    EncryptionHelper.MasterKey = kdf.GetBytes(32);
+}
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
