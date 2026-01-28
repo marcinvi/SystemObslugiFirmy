@@ -15,7 +15,7 @@ public class ReturnListItemDto
     public int? HandlowiecId { get; set; }
     public bool IsManual { get; set; }
     public string Opiekun { get; set; }        // Np. Imie i Nazwisko handlowca przypisanego do klienta
-    public string AdresatDecyzji { get; set; } // Kto podj¹³/ma podj¹æ decyzjê
+    public string AdresatDecyzji { get; set; } // Kto podjÂ¹Â³/ma podjÂ¹Ã¦ decyzjÃª
 }
 
 public class ReturnDetailsDto
@@ -104,6 +104,13 @@ public class ReturnSyncResponse
     public DateTime StartedAt { get; set; }
     public DateTime FinishedAt { get; set; }
     public List<string> Errors { get; set; } = new();
+}
+
+public class ReturnSyncJobResponse
+{
+    public string JobId { get; set; } = string.Empty;
+    public DateTime StartedAt { get; set; }
+    public string Status { get; set; } = string.Empty;
 }
 
 public class ReturnRefundContextDto
