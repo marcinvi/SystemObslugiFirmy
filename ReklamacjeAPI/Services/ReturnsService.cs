@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MySqlConnector;
 using ReklamacjeAPI.Data;
 using ReklamacjeAPI.DTOs;
@@ -12,10 +13,13 @@ namespace ReklamacjeAPI.Services;
 
 public class ReturnsService
 {
+    private const string DecisionStatusName = "Po decyzji";
+    private const string CompletedStatusName = "Zakończony";
     private readonly IConfiguration _configuration;
     private readonly ApplicationDbContext _context;
     private readonly AllegroApiClient _allegroApiClient;
     private readonly ReturnSyncProgressService _progressService;
+    private readonly ILogger<ReturnsService> _logger;
     private string? _uwagiMagazynuColumn;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -26,12 +30,14 @@ public class ReturnsService
         IConfiguration configuration,
         ApplicationDbContext context,
         AllegroApiClient allegroApiClient,
-        ReturnSyncProgressService progressService)
+        ReturnSyncProgressService progressService,
+        ILogger<ReturnsService> logger)
     {
         _configuration = configuration;
         _context = context;
         _allegroApiClient = allegroApiClient;
         _progressService = progressService;
+        _logger = logger;
     }
 
     public async Task<ReturnSyncResponse> SyncReturnsFromAllegroAsync(ReturnSyncRequest? request, string userDisplayName)
@@ -416,8 +422,17 @@ public class ReturnsService
 
         if (!string.IsNullOrWhiteSpace(statusWewnetrzny))
         {
-            conditions.Add("s2.Nazwa = @statusWewnetrzny");
-            parameters.Add(new MySqlParameter("@statusWewnetrzny", statusWewnetrzny));
+            if (IsDecisionStatusFilter(statusWewnetrzny))
+            {
+                conditions.Add("s2.Nazwa IN (@statusPoDecyzji, @statusZakonczony)");
+                parameters.Add(new MySqlParameter("@statusPoDecyzji", DecisionStatusName));
+                parameters.Add(new MySqlParameter("@statusZakonczony", CompletedStatusName));
+            }
+            else
+            {
+                conditions.Add("s2.Nazwa = @statusWewnetrzny");
+                parameters.Add(new MySqlParameter("@statusWewnetrzny", statusWewnetrzny));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(statusAllegro))
@@ -651,19 +666,33 @@ public class ReturnsService
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
 
-        var statusZakonczonyId = await GetStatusIdAsync(connection, "Zakończony", "StatusWewnetrzny");
-        if (statusZakonczonyId == null)
+        var statusDecyzjiId = await GetStatusIdAsync(connection, DecisionStatusName, "StatusWewnetrzny");
+        if (statusDecyzjiId == null)
         {
-            return null;
+            statusDecyzjiId = await GetStatusIdAsync(connection, CompletedStatusName, "StatusWewnetrzny");
+            if (statusDecyzjiId == null)
+            {
+                _logger.LogWarning("Brak statusu '{DecisionStatus}' ani '{CompletedStatus}' w Statusy. Zwrot={ReturnId}.",
+                    DecisionStatusName,
+                    CompletedStatusName,
+                    id);
+            }
         }
 
-        const string updateQuery = @"
-            UPDATE AllegroCustomerReturns
-            SET DecyzjaHandlowcaId = @decyzjaId,
-                KomentarzHandlowca = @komentarz,
-                DataDecyzji = @data,
-                StatusWewnetrznyId = @statusId
-            WHERE Id = @id";
+        var updateQuery = statusDecyzjiId.HasValue
+            ? @"
+                UPDATE AllegroCustomerReturns
+                SET DecyzjaHandlowcaId = @decyzjaId,
+                    KomentarzHandlowca = @komentarz,
+                    DataDecyzji = @data,
+                    StatusWewnetrznyId = @statusId
+                WHERE Id = @id"
+            : @"
+                UPDATE AllegroCustomerReturns
+                SET DecyzjaHandlowcaId = @decyzjaId,
+                    KomentarzHandlowca = @komentarz,
+                    DataDecyzji = @data
+                WHERE Id = @id";
 
         var decisionTimestamp = DateTime.Now;
         await using (var updateCommand = new MySqlCommand(updateQuery, connection))
@@ -671,7 +700,10 @@ public class ReturnsService
             updateCommand.Parameters.AddWithValue("@decyzjaId", request.DecyzjaId);
             updateCommand.Parameters.AddWithValue("@komentarz", (object?)request.Komentarz ?? DBNull.Value);
             updateCommand.Parameters.AddWithValue("@data", decisionTimestamp);
-            updateCommand.Parameters.AddWithValue("@statusId", statusZakonczonyId.Value);
+            if (statusDecyzjiId.HasValue)
+            {
+                updateCommand.Parameters.AddWithValue("@statusId", statusDecyzjiId.Value);
+            }
             updateCommand.Parameters.AddWithValue("@id", id);
 
             await updateCommand.ExecuteNonQueryAsync();
@@ -1879,7 +1911,7 @@ public class ReturnsService
             SELECT
                 COUNT(acr.Id) AS Total,
                 SUM(CASE WHEN IFNULL(s2.Nazwa, '') = 'Oczekuje na decyzję handlowca' THEN 1 ELSE 0 END) AS DoDecyzji,
-                SUM(CASE WHEN IFNULL(s2.Nazwa, '') = 'Zakończony' THEN 1 ELSE 0 END) AS Zakonczone
+                SUM(CASE WHEN IFNULL(s2.Nazwa, '') IN ('{DecisionStatusName}', '{CompletedStatusName}') THEN 1 ELSE 0 END) AS Zakonczone
             FROM AllegroCustomerReturns acr
             LEFT JOIN Statusy s2 ON s2.Id = acr.StatusWewnetrznyId
             {whereSql}";
@@ -1903,6 +1935,10 @@ public class ReturnsService
             Zakonczone = Convert.ToInt32(reader["Zakonczone"] ?? 0)
         };
     }
+
+    private static bool IsDecisionStatusFilter(string statusWewnetrzny)
+        => statusWewnetrzny.Equals(DecisionStatusName, StringComparison.OrdinalIgnoreCase)
+           || statusWewnetrzny.Equals(CompletedStatusName, StringComparison.OrdinalIgnoreCase);
 
     private async Task<Klient> EnsureKlientAsync(ComplaintCustomerDto customer)
     {
