@@ -73,6 +73,9 @@ builder.Services.AddScoped<ReturnsService>();
 builder.Services.AddScoped<MessagesService>();
 builder.Services.AddHttpClient<AllegroApiClient>();
 builder.Services.AddScoped<AllegroCredentialsService>();
+builder.Services.AddScoped<ModulesService>();    // <--- TEGO BRAKUJE dla modułów
+builder.Services.AddScoped<MessagesService>();   // <--- To będzie potrzebne dla Wiadomości
+builder.Services.AddScoped<FileService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline

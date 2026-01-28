@@ -2,4 +2,11 @@
     <string name="app_name">Ena</string>
     <string name="navigation_drawer_open">Otwórz menu</string>
     <string name="navigation_drawer_close">Zamknij menu</string>
+    <string-array name="return_statuses_array">
+        <item>Wszystkie</item>
+        <item>Nowe</item>
+        <item>W trakcie</item>
+        <item>Zakończone</item>
+        <item>Oczekuje na decyzję</item>
+    </string-array>
 </resources>

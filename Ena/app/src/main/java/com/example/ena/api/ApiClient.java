@@ -37,9 +37,9 @@ public class ApiClient {
 
     // Standardowy klient
     private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
             .build();
 
     // Klient dla sieci lokalnej (ignoruje błędy SSL/Przekierowania)
@@ -70,7 +70,10 @@ public class ApiClient {
             return new OkHttpClient.Builder()
                     .sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0])
                     .hostnameVerifier((hostname, session) -> true)
-                    .connectTimeout(3, TimeUnit.SECONDS)
+                    // ZMIANA: Zwiększono timeout z 3s na 60s, aby synchronizacja się nie zrywała
+                    .connectTimeout(60, TimeUnit.SECONDS)
+                    .readTimeout(60, TimeUnit.SECONDS)
+                    .writeTimeout(60, TimeUnit.SECONDS)
                     .followRedirects(true)
                     .followSslRedirects(true)
                     .build();

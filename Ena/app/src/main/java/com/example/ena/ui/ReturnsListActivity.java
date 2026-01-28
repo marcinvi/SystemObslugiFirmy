@@ -86,7 +86,10 @@ public class ReturnsListActivity extends AppCompatActivity {
         if (savedInstanceState != null) {
             pendingManualCode = savedInstanceState.getString(STATE_PENDING_MANUAL_CODE);
         }
-        progressBar = findViewById(R.id.progress);
+
+        // ZMIANA: Przypisanie do progressBarSync (ten z elevation w XML), zamiast starego id.progress
+        progressBar = findViewById(R.id.progressBarSync);
+
         txtEmpty = findViewById(R.id.txtEmpty);
         txtHeader = findViewById(R.id.txtHeader);
         txtCount = findViewById(R.id.txtCount);
@@ -103,6 +106,12 @@ public class ReturnsListActivity extends AppCompatActivity {
         loadingOverlay = findViewById(R.id.loadingOverlay);
         txtLoadingMessage = findViewById(R.id.txtLoadingMessage);
         filtersDecisionRow = findViewById(R.id.filtersDecisionRow);
+
+        // ZMIANA: Obsługa przycisku wstecz (strzałki w nagłówku)
+        ImageButton btnBack = findViewById(R.id.btnBack);
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> finish());
+        }
 
         if ("sales".equals(mode)) {
             txtHeader.setText("Handlowiec - moje zwroty");
@@ -132,6 +141,11 @@ public class ReturnsListActivity extends AppCompatActivity {
         } else {
             btnSync.setOnClickListener(v -> syncReturns());
         }
+
+        // Nie ładujemy od razu, żeby uniknąć podwójnego requestu przy powrocie,
+        // ale jeśli lista jest pusta przy starcie, to warto załadować.
+        // loadReturns(); // Zakomentowane, bo onResume lub filtry mogą to wywołać
+        // Wywołajmy raz na start:
         loadReturns();
     }
 
@@ -282,25 +296,29 @@ public class ReturnsListActivity extends AppCompatActivity {
     }
 
     private void loadReturns() {
-        progressBar.setVisibility(View.VISIBLE);
-        txtEmpty.setVisibility(View.GONE);
-        txtCount.setText("Wyświetlono: 0");
-        showLoadingOverlay("Wczytywanie zwrotów...");
+        // POPRAWKA: Używamy TU TYLKO progressBar (małe kółko), bez Overlay (dużej ramki)
+        // żeby nie było "dwóch ramek" na raz.
+        if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
+        if (txtEmpty != null) txtEmpty.setVisibility(View.GONE);
+        if (txtCount != null) txtCount.setText("Wyświetlono: 0");
+
+        // Ukrywamy overlay na wypadek jakby został
+        hideLoadingOverlay();
 
         ApiClient client = new ApiClient(this);
         ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>> callback = new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
             @Override
             public void onSuccess(PaginatedResponse<ReturnListItemDto> data) {
                 runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    hideLoadingOverlay();
+                    if (progressBar != null) progressBar.setVisibility(View.GONE);
                     List<ReturnListItemDto> items = data != null ? data.getItems() : null;
                     adapter.setItems(items);
                     if (items == null || items.isEmpty()) {
-                        txtEmpty.setVisibility(View.VISIBLE);
+                        if (txtEmpty != null) txtEmpty.setVisibility(View.VISIBLE);
                     }
                     int count = items == null ? 0 : items.size();
-                    txtCount.setText("Wyświetlono: " + count);
+                    if (txtCount != null) txtCount.setText("Wyświetlono: " + count);
+
                     if ("sales".equals(mode)) {
                         updateSalesCounts();
                     }
@@ -310,9 +328,8 @@ public class ReturnsListActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    hideLoadingOverlay();
-                    txtEmpty.setVisibility(View.VISIBLE);
+                    if (progressBar != null) progressBar.setVisibility(View.GONE);
+                    if (txtEmpty != null) txtEmpty.setVisibility(View.VISIBLE);
                     Toast.makeText(ReturnsListActivity.this, "Błąd: " + message, Toast.LENGTH_LONG).show();
                 });
             }
@@ -343,25 +360,41 @@ public class ReturnsListActivity extends AppCompatActivity {
     }
 
     private void syncReturns() {
-        progressBar.setVisibility(View.VISIBLE);
-        btnSync.setEnabled(false);
+        // POPRAWKA: Tu używamy LoadingOverlay (duża ramka z napisem), bo to trwa dłużej
+        // i chcemy zablokować ekran.
+        showLoadingOverlay("Trwa synchronizacja z Allegro...");
+
+        // Ukrywamy mały progress bar, żeby nie było dublowania
+        if (progressBar != null) progressBar.setVisibility(View.GONE);
+
+        if (btnSync != null) btnSync.setEnabled(false);
+
         ApiClient client = new ApiClient(this);
-        ReturnSyncRequest request = new ReturnSyncRequest(null, null);
+        ReturnSyncRequest request = new ReturnSyncRequest(null, null); // null = domyślne parametry API
+
         client.syncReturns(request, new ApiClient.ApiCallback<ReturnSyncResponse>() {
             @Override
             public void onSuccess(ReturnSyncResponse data) {
                 runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    btnSync.setEnabled(true);
+                    hideLoadingOverlay();
+                    if (btnSync != null) btnSync.setEnabled(true);
+
                     String message = "Synchronizacja zakończona.";
                     if (data != null) {
-                        message = "Synchronizacja: " + data.getReturnsProcessed() + " zwrotów (konta: "
-                                + data.getAccountsProcessed() + ").";
+                        message = "Pobrano: " + data.getReturnsFetched() +
+                                ", Przetworzono: " + data.getReturnsProcessed() +
+                                " (Konta: " + data.getAccountsProcessed() + ").";
+
+                        // Wyświetlenie błędów z API w Toast, jeśli są
                         if (data.getErrors() != null && !data.getErrors().isEmpty()) {
-                            message += " Błędy: " + TextUtils.join("; ", data.getErrors());
+                            // Łączymy błędy w jeden tekst
+                            String errorDetails = TextUtils.join("\n", data.getErrors());
+                            Toast.makeText(ReturnsListActivity.this, "Błędy:\n" + errorDetails, Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(ReturnsListActivity.this, message, Toast.LENGTH_LONG).show();
                         }
                     }
-                    Toast.makeText(ReturnsListActivity.this, message, Toast.LENGTH_LONG).show();
+                    // Po udanej synchronizacji odświeżamy listę
                     loadReturns();
                 });
             }
@@ -369,9 +402,9 @@ public class ReturnsListActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    btnSync.setEnabled(true);
-                    Toast.makeText(ReturnsListActivity.this, "Błąd synchronizacji: " + message, Toast.LENGTH_LONG).show();
+                    hideLoadingOverlay();
+                    if (btnSync != null) btnSync.setEnabled(true);
+                    Toast.makeText(ReturnsListActivity.this, "Krytyczny błąd API: " + message, Toast.LENGTH_LONG).show();
                 });
             }
         });

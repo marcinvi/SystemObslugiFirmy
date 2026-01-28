@@ -68,6 +68,13 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
         returnId = getIntent().getIntExtra(EXTRA_RETURN_ID, 0);
         isReadOnly = getIntent().getBooleanExtra(EXTRA_READ_ONLY, false);
+
+        // ZMIANA: Obsługa customowej strzałki wstecz
+        ImageButton btnBack = findViewById(R.id.btnBack);
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> finish());
+        }
+
         txtHeaderNumber = findViewById(R.id.txtHeaderNumber);
         txtHeaderStatus = findViewById(R.id.txtHeaderStatus);
         txtProductName = findViewById(R.id.txtProductName);
@@ -80,13 +87,17 @@ public class ReturnDetailActivity extends AppCompatActivity {
         txtBuyerAddress = findViewById(R.id.txtBuyerAddress);
         txtBuyerPhone = findViewById(R.id.txtBuyerPhone);
         txtAssignedSales = findViewById(R.id.txtAssignedSales);
+
         btnShowAddresses = findViewById(R.id.btnShowAddresses);
         editUwagiMagazynu = findViewById(R.id.editUwagiMagazynu);
         spinnerStanProduktu = findViewById(R.id.spinnerStanProduktu);
+
         btnForwardToSales = findViewById(R.id.btnForwardToSales);
         btnForwardToComplaints = findViewById(R.id.btnForwardToComplaints);
+
         btnCancel = findViewById(R.id.btnCancel);
         btnCloseReturn = findViewById(R.id.btnCloseReturn);
+
         btnAddResendInfo = findViewById(R.id.btnAddResendInfo);
         editWarehouseAction = findViewById(R.id.editWarehouseAction);
         btnWarehouseAddAction = findViewById(R.id.btnWarehouseAddAction);
@@ -101,13 +112,25 @@ public class ReturnDetailActivity extends AppCompatActivity {
         btnForwardToSales.setOnClickListener(v -> showForwardDialog());
         btnForwardToComplaints.setOnClickListener(v -> showForwardToComplaintsDialog());
         btnWarehouseAddAction.setOnClickListener(v -> submitWarehouseAction());
-        btnCloseReturn.setOnClickListener(v -> confirmCloseReturn());
-        btnAddResendInfo.setOnClickListener(v -> showResendInfoDialog());
-        btnCancel.setOnClickListener(v -> finish());
+
+        // ZMIANA: Ukrycie zbędnych przycisków (Zamknij, Anuluj, Ponowna wysyłka) - zostawiamy tylko przekazania
+        if (btnCloseReturn != null) btnCloseReturn.setVisibility(View.GONE);
+        if (btnCancel != null) btnCancel.setVisibility(View.GONE);
+        // btnAddResendInfo zostawiam widoczne, bo może być potrzebne do logowania zdarzeń,
+        // ale jeśli chcesz ukryć też "Dodaj info o ponownej wysyłce", odkomentuj linię niżej:
+        // if (btnAddResendInfo != null) btnAddResendInfo.setVisibility(View.GONE);
+
+        // Listenerów dla ukrytych przycisków nie musimy usuwać, ale dla porządku:
+        // btnCloseReturn.setOnClickListener(v -> confirmCloseReturn());
+        // btnAddResendInfo.setOnClickListener(v -> showResendInfoDialog());
+        if (btnAddResendInfo != null) {
+            btnAddResendInfo.setOnClickListener(v -> showResendInfoDialog());
+        }
+        // btnCancel.setOnClickListener(v -> finish()); // Obsługuje to teraz strzałka u góry
 
         if (isReadOnly) {
             btnForwardToSales.setVisibility(View.GONE);
-            btnCloseReturn.setVisibility(View.GONE);
+            // btnCloseReturn już jest GONE
         }
 
         loadStatuses();
@@ -645,5 +668,13 @@ public class ReturnDetailActivity extends AppCompatActivity {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish(); // To zamyka ekran i wraca do poprzedniego
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

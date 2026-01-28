@@ -19,6 +19,7 @@ import java.util.Locale;
 public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.ViewHolder> {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM HH:mm");
 
+
     public enum DisplayMode {
         DECISION,
         WAREHOUSE_STATUS,
