@@ -385,12 +385,15 @@ public class ReturnsController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak danych przekazania reklamacji."));
         }
 
+        // Jeśli w body przekazujesz ReturnId, musi pasować do {id} z URL
         if (request.ReturnId != 0 && request.ReturnId != id)
         {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Brak danych przekazania reklamacji."));
+            return BadRequest(ApiResponse<object>.ErrorResponse("Niezgodny identyfikator zwrotu."));
         }
 
-        if (request.ReturnId != 0 && request.ReturnId != id)
+        // Ustal userId (claims -> fallback po loginie z nagłówka / Identity)
+        var userId = GetUserIdFromClaims();
+        if (!userId.HasValue)
         {
             var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
             userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
@@ -398,8 +401,12 @@ public class ReturnsController : ControllerBase
 
         if (!userId.HasValue)
         {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Niezgodny identyfikator zwrotu."));
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
         }
+
+        // (opcjonalnie) jeśli serwis potrzebuje ReturnId w request, możesz go “dopiąć”
+        if (request.ReturnId == 0)
+            request.ReturnId = id;
 
         var complaintId = await _returnsService.ForwardToComplaintsAsync(id, request);
         if (!complaintId.HasValue)
