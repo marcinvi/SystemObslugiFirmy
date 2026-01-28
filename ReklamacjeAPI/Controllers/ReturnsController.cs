@@ -387,6 +387,17 @@ public class ReturnsController : ControllerBase
 
         if (request.ReturnId != 0 && request.ReturnId != id)
         {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak danych przekazania reklamacji."));
+        }
+
+        if (request.ReturnId != 0 && request.ReturnId != id)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+        }
+
+        if (!userId.HasValue)
+        {
             return BadRequest(ApiResponse<object>.ErrorResponse("Niezgodny identyfikator zwrotu."));
         }
 

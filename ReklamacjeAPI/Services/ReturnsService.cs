@@ -1418,6 +1418,8 @@ public class ReturnsService
 
         await InsertUnregisteredComplaintAsync(connection, returnId, request);
 
+        await InsertUnregisteredComplaintAsync(connection, returnId, request);
+
         return 0;
     }
 
