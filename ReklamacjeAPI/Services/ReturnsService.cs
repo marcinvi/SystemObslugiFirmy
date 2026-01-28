@@ -390,14 +390,28 @@ public class ReturnsService
         }
     }
 
-    public async Task<PaginatedResponse<ReturnListItemDto>> GetReturnsAsync(int page, int pageSize, string? statusWewnetrzny, string? statusAllegro, int? handlowiecId, string? search)
+    public async Task<PaginatedResponse<ReturnListItemDto>> GetReturnsAsync(
+        int page,
+        int pageSize,
+        string? statusWewnetrzny,
+        string? excludeStatusWewnetrzny,
+        string? statusAllegro,
+        int? handlowiecId,
+        string? search,
+        bool sortByLastAction)
     {
+        if (page <= 0)
+        {
+            page = 1;
+        }
+
         var queryBuilder = new StringBuilder(@"
             SELECT
                 acr.Id,
                 acr.ReferenceNumber,
                 acr.Waybill,
                 acr.CreatedAt,
+                COALESCE(dz.LastActionDate, acr.CreatedAt) AS LastActionDate,
                 acr.StatusAllegro,
                 acr.ProductName,
                 acr.HandlowiecOpiekunId,
@@ -415,6 +429,11 @@ public class ReturnsService
             LEFT JOIN Statusy s1 ON acr.StanProduktuId = s1.Id
             LEFT JOIN Statusy s2 ON acr.StatusWewnetrznyId = s2.Id
             LEFT JOIN Statusy s3 ON acr.DecyzjaHandlowcaId = s3.Id
+            LEFT JOIN (
+                SELECT ZwrotId, MAX(Data) AS LastActionDate
+                FROM ZwrotDzialania
+                GROUP BY ZwrotId
+            ) dz ON dz.ZwrotId = acr.Id
         ");
 
         var conditions = new List<string>();
@@ -433,6 +452,12 @@ public class ReturnsService
                 conditions.Add("s2.Nazwa = @statusWewnetrzny");
                 parameters.Add(new MySqlParameter("@statusWewnetrzny", statusWewnetrzny));
             }
+        }
+
+        if (!string.IsNullOrWhiteSpace(excludeStatusWewnetrzny))
+        {
+            conditions.Add("(s2.Nazwa IS NULL OR s2.Nazwa <> @excludeStatusWewnetrzny)");
+            parameters.Add(new MySqlParameter("@excludeStatusWewnetrzny", excludeStatusWewnetrzny));
         }
 
         if (!string.IsNullOrWhiteSpace(statusAllegro))
@@ -469,9 +494,17 @@ public class ReturnsService
         }
 
         var countQuery = $"SELECT COUNT(*) FROM ({queryBuilder}) AS c";
-        queryBuilder.Append(" ORDER BY acr.CreatedAt DESC LIMIT @limit OFFSET @offset");
-        parameters.Add(new MySqlParameter("@limit", pageSize));
-        parameters.Add(new MySqlParameter("@offset", (page - 1) * pageSize));
+        var orderBy = sortByLastAction
+            ? " ORDER BY LastActionDate DESC"
+            : " ORDER BY acr.CreatedAt DESC";
+        queryBuilder.Append(orderBy);
+
+        if (pageSize > 0)
+        {
+            queryBuilder.Append(" LIMIT @limit OFFSET @offset");
+            parameters.Add(new MySqlParameter("@limit", pageSize));
+            parameters.Add(new MySqlParameter("@offset", (page - 1) * pageSize));
+        }
 
         var response = new PaginatedResponse<ReturnListItemDto>
         {
@@ -491,6 +524,11 @@ public class ReturnsService
 
             var total = await countCommand.ExecuteScalarAsync();
             response.TotalItems = Convert.ToInt32(total ?? 0);
+        }
+
+        if (pageSize <= 0)
+        {
+            response.PageSize = response.TotalItems > 0 ? response.TotalItems : 1;
         }
 
         await using (var command = new MySqlCommand(queryBuilder.ToString(), connection))
@@ -633,7 +671,7 @@ public class ReturnsService
         };
     }
 
-    public async Task<bool> UpdateWarehouseAsync(int id, ReturnWarehouseUpdateRequest request)
+    public async Task<bool> UpdateWarehouseAsync(int id, ReturnWarehouseUpdateRequest request, string userDisplayName)
     {
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
@@ -658,7 +696,26 @@ public class ReturnsService
         command.Parameters.AddWithValue("@id", id);
         command.Parameters.AddWithValue("@statusId", (object?)statusPrzyjetyId ?? DBNull.Value);
 
-        return await command.ExecuteNonQueryAsync() > 0;
+        var updated = await command.ExecuteNonQueryAsync() > 0;
+        if (updated)
+        {
+            var stanName = await GetStatusNameByIdAsync(connection, request.StanProduktuId);
+            var actionText = "Przyjęto zwrot do magazynu.";
+            if (!string.IsNullOrWhiteSpace(stanName))
+            {
+                actionText += $" Stan produktu: {stanName}.";
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.UwagiMagazynu))
+            {
+                actionText += $" Uwagi: {request.UwagiMagazynu}";
+            }
+
+            await AddReturnActionInternalAsync(connection, id, userDisplayName, actionText);
+            await AddMagazynDziennikAsync(connection, id, userDisplayName, actionText, null);
+        }
+
+        return updated;
     }
 
     public async Task<ReturnDecisionResponse?> SaveDecisionAsync(int id, ReturnDecisionRequest request, string userDisplayName)
@@ -1411,14 +1468,49 @@ public class ReturnsService
         };
     }
 
-    public async Task<int?> ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request)
+    public async Task<int?> ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request, string userDisplayName)
     {
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
 
         await InsertUnregisteredComplaintAsync(connection, returnId, request);
+        var przekazal = string.IsNullOrWhiteSpace(request.Przekazal) ? userDisplayName : request.Przekazal;
+        var actionText = $"Przekazano fizycznie na reklamacje. Przekazał: {przekazal}.";
+        await AddReturnActionInternalAsync(connection, returnId, userDisplayName, actionText);
+        await AddMagazynDziennikAsync(connection, returnId, userDisplayName, actionText, null);
 
         return 0;
+    }
+
+    public async Task<bool> CompleteReturnAsync(int returnId, string userDisplayName)
+    {
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        var statusId = await GetStatusIdAsync(connection, CompletedStatusName, "StatusWewnetrzny");
+        if (!statusId.HasValue)
+        {
+            return false;
+        }
+
+        const string query = @"
+            UPDATE AllegroCustomerReturns
+            SET StatusWewnetrznyId = @statusId
+            WHERE Id = @id";
+
+        await using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@statusId", statusId.Value);
+        command.Parameters.AddWithValue("@id", returnId);
+
+        var updated = await command.ExecuteNonQueryAsync() > 0;
+        if (updated)
+        {
+            const string actionText = "Zwrot zakończony.";
+            await AddReturnActionInternalAsync(connection, returnId, userDisplayName, actionText);
+            await AddMagazynDziennikAsync(connection, returnId, userDisplayName, actionText, null);
+        }
+
+        return updated;
     }
 
     public async Task<ReturnDetailsDto?> GetReturnByCodeAsync(string code)
@@ -1812,6 +1904,14 @@ public class ReturnsService
         await using var command = new MySqlCommand(query, connection, transaction);
         var result = await command.ExecuteScalarAsync();
         return result?.ToString() ?? "CzyPrzeczytana";
+    }
+
+    private static async Task<string?> GetStatusNameByIdAsync(MySqlConnection connection, int statusId)
+    {
+        await using var command = new MySqlCommand("SELECT Nazwa FROM Statusy WHERE Id = @id LIMIT 1", connection);
+        command.Parameters.AddWithValue("@id", statusId);
+        var result = await command.ExecuteScalarAsync();
+        return result?.ToString();
     }
 
     private async Task<List<(int ReturnId, string User, string Content)>> GetDecisionActionsAsync(MySqlConnection connection, List<int> returnIds)

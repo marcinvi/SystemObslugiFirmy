@@ -429,7 +429,8 @@ public class ReturnsListActivity extends AppCompatActivity {
 
     private String buildQueryString() {
         StringBuilder sb = new StringBuilder("?");
-        sb.append("page=1&pageSize=100");
+        int pageSize = "warehouse".equals(mode) ? 0 : 100;
+        sb.append("page=1&pageSize=").append(pageSize);
 
         String searchValue = editSearch.getText().toString().trim();
         if (!searchValue.isEmpty()) {

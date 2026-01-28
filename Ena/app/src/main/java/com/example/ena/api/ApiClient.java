@@ -390,6 +390,10 @@ public class ApiClient {
         sendJson("api/returns/" + id + "/decision", payload, "PATCH", callback);
     }
 
+    public void completeReturn(int id, ApiCallback<Void> callback) {
+        sendJson("api/returns/" + id + "/complete", new Object(), "POST", callback);
+    }
+
     public void forwardToComplaints(int id, ForwardToComplaintRequest payload, ApiCallback<Void> callback) {
         sendJson("api/returns/" + id + "/forward-to-complaints", payload, "POST", callback);
     }

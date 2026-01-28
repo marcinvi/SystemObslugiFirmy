@@ -87,7 +87,9 @@ public class SummaryActivity extends AppCompatActivity {
         txtNoData.setVisibility(View.GONE);
 
         // Budujemy zapytanie
-        String query = "?page=1&pageSize=50&sortDesc=true";
+        String query = "?page=1&pageSize=0"
+                + "&excludeStatusWewnetrzny=Oczekuje%20na%20przyj%C4%99cie"
+                + "&sortByLastAction=true";
 
         // Pobieramy WSZYSTKIE zwroty (fetchReturns), bo to podgląd ogólny
         apiClient.fetchReturns(query, new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
