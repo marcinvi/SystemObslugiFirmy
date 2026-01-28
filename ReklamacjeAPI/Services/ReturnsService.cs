@@ -28,13 +28,244 @@ public class ReturnsService
         _allegroApiClient = allegroApiClient;
     }
 
-    public async Task<PaginatedResponse<ReturnListItemDto>> GetReturnsAsync(
-        int page,
-        int pageSize,
-        string? statusWewnetrzny,
-        string? statusAllegro,
-        int? handlowiecId,
-        string? search)
+    // --- GLOWNA METODA SYNCHRONIZACJI (POPRAWIONA) ---
+    public async Task<ReturnSyncResponse> SyncReturnsFromAllegroAsync(ReturnSyncRequest? request, string userDisplayName)
+    {
+        var startedAt = DateTime.UtcNow;
+        var daysBack = request?.DaysBack ?? 60;
+        if (daysBack <= 0) daysBack = 60;
+
+        // 1. Pobierz konta (szybkie zapytanie)
+        var accounts = await GetAuthorizedAccountsAsync(request?.AccountId);
+        var response = new ReturnSyncResponse
+        {
+            AccountsProcessed = accounts.Count,
+            StartedAt = startedAt
+        };
+
+        if (accounts.Count == 0)
+        {
+            response.Errors.Add("Brak autoryzowanych kont Allegro.");
+            response.FinishedAt = DateTime.UtcNow;
+            return response;
+        }
+
+        var dateFrom = DateTime.UtcNow.AddDays(-daysBack).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
+
+        // 2. Pobierz ID domyślnego statusu (raz, na nowym połączeniu)
+        int? defaultStatusId;
+        await using (var conn = DbConnectionFactory.CreateMagazynConnection(_configuration))
+        {
+            await conn.OpenAsync();
+            defaultStatusId = await GetDefaultWarehouseStatusIdAsync(conn);
+        }
+
+        // 3. Iteracja po kontach (SEKWENCYJNIE)
+        foreach (var account in accounts)
+        {
+            try
+            {
+                int offset = 0;
+                const int limit = 100; // Mniejsze porcje = bezpieczniej
+
+                while (true)
+                {
+                    var filters = new Dictionary<string, string>
+                    {
+                        ["createdAt.gte"] = dateFrom
+                    };
+
+                    // A. Pobierz listę zwrotów z API (nie blokuje bazy)
+                    var list = await _allegroApiClient.GetCustomerReturnsAsync(account.Id, limit, offset, filters);
+                    var returns = list?.CustomerReturns ?? new List<AllegroApiClient.CustomerReturnDto>();
+
+                    if (returns.Count == 0) break;
+
+                    response.ReturnsFetched += returns.Count;
+
+                    // B. Przetwarzaj zwroty PO JEDNYM (najbezpieczniejsza opcja dla uniknięcia "Primary Key Error" i timeoutów)
+                    foreach (var ret in returns)
+                    {
+                        try
+                        {
+                            // 1. Pobierz szczegóły z Allegro (poza transakcją DB)
+                            var orderDetails = string.IsNullOrWhiteSpace(ret.OrderId)
+                                ? null
+                                : await _allegroApiClient.GetOrderDetailsAsync(account.Id, ret.OrderId);
+
+                            var invoices = string.IsNullOrWhiteSpace(ret.OrderId)
+                                ? new List<AllegroApiClient.InvoiceDto>()
+                                : await _allegroApiClient.GetInvoicesForOrderAsync(account.Id, ret.OrderId);
+                            var invoiceNumber = invoices.FirstOrDefault()?.InvoiceNumber;
+
+                            // 2. Zapisz do bazy (krótkie połączenie)
+                            await using (var dbConnection = DbConnectionFactory.CreateMagazynConnection(_configuration))
+                            {
+                                await dbConnection.OpenAsync();
+                                await SaveSingleReturnToDbAsync(dbConnection, ret, orderDetails, invoiceNumber, account.Id, defaultStatusId);
+                            }
+
+                            response.ReturnsProcessed++;
+                        }
+                        catch (Exception ex)
+                        {
+                            // Błąd jednego zwrotu nie przerywa całej synchronizacji
+                            Console.WriteLine($"[SYNC ITEM ERROR] Ref: {ret.ReferenceNumber}, Err: {ex.Message}");
+                            // Opcjonalnie dodaj do błędów, ale może zaśmiecić log przy dużej ilości
+                        }
+                    }
+
+                    offset += limit;
+
+                    // Warunki wyjścia
+                    if (list?.Count.HasValue == true && offset >= list.Count.Value) break;
+                    if (returns.Count < limit) break;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.Errors.Add($"Błąd konta {account.Name}: {ex.Message}");
+            }
+        }
+
+        // 4. Logowanie (osobne połączenie na koniec)
+        if (response.ReturnsProcessed > 0)
+        {
+            try
+            {
+                await using var logConnection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+                await logConnection.OpenAsync();
+                await AddMagazynDziennikAsync(
+                    logConnection,
+                    null,
+                    userDisplayName,
+                    $"Zsynchronizowano zwroty Allegro (Mobile API). Przetworzono: {response.ReturnsProcessed}.",
+                    null);
+            }
+            catch { /* Ignoruj błędy logowania */ }
+        }
+
+        response.FinishedAt = DateTime.UtcNow;
+        return response;
+    }
+
+    // --- METODA POMOCNICZA DO ZAPISU POJEDYNCZEGO ZWROTU ---
+    private async Task SaveSingleReturnToDbAsync(
+        MySqlConnection connection,
+        AllegroApiClient.CustomerReturnDto ret,
+        AllegroApiClient.OrderDetailsDto? orderDetails,
+        string? invoiceNumber,
+        int accountId,
+        int? defaultStatusId)
+    {
+        var returnItem = ret.Items?.FirstOrDefault();
+        var lineItem = orderDetails?.LineItems?.FirstOrDefault();
+
+        var buyerFullName = BuildName(orderDetails?.Buyer?.FirstName, orderDetails?.Buyer?.LastName);
+        var deliveryAddress = orderDetails?.Delivery?.Address;
+        var buyerAddress = orderDetails?.Buyer?.Address;
+        var invoiceAddress = orderDetails?.Invoice?.Address;
+
+        var productName = returnItem?.Name ?? lineItem?.Offer?.Name;
+
+        // Używamy INSERT ... ON DUPLICATE KEY UPDATE
+        // To zapobiega błędom "Primary Key" jeśli rekord już istnieje
+        var query = @"
+            INSERT INTO AllegroCustomerReturns (
+                AllegroReturnId, AllegroAccountId, ReferenceNumber, OrderId, BuyerLogin, CreatedAt, StatusAllegro,
+                Waybill, JsonDetails, StatusWewnetrznyId, CarrierName, InvoiceNumber, ProductName, OfferId,
+                Quantity, PaymentType, FulfillmentStatus, Delivery_FirstName, Delivery_LastName, Delivery_Street,
+                Delivery_ZipCode, Delivery_City, Delivery_PhoneNumber, Buyer_FirstName, Buyer_LastName, Buyer_Street,
+                Buyer_ZipCode, Buyer_City, Buyer_PhoneNumber, Invoice_CompanyName, Invoice_TaxId, Invoice_Street,
+                Invoice_ZipCode, Invoice_City, BuyerFullName, ReturnReasonType, ReturnReasonComment
+            ) VALUES (
+                @AllegroReturnId, @AllegroAccountId, @ReferenceNumber, @OrderId, @BuyerLogin, @CreatedAt, @StatusAllegro,
+                @Waybill, @JsonDetails, @StatusWewnetrznyId, @CarrierName, @InvoiceNumber, @ProductName, @OfferId,
+                @Quantity, @PaymentType, @FulfillmentStatus, @Delivery_FirstName, @Delivery_LastName, @Delivery_Street,
+                @Delivery_ZipCode, @Delivery_City, @Delivery_PhoneNumber, @Buyer_FirstName, @Buyer_LastName, @Buyer_Street,
+                @Buyer_ZipCode, @Buyer_City, @Buyer_PhoneNumber, @Invoice_CompanyName, @Invoice_TaxId, @Invoice_Street,
+                @Invoice_ZipCode, @Invoice_City, @BuyerFullName, @ReturnReasonType, @ReturnReasonComment
+            )
+            ON DUPLICATE KEY UPDATE
+                StatusAllegro = VALUES(StatusAllegro),
+                Waybill = VALUES(Waybill),
+                CarrierName = VALUES(CarrierName),
+                JsonDetails = VALUES(JsonDetails),
+                InvoiceNumber = VALUES(InvoiceNumber),
+                ProductName = VALUES(ProductName),
+                OfferId = VALUES(OfferId),
+                Quantity = VALUES(Quantity),
+                PaymentType = VALUES(PaymentType),
+                FulfillmentStatus = VALUES(FulfillmentStatus),
+                Delivery_FirstName = VALUES(Delivery_FirstName),
+                Delivery_LastName = VALUES(Delivery_LastName),
+                Delivery_Street = VALUES(Delivery_Street),
+                Delivery_ZipCode = VALUES(Delivery_ZipCode),
+                Delivery_City = VALUES(Delivery_City),
+                Delivery_PhoneNumber = VALUES(Delivery_PhoneNumber),
+                Buyer_FirstName = VALUES(Buyer_FirstName),
+                Buyer_LastName = VALUES(Buyer_LastName),
+                Buyer_Street = VALUES(Buyer_Street),
+                Buyer_ZipCode = VALUES(Buyer_ZipCode),
+                Buyer_City = VALUES(Buyer_City),
+                Buyer_PhoneNumber = VALUES(Buyer_PhoneNumber),
+                Invoice_CompanyName = VALUES(Invoice_CompanyName),
+                Invoice_TaxId = VALUES(Invoice_TaxId),
+                Invoice_Street = VALUES(Invoice_Street),
+                Invoice_ZipCode = VALUES(Invoice_ZipCode),
+                Invoice_City = VALUES(Invoice_City),
+                BuyerFullName = VALUES(BuyerFullName),
+                ReturnReasonType = VALUES(ReturnReasonType),
+                ReturnReasonComment = VALUES(ReturnReasonComment);
+        ";
+
+        await using var command = new MySqlCommand(query, connection);
+
+        command.Parameters.AddWithValue("@AllegroReturnId", ret.Id ?? string.Empty);
+        command.Parameters.AddWithValue("@AllegroAccountId", accountId);
+        command.Parameters.AddWithValue("@ReferenceNumber", ret.ReferenceNumber ?? string.Empty);
+        command.Parameters.AddWithValue("@OrderId", (object?)ret.OrderId ?? DBNull.Value);
+        command.Parameters.AddWithValue("@BuyerLogin", (object?)ret.Buyer?.Login ?? DBNull.Value);
+        command.Parameters.AddWithValue("@CreatedAt", (object?)ret.CreatedAt ?? DBNull.Value);
+        command.Parameters.AddWithValue("@StatusAllegro", (object?)ret.Status ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Waybill", (object?)ret.Parcels?.FirstOrDefault()?.Waybill ?? DBNull.Value);
+        command.Parameters.AddWithValue("@CarrierName", (object?)ret.Parcels?.FirstOrDefault()?.CarrierId ?? DBNull.Value);
+        command.Parameters.AddWithValue("@JsonDetails", JsonSerializer.Serialize(ret, JsonOptions));
+        command.Parameters.AddWithValue("@StatusWewnetrznyId", defaultStatusId ?? (object)DBNull.Value);
+        command.Parameters.AddWithValue("@InvoiceNumber", (object?)invoiceNumber ?? DBNull.Value);
+        command.Parameters.AddWithValue("@ProductName", (object?)productName ?? DBNull.Value);
+
+        command.Parameters.AddWithValue("@OfferId", (object?)returnItem?.OfferId ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Quantity", (object?)returnItem?.Quantity ?? (object?)lineItem?.Quantity ?? DBNull.Value);
+        command.Parameters.AddWithValue("@PaymentType", (object?)orderDetails?.Payment?.Type ?? DBNull.Value);
+        command.Parameters.AddWithValue("@FulfillmentStatus", (object?)orderDetails?.Fulfillment?.Status ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Delivery_FirstName", (object?)deliveryAddress?.FirstName ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Delivery_LastName", (object?)deliveryAddress?.LastName ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Delivery_Street", (object?)deliveryAddress?.Street ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Delivery_ZipCode", (object?)deliveryAddress?.ZipCode ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Delivery_City", (object?)deliveryAddress?.City ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Delivery_PhoneNumber", (object?)deliveryAddress?.PhoneNumber ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Buyer_FirstName", (object?)orderDetails?.Buyer?.FirstName ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Buyer_LastName", (object?)orderDetails?.Buyer?.LastName ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Buyer_Street", (object?)buyerAddress?.Street ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Buyer_ZipCode", (object?)buyerAddress?.PostCode ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Buyer_City", (object?)buyerAddress?.City ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Buyer_PhoneNumber", (object?)orderDetails?.Buyer?.PhoneNumber ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Invoice_CompanyName", (object?)invoiceAddress?.Company?.Name ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Invoice_TaxId", (object?)invoiceAddress?.Company?.TaxId ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Invoice_Street", (object?)invoiceAddress?.Street ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Invoice_ZipCode", (object?)invoiceAddress?.ZipCode ?? DBNull.Value);
+        command.Parameters.AddWithValue("@Invoice_City", (object?)invoiceAddress?.City ?? DBNull.Value);
+        command.Parameters.AddWithValue("@BuyerFullName", string.IsNullOrWhiteSpace(buyerFullName) ? DBNull.Value : buyerFullName);
+        command.Parameters.AddWithValue("@ReturnReasonType", (object?)returnItem?.Reason?.Type ?? DBNull.Value);
+        command.Parameters.AddWithValue("@ReturnReasonComment", (object?)returnItem?.Reason?.UserComment ?? DBNull.Value);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    // --- POZOSTAŁE METODY (BEZ ZMIAN) ---
+
+    public async Task<PaginatedResponse<ReturnListItemDto>> GetReturnsAsync(int page, int pageSize, string? statusWewnetrzny, string? statusAllegro, int? handlowiecId, string? search)
     {
         var queryBuilder = new StringBuilder(@"
             SELECT
@@ -158,88 +389,6 @@ public class ReturnsService
             }
         }
 
-        return response;
-    }
-
-    public async Task<ReturnSyncResponse> SyncReturnsFromAllegroAsync(ReturnSyncRequest? request, string userDisplayName)
-    {
-        var startedAt = DateTime.UtcNow;
-        var daysBack = request?.DaysBack ?? 60;
-        if (daysBack <= 0)
-        {
-            daysBack = 60;
-        }
-
-        var accounts = await GetAuthorizedAccountsAsync(request?.AccountId);
-        var response = new ReturnSyncResponse
-        {
-            AccountsProcessed = accounts.Count,
-            StartedAt = startedAt
-        };
-
-        if (accounts.Count == 0)
-        {
-            response.Errors.Add("Brak autoryzowanych kont Allegro.");
-            response.FinishedAt = DateTime.UtcNow;
-            return response;
-        }
-
-        var dateFrom = DateTime.UtcNow.AddDays(-daysBack).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
-
-        await using var magazynConnection = DbConnectionFactory.CreateMagazynConnection(_configuration);
-        await magazynConnection.OpenAsync();
-        var defaultStatusId = await GetDefaultWarehouseStatusIdAsync(magazynConnection);
-
-        foreach (var account in accounts)
-        {
-            try
-            {
-                int offset = 0;
-                const int limit = 1000;
-                while (true)
-                {
-                    var filters = new Dictionary<string, string>
-                    {
-                        ["createdAt.gte"] = dateFrom
-                    };
-                    var list = await _allegroApiClient.GetCustomerReturnsAsync(account.Id, limit, offset, filters);
-                    var returns = list?.CustomerReturns ?? new List<AllegroApiClient.CustomerReturnDto>();
-                    if (returns.Count == 0)
-                    {
-                        break;
-                    }
-
-                    response.ReturnsFetched += returns.Count;
-                    response.ReturnsProcessed += await SaveReturnsToDbAsync(
-                        magazynConnection,
-                        returns,
-                        account.Id,
-                        defaultStatusId);
-
-                    offset += limit;
-                    if (list?.Count.HasValue == true && offset >= list.Count.Value)
-                    {
-                        break;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                response.Errors.Add($"Błąd synchronizacji konta {account.Name}: {ex.Message}");
-            }
-        }
-
-        if (response.ReturnsProcessed > 0)
-        {
-            await AddMagazynDziennikAsync(
-                magazynConnection,
-                null,
-                userDisplayName,
-                $"Zsynchronizowano zwroty Allegro (API). Przetworzono {response.ReturnsProcessed} wpisów.",
-                null);
-        }
-
-        response.FinishedAt = DateTime.UtcNow;
         return response;
     }
 
@@ -1186,6 +1335,8 @@ public class ReturnsService
         return await GetReturnDetailsAsync(Convert.ToInt32(idObj));
     }
 
+    // --- HELPERY PRYWATNE ---
+
     private async Task<int?> GetStatusIdAsync(MySqlConnection connection, string name, string type, MySqlTransaction? transaction = null)
     {
         const string query = "SELECT Id FROM Statusy WHERE Nazwa = @name AND TypStatusu = @type LIMIT 1";
@@ -1438,11 +1589,11 @@ public class ReturnsService
         return total;
     }
 
-    private async Task<int?> AddReturnActionInternalAsync(MySqlConnection connection, int returnId, string userDisplayName, string content, MySqlTransaction? transaction = null)
+    private async Task<int?> AddReturnActionInternalAsync(MySqlConnection connection, int? returnId, string userDisplayName, string content, MySqlTransaction? transaction = null)
     {
         var query = @"INSERT INTO ZwrotDzialania (ZwrotId, Data, Uzytkownik, Tresc) VALUES (@zwrotId, @data, @uzytkownik, @tresc)";
         await using var command = new MySqlCommand(query, connection, transaction);
-        command.Parameters.AddWithValue("@zwrotId", returnId);
+        command.Parameters.AddWithValue("@zwrotId", returnId ?? 0);
         command.Parameters.AddWithValue("@data", DateTime.Now);
         command.Parameters.AddWithValue("@uzytkownik", userDisplayName);
         command.Parameters.AddWithValue("@tresc", content);
@@ -1483,132 +1634,6 @@ public class ReturnsService
             connection);
         var result = await command.ExecuteScalarAsync();
         return result == null || result == DBNull.Value ? null : Convert.ToInt32(result);
-    }
-
-    private async Task<int> SaveReturnsToDbAsync(
-        MySqlConnection connection,
-        List<AllegroApiClient.CustomerReturnDto> returns,
-        int accountId,
-        int? defaultStatusId)
-    {
-        var processedRecords = 0;
-        await using var transaction = await connection.BeginTransactionAsync();
-
-        foreach (var ret in returns)
-        {
-            var orderDetails = string.IsNullOrWhiteSpace(ret.OrderId)
-                ? null
-                : await _allegroApiClient.GetOrderDetailsAsync(accountId, ret.OrderId);
-
-            var invoiceNumber = string.IsNullOrWhiteSpace(ret.OrderId)
-                ? null
-                : (await _allegroApiClient.GetInvoicesForOrderAsync(accountId, ret.OrderId))
-                    .FirstOrDefault()?.InvoiceNumber;
-
-            var returnItem = ret.Items?.FirstOrDefault();
-            var lineItem = orderDetails?.LineItems?.FirstOrDefault();
-
-            var buyerFullName = BuildName(orderDetails?.Buyer?.FirstName, orderDetails?.Buyer?.LastName);
-            var deliveryAddress = orderDetails?.Delivery?.Address;
-            var buyerAddress = orderDetails?.Buyer?.Address;
-            var invoiceAddress = orderDetails?.Invoice?.Address;
-
-            await using var command = new MySqlCommand(@"
-                INSERT INTO AllegroCustomerReturns (
-                    AllegroReturnId, AllegroAccountId, ReferenceNumber, OrderId, BuyerLogin, CreatedAt, StatusAllegro,
-                    Waybill, JsonDetails, StatusWewnetrznyId, CarrierName, InvoiceNumber, ProductName, OfferId,
-                    Quantity, PaymentType, FulfillmentStatus, Delivery_FirstName, Delivery_LastName, Delivery_Street,
-                    Delivery_ZipCode, Delivery_City, Delivery_PhoneNumber, Buyer_FirstName, Buyer_LastName, Buyer_Street,
-                    Buyer_ZipCode, Buyer_City, Buyer_PhoneNumber, Invoice_CompanyName, Invoice_TaxId, Invoice_Street,
-                    Invoice_ZipCode, Invoice_City, BuyerFullName, ReturnReasonType, ReturnReasonComment
-                ) VALUES (
-                    @AllegroReturnId, @AllegroAccountId, @ReferenceNumber, @OrderId, @BuyerLogin, @CreatedAt, @StatusAllegro,
-                    @Waybill, @JsonDetails, @StatusWewnetrznyId, @CarrierName, @InvoiceNumber, @ProductName, @OfferId,
-                    @Quantity, @PaymentType, @FulfillmentStatus, @Delivery_FirstName, @Delivery_LastName, @Delivery_Street,
-                    @Delivery_ZipCode, @Delivery_City, @Delivery_PhoneNumber, @Buyer_FirstName, @Buyer_LastName, @Buyer_Street,
-                    @Buyer_ZipCode, @Buyer_City, @Buyer_PhoneNumber, @Invoice_CompanyName, @Invoice_TaxId, @Invoice_Street,
-                    @Invoice_ZipCode, @Invoice_City, @BuyerFullName, @ReturnReasonType, @ReturnReasonComment
-                )
-                ON DUPLICATE KEY UPDATE
-                    StatusAllegro = VALUES(StatusAllegro),
-                    Waybill = VALUES(Waybill),
-                    CarrierName = VALUES(CarrierName),
-                    JsonDetails = VALUES(JsonDetails),
-                    InvoiceNumber = VALUES(InvoiceNumber),
-                    ProductName = VALUES(ProductName),
-                    OfferId = VALUES(OfferId),
-                    Quantity = VALUES(Quantity),
-                    PaymentType = VALUES(PaymentType),
-                    FulfillmentStatus = VALUES(FulfillmentStatus),
-                    Delivery_FirstName = VALUES(Delivery_FirstName),
-                    Delivery_LastName = VALUES(Delivery_LastName),
-                    Delivery_Street = VALUES(Delivery_Street),
-                    Delivery_ZipCode = VALUES(Delivery_ZipCode),
-                    Delivery_City = VALUES(Delivery_City),
-                    Delivery_PhoneNumber = VALUES(Delivery_PhoneNumber),
-                    Buyer_FirstName = VALUES(Buyer_FirstName),
-                    Buyer_LastName = VALUES(Buyer_LastName),
-                    Buyer_Street = VALUES(Buyer_Street),
-                    Buyer_ZipCode = VALUES(Buyer_ZipCode),
-                    Buyer_City = VALUES(Buyer_City),
-                    Buyer_PhoneNumber = VALUES(Buyer_PhoneNumber),
-                    Invoice_CompanyName = VALUES(Invoice_CompanyName),
-                    Invoice_TaxId = VALUES(Invoice_TaxId),
-                    Invoice_Street = VALUES(Invoice_Street),
-                    Invoice_ZipCode = VALUES(Invoice_ZipCode),
-                    Invoice_City = VALUES(Invoice_City),
-                    BuyerFullName = VALUES(BuyerFullName),
-                    ReturnReasonType = VALUES(ReturnReasonType),
-                    ReturnReasonComment = VALUES(ReturnReasonComment);
-            ", connection, transaction);
-
-            command.Parameters.AddWithValue("@AllegroReturnId", ret.Id ?? string.Empty);
-            command.Parameters.AddWithValue("@AllegroAccountId", accountId);
-            command.Parameters.AddWithValue("@ReferenceNumber", ret.ReferenceNumber ?? string.Empty);
-            command.Parameters.AddWithValue("@OrderId", (object?)ret.OrderId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@BuyerLogin", (object?)ret.Buyer?.Login ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CreatedAt", (object?)ret.CreatedAt ?? DBNull.Value);
-            command.Parameters.AddWithValue("@StatusAllegro", (object?)ret.Status ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Waybill", (object?)ret.Parcels?.FirstOrDefault()?.Waybill ?? DBNull.Value);
-            command.Parameters.AddWithValue("@CarrierName", (object?)ret.Parcels?.FirstOrDefault()?.CarrierId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@JsonDetails", JsonSerializer.Serialize(ret, JsonOptions));
-            command.Parameters.AddWithValue("@StatusWewnetrznyId", defaultStatusId ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@InvoiceNumber", (object?)invoiceNumber ?? DBNull.Value);
-            var productName = returnItem?.Name ?? lineItem?.Offer?.Name;
-            command.Parameters.AddWithValue("@ProductName", (object?)productName ?? DBNull.Value);
-
-            command.Parameters.AddWithValue("@OfferId", (object?)returnItem?.OfferId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Quantity", (object?)returnItem?.Quantity ?? (object?)lineItem?.Quantity ?? DBNull.Value);
-            command.Parameters.AddWithValue("@PaymentType", (object?)orderDetails?.Payment?.Type ?? DBNull.Value);
-            command.Parameters.AddWithValue("@FulfillmentStatus", (object?)orderDetails?.Fulfillment?.Status ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Delivery_FirstName", (object?)deliveryAddress?.FirstName ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Delivery_LastName", (object?)deliveryAddress?.LastName ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Delivery_Street", (object?)deliveryAddress?.Street ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Delivery_ZipCode", (object?)deliveryAddress?.ZipCode ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Delivery_City", (object?)deliveryAddress?.City ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Delivery_PhoneNumber", (object?)deliveryAddress?.PhoneNumber ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Buyer_FirstName", (object?)orderDetails?.Buyer?.FirstName ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Buyer_LastName", (object?)orderDetails?.Buyer?.LastName ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Buyer_Street", (object?)buyerAddress?.Street ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Buyer_ZipCode", (object?)buyerAddress?.PostCode ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Buyer_City", (object?)buyerAddress?.City ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Buyer_PhoneNumber", (object?)orderDetails?.Buyer?.PhoneNumber ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Invoice_CompanyName", (object?)invoiceAddress?.Company?.Name ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Invoice_TaxId", (object?)invoiceAddress?.Company?.TaxId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Invoice_Street", (object?)invoiceAddress?.Street ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Invoice_ZipCode", (object?)invoiceAddress?.ZipCode ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Invoice_City", (object?)invoiceAddress?.City ?? DBNull.Value);
-            command.Parameters.AddWithValue("@BuyerFullName",
-                string.IsNullOrWhiteSpace(buyerFullName) ? DBNull.Value : buyerFullName);
-            command.Parameters.AddWithValue("@ReturnReasonType", (object?)returnItem?.Reason?.Type ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ReturnReasonComment", (object?)returnItem?.Reason?.UserComment ?? DBNull.Value);
-
-            await command.ExecuteNonQueryAsync();
-            processedRecords++;
-        }
-
-        await transaction.CommitAsync();
-        return processedRecords;
     }
 
     private async Task<List<AllegroAccountInfo>> GetAuthorizedAccountsAsync(int? accountId)
