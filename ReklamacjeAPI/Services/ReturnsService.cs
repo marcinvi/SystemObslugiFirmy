@@ -81,6 +81,10 @@ public class ReturnsService
                     {
                         try
                         {
+                            var returnLabel = string.IsNullOrWhiteSpace(ret.ReferenceNumber)
+                                ? ret.Id
+                                : ret.ReferenceNumber;
+                            Console.WriteLine($"[SYNC RETURN] Konto: {account.Name} (ID: {account.Id}) Zwrot: {returnLabel}");
                             AllegroApiClient.OrderDetailsDto? orderDetails = null;
                             string? invoiceNumber = null;
 
