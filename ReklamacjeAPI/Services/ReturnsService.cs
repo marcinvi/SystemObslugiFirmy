@@ -1418,9 +1418,8 @@ public class ReturnsService
 
         await InsertUnregisteredComplaintAsync(connection, returnId, request);
 
-        var przekazal = string.IsNullOrWhiteSpace(request.Przekazal) ? "System" : request.Przekazal;
-        await AddReturnActionInternalAsync(connection, returnId, przekazal,
-            "Przekazano do reklamacji (oczekuje rejestracji).");
+        await AddReturnActionInternalAsync(connection, returnId, request.Przekazal,
+            $"Przekazano do reklamacji. Zgłoszenie: {zgloszenie.NrZgloszenia} (ID {zgloszenie.Id}).");
 
         return 0;
     }
