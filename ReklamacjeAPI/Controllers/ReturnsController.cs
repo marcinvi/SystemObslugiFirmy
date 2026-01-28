@@ -380,12 +380,23 @@ public class ReturnsController : ControllerBase
     [HttpPost("{id:int}/forward-to-complaints")]
     public async Task<ActionResult<ApiResponse<object>>> ForwardToComplaints(int id, [FromBody] ForwardToComplaintRequest request)
     {
+        if (request == null)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak danych przekazania reklamacji."));
+        }
+
         if (request.ReturnId != 0 && request.ReturnId != id)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Niezgodny identyfikator zwrotu."));
         }
 
         var userId = GetUserIdFromClaims();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+        }
+
         if (!userId.HasValue)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
