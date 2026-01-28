@@ -1411,54 +1411,17 @@ public class ReturnsService
         };
     }
 
-    public async Task<int?> ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request, int userId)
+    public async Task<int?> ForwardToComplaintsAsync(int returnId, ForwardToComplaintRequest request)
     {
-        var klient = await EnsureKlientAsync(request.DaneKlienta);
-        var produkt = await EnsureProduktAsync(request.Produkt);
-
-        var zgloszenie = new Zgloszenie
-        {
-            NrZgloszenia = await GenerateZgloszenieNumberAsync(),
-            IdKlienta = klient.Id,
-            IdProduktu = produkt?.Id,
-            Usterka = request.PowodKlienta,
-            Priorytet = "Normalny",
-            PrzypisanyDo = null,
-            StatusOgolny = "Nowe",
-            Uwagi = request.UwagiHandlowca,
-            DataZgloszenia = DateTime.UtcNow,
-            DataModyfikacji = DateTime.UtcNow
-        };
-
-        _context.Zgloszenia.Add(zgloszenie);
-        await _context.SaveChangesAsync();
-
-        _context.Dzialania.Add(new Dzialanie
-        {
-            IdZgloszenia = zgloszenie.Id,
-            IdUzytkownika = userId,
-            TypDzialania = "utworzenie",
-            Opis = "Zgłoszenie utworzone z poziomu zwrotu",
-            StatusNowy = "Nowe",
-            DataDzialania = DateTime.UtcNow
-        });
-
-        await _context.SaveChangesAsync();
-
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
-        var query = "UPDATE AllegroCustomerReturns SET ZgloszenieId = @zgloszenieId WHERE Id = @id";
-        await using var updateCommand = new MySqlCommand(query, connection);
-        updateCommand.Parameters.AddWithValue("@zgloszenieId", zgloszenie.Id);
-        updateCommand.Parameters.AddWithValue("@id", returnId);
-        await updateCommand.ExecuteNonQueryAsync();
 
         await InsertUnregisteredComplaintAsync(connection, returnId, request);
 
         await AddReturnActionInternalAsync(connection, returnId, request.Przekazal,
             $"Przekazano do reklamacji. Zgłoszenie: {zgloszenie.NrZgloszenia} (ID {zgloszenie.Id}).");
 
-        return zgloszenie.Id;
+        return 0;
     }
 
     public async Task<ReturnDetailsDto?> GetReturnByCodeAsync(string code)
