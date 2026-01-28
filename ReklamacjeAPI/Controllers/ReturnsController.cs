@@ -398,7 +398,7 @@ public class ReturnsController : ControllerBase
 
         if (!userId.HasValue)
         {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
+            return BadRequest(ApiResponse<object>.ErrorResponse("Niezgodny identyfikator zwrotu."));
         }
 
         var complaintId = await _returnsService.ForwardToComplaintsAsync(id, request);

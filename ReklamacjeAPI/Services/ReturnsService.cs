@@ -1418,8 +1418,7 @@ public class ReturnsService
 
         await InsertUnregisteredComplaintAsync(connection, returnId, request);
 
-        await AddReturnActionInternalAsync(connection, returnId, request.Przekazal,
-            $"Przekazano do reklamacji. Zgłoszenie: {zgloszenie.NrZgloszenia} (ID {zgloszenie.Id}).");
+        await InsertUnregisteredComplaintAsync(connection, returnId, request);
 
         return 0;
     }
