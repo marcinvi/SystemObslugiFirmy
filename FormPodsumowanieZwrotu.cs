@@ -193,7 +193,8 @@ namespace Reklamacje_Dane
             await FinalizeReturnAsync("Zwrot zakończony zgodnie z decyzją.", null, null);
         }
 
-        private async Task FinalizeReturnAsync(string actionText, string? carrierName, string? waybill)
+        private async Task FinalizeReturnAsync(string actionText, string carrierName, string waybill)
+
         {
             var confirm = MessageBox.Show("Czy na pewno chcesz zakończyć zwrot zgodnie z decyzją?", "Potwierdzenie", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (confirm != DialogResult.Yes)
@@ -222,8 +223,9 @@ namespace Reklamacje_Dane
                 await _dbServiceMagazyn.ExecuteNonQueryAsync(
                     updateQuery,
                     new MySqlParameter("@statusId", statusZakonczonyId),
-                    new MySqlParameter("@carrierName", (object?)carrierName ?? DBNull.Value),
-                    new MySqlParameter("@waybill", (object?)waybill ?? DBNull.Value),
+                  new MySqlParameter("@carrierName", (object)carrierName ?? DBNull.Value),
+new MySqlParameter("@waybill", (object)waybill ?? DBNull.Value),
+
                     new MySqlParameter("@id", _returnDbId));
 
                 var userName = GuessCurrentUserDisplayName();
