@@ -9,4 +9,23 @@
         <item>Zakończone</item>
         <item>Oczekuje na decyzję</item>
     </string-array>
+    <string-array name="resend_carrier_options">
+        <item>DPD</item>
+        <item>InPost</item>
+        <item>DHL</item>
+        <item>FedEx</item>
+        <item>UPS</item>
+        <item>Poczta Polska / Pocztex</item>
+        <item>GLS</item>
+        <item>Geis</item>
+        <item>EronTrans</item>
+        <item>Rhenus</item>
+        <item>Raben</item>
+        <item>Ambro Express</item>
+        <item>Orlen Paczka / Paczka w Ruchu</item>
+        <item>Meest</item>
+        <item>TNT</item>
+        <item>Rohlig Suus (Rohling-Suus)</item>
+        <item>Inny</item>
+    </string-array>
 </resources>
