@@ -6,19 +6,26 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.telephony.SmsManager;
 import android.text.format.Formatter;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.google.gson.Gson;
 import com.example.ena.api.ApiConfig;
+import com.example.ena.api.ApiClient;
+import com.example.ena.api.NotificationDto;
+import com.example.ena.UserSession;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -34,10 +41,24 @@ public class BackgroundService extends Service {
     private MyWebServer server;
     private static final int SERVER_PORT = 8080;
     private static final String CHANNEL_ID = "ENA_SRV";
+    private static final String NOTIFICATIONS_CHANNEL_ID = "ENA_NOTIFICATIONS";
+    private static final long NOTIFICATION_POLL_INTERVAL_MS = 60_000;
+    private static final String PREFS_NOTIFICATIONS = "ena_notifications";
+    private static final String PREF_LAST_NOTIFICATION_ID = "last_notification_id";
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable notificationsPoller = new Runnable() {
+        @Override
+        public void run() {
+            pollNotifications();
+            handler.postDelayed(this, NOTIFICATION_POLL_INTERVAL_MS);
+        }
+    };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForegroundNotification();
+        startNotificationsPolling();
 
         try {
             if (server == null) {
@@ -59,6 +80,10 @@ public class BackgroundService extends Service {
                 NotificationChannel channel = new NotificationChannel(
                         CHANNEL_ID, "Ena Server Background Service", NotificationManager.IMPORTANCE_LOW);
                 manager.createNotificationChannel(channel);
+
+                NotificationChannel notificationsChannel = new NotificationChannel(
+                        NOTIFICATIONS_CHANNEL_ID, "Powiadomienia zwrotów", NotificationManager.IMPORTANCE_DEFAULT);
+                manager.createNotificationChannel(notificationsChannel);
             }
         }
 
@@ -89,6 +114,7 @@ public class BackgroundService extends Service {
 
     @Override
     public void onDestroy() {
+        stopNotificationsPolling();
         if (server != null) {
             server.stop();
             Log.d("EnaServer", "Serwer został zatrzymany.");
@@ -99,6 +125,94 @@ public class BackgroundService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    private void startNotificationsPolling() {
+        handler.removeCallbacks(notificationsPoller);
+        handler.postDelayed(notificationsPoller, 5_000);
+    }
+
+    private void stopNotificationsPolling() {
+        handler.removeCallbacks(notificationsPoller);
+    }
+
+    private void pollNotifications() {
+        if (!UserSession.isLoggedIn(this) && !PairingManager.isPaired(this)) {
+            return;
+        }
+
+        ApiClient client = new ApiClient(this);
+        client.fetchNotifications(true, new ApiClient.ApiCallback<List<NotificationDto>>() {
+            @Override
+            public void onSuccess(List<NotificationDto> data) {
+                if (data == null || data.isEmpty()) {
+                    return;
+                }
+                int lastId = getLastNotificationId();
+                for (NotificationDto notification : data) {
+                    if (notification == null) {
+                        continue;
+                    }
+                    int notificationId = notification.getId();
+                    if (notificationId <= lastId) {
+                        continue;
+                    }
+                    showNotification(notification);
+                    updateLastNotificationId(notificationId);
+                    client.markNotificationRead(notificationId, new ApiClient.ApiCallback<Void>() {
+                        @Override
+                        public void onSuccess(Void ignored) { }
+
+                        @Override
+                        public void onError(String message) {
+                            Log.w("EnaNotifications", "Błąd oznaczania powiadomienia: " + message);
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                Log.w("EnaNotifications", "Błąd pobierania powiadomień: " + message);
+            }
+        });
+    }
+
+    private void showNotification(NotificationDto notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && NotificationManagerCompat.from(this).areNotificationsEnabled() == false) {
+            return;
+        }
+        String title = notification.getTytul();
+        if (title == null || title.trim().isEmpty()) {
+            title = "Nowe powiadomienie";
+        }
+        String content = notification.getTresc();
+        if (content == null || content.trim().isEmpty()) {
+            content = "Masz nowe powiadomienie.";
+        }
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATIONS_CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(title)
+                .setContentText(content)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(content))
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        NotificationManagerCompat.from(this).notify(notification.getId(), builder.build());
+    }
+
+    private int getLastNotificationId() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NOTIFICATIONS, MODE_PRIVATE);
+        return prefs.getInt(PREF_LAST_NOTIFICATION_ID, 0);
+    }
+
+    private void updateLastNotificationId(int id) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NOTIFICATIONS, MODE_PRIVATE);
+        int current = prefs.getInt(PREF_LAST_NOTIFICATION_ID, 0);
+        if (id > current) {
+            prefs.edit().putInt(PREF_LAST_NOTIFICATION_ID, id).apply();
+        }
     }
 
     // --- LOGIKA SERWERA HTTP ---

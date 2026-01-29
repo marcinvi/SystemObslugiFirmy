@@ -430,6 +430,16 @@ public class ApiClient {
         get("api/messages", type, callback);
     }
 
+    public void fetchNotifications(boolean onlyUnread, ApiCallback<List<NotificationDto>> callback) {
+        Type type = new TypeToken<ApiResponse<List<NotificationDto>>>(){}.getType();
+        String path = "api/notifications" + (onlyUnread ? "?onlyUnread=true" : "");
+        get(path, type, callback);
+    }
+
+    public void markNotificationRead(int id, ApiCallback<Void> callback) {
+        sendJson("api/notifications/" + id + "/mark-read", new Object(), "POST", callback);
+    }
+
     public void fetchStatuses(String typeValue, ApiCallback<List<StatusDto>> callback) {
         Type type = new TypeToken<ApiResponse<List<StatusDto>>>(){}.getType();
         String encoded = typeValue == null ? "" : URLEncoder.encode(typeValue, StandardCharsets.UTF_8);
