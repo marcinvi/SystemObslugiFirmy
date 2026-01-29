@@ -93,6 +93,83 @@ public class ReturnsController : ControllerBase
         return Ok(ApiResponse<ReturnDetailsDto>.SuccessResponse(data));
     }
 
+    [HttpGet("{id:int}/photos")]
+    public async Task<ActionResult<ApiResponse<List<ReturnPhotoDto>>>> GetReturnPhotos(int id)
+    {
+        var photos = await _returnsService.GetReturnPhotosAsync(id);
+        return Ok(ApiResponse<List<ReturnPhotoDto>>.SuccessResponse(photos));
+    }
+
+    [HttpPost("{id:int}/photos")]
+    public async Task<ActionResult<ApiResponse<ReturnPhotoDto>>> UploadReturnPhoto(int id, [FromForm] IFormFile file)
+    {
+        if (file == null)
+        {
+            return BadRequest(ApiResponse<ReturnPhotoDto>.ErrorResponse("Brak pliku do wysłania."));
+        }
+
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var photo = await _returnsService.UploadReturnPhotoAsync(id, file, userId, userDisplayName);
+        if (photo == null)
+        {
+            return NotFound(ApiResponse<ReturnPhotoDto>.ErrorResponse("Nie znaleziono zwrotu."));
+        }
+
+        return Ok(ApiResponse<ReturnPhotoDto>.SuccessResponse(photo));
+    }
+
+    [HttpGet("photos/{photoId:int}")]
+    public async Task<IActionResult> DownloadReturnPhoto(int photoId)
+    {
+        var photo = await _returnsService.GetReturnPhotoAsync(photoId);
+        if (photo == null)
+        {
+            return NotFound(ApiResponse<object>.ErrorResponse("Nie znaleziono zdjęcia."));
+        }
+
+        if (!System.IO.File.Exists(photo.FilePath))
+        {
+            return NotFound(ApiResponse<object>.ErrorResponse("Plik nie istnieje na dysku."));
+        }
+
+        return PhysicalFile(photo.FilePath, photo.ContentType ?? "application/octet-stream", photo.FileName);
+    }
+
+    [HttpDelete("photos/{photoId:int}")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteReturnPhoto(int photoId)
+    {
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var deleted = await _returnsService.DeleteReturnPhotoAsync(photoId, userDisplayName);
+        if (!deleted)
+        {
+            return NotFound(ApiResponse<object>.ErrorResponse("Nie znaleziono zdjęcia."));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { id = photoId }));
+    }
+
     [HttpGet("lookup")]
     public async Task<ActionResult<ApiResponse<ReturnDetailsDto>>> GetReturnByCode([FromQuery] string code)
     {

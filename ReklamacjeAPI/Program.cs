@@ -80,6 +80,7 @@ builder.Services.AddScoped<AllegroCredentialsService>();
 builder.Services.AddScoped<ModulesService>();    // <--- TEGO BRAKUJE dla modułów
 builder.Services.AddScoped<MessagesService>();   // <--- To będzie potrzebne dla Wiadomości
 builder.Services.AddScoped<FileService>();
+builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection("FileStorage"));
 
 var masterKeySecret = builder.Configuration["Security:MasterKeySecret"];
 if (string.IsNullOrWhiteSpace(masterKeySecret))

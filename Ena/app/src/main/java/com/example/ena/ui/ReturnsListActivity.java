@@ -63,6 +63,7 @@ public class ReturnsListActivity extends AppCompatActivity {
     private ImageButton btnRefresh;
     private ImageButton btnSync;
     private FloatingActionButton btnScanCode;
+    private FloatingActionButton btnManualReturn;
     private View loadingOverlay;
     private TextView txtLoadingMessage;
     private View filtersDecisionRow;
@@ -105,6 +106,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnRefresh = findViewById(R.id.btnRefresh);
         btnSync = findViewById(R.id.btnSync);
         btnScanCode = findViewById(R.id.btnScanCode);
+        btnManualReturn = findViewById(R.id.btnManualReturn);
         loadingOverlay = findViewById(R.id.loadingOverlay);
         txtLoadingMessage = findViewById(R.id.txtLoadingMessage);
         filtersDecisionRow = findViewById(R.id.filtersDecisionRow);
@@ -137,10 +139,24 @@ public class ReturnsListActivity extends AppCompatActivity {
         setupSearch();
         btnRefresh.setOnClickListener(v -> loadReturns());
         btnScanCode.setOnClickListener(v -> startCodeScan());
+        if (btnManualReturn != null) {
+            btnManualReturn.setOnClickListener(v -> openManualReturnForm(null));
+        }
         if ("sales".equals(mode)) {
             btnSync.setVisibility(View.GONE);
-        } else {
+            if (btnManualReturn != null) {
+                btnManualReturn.setVisibility(View.GONE);
+            }
+        } else if ("warehouse".equals(mode)) {
             btnSync.setOnClickListener(v -> syncReturns());
+            if (btnManualReturn != null) {
+                btnManualReturn.setVisibility(View.VISIBLE);
+            }
+        } else {
+            btnSync.setVisibility(View.GONE);
+            if (btnManualReturn != null) {
+                btnManualReturn.setVisibility(View.GONE);
+            }
         }
 
         loadReturns();
@@ -171,42 +187,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             setupWarehouseFilters();
             return;
         }
-        spinnerStatusAllegro.setVisibility(View.GONE);
-
-        btnFilterOczekujace.setOnClickListener(v -> {
-            currentStatusWewnetrzny = null;
-            currentStatusAllegro = "DELIVERED";
-            setActiveFilter(btnFilterOczekujace);
-            loadReturns();
-        });
-        btnFilterNaDecyzje.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
-            currentStatusAllegro = null;
-            setActiveFilter(btnFilterNaDecyzje);
-            loadReturns();
-        });
-        btnFilterPoDecyzji.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Oczekuje na realizację";
-            currentStatusAllegro = null;
-            setActiveFilter(btnFilterPoDecyzji);
-            loadReturns();
-        });
-        btnFilterWDrodze.setOnClickListener(v -> {
-            currentStatusWewnetrzny = null;
-            currentStatusAllegro = "IN_TRANSIT";
-            setActiveFilter(btnFilterWDrodze);
-            loadReturns();
-        });
-        btnFilterWszystkie.setOnClickListener(v -> {
-            currentStatusWewnetrzny = null;
-            currentStatusAllegro = null;
-            setActiveFilter(btnFilterWszystkie);
-            loadReturns();
-        });
-
-        setActiveFilter(btnFilterPoDecyzji);
-        currentStatusWewnetrzny = "Oczekuje na realizację";
-        currentStatusAllegro = null;
+        setupSummaryFilters();
     }
 
     // ✅ ZAKTUALIZOWANA METODA - 3 ZAKŁADKI DLA HANDLOWCA
@@ -290,6 +271,47 @@ public class ReturnsListActivity extends AppCompatActivity {
 
         setActiveFilter(btnFilterWszystkie);
         currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_NA_PRZYJECIE;
+        currentStatusAllegro = null;
+    }
+
+    private void setupSummaryFilters() {
+        spinnerStatusAllegro.setVisibility(View.GONE);
+        btnFilterOczekujace.setVisibility(View.GONE);
+        btnFilterWDrodze.setVisibility(View.GONE);
+        btnFilterWszystkie.setVisibility(View.GONE);
+        if (filtersDecisionRow != null) {
+            filtersDecisionRow.setVisibility(View.VISIBLE);
+        }
+
+        btnFilterNaDecyzje.setText("Czekają na decyzję");
+        btnFilterNaDecyzje.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterNaDecyzje);
+            loadReturns();
+        });
+
+        if (btnFilterWTrakcie != null) {
+            btnFilterWTrakcie.setVisibility(View.VISIBLE);
+            btnFilterWTrakcie.setText("Po decyzji");
+            btnFilterWTrakcie.setOnClickListener(v -> {
+                currentStatusWewnetrzny = "Po decyzji";
+                currentStatusAllegro = null;
+                setActiveFilter(btnFilterWTrakcie);
+                loadReturns();
+            });
+        }
+
+        btnFilterPoDecyzji.setText("Zakończone");
+        btnFilterPoDecyzji.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Zakończony";
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterPoDecyzji);
+            loadReturns();
+        });
+
+        setActiveFilter(btnFilterWTrakcie != null ? btnFilterWTrakcie : btnFilterNaDecyzje);
+        currentStatusWewnetrzny = "Po decyzji";
         currentStatusAllegro = null;
     }
 
@@ -599,9 +621,11 @@ public class ReturnsListActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void openManualReturnForm(String waybill) {
+    private void openManualReturnForm(@Nullable String waybill) {
         Intent intent = new Intent(this, ManualReturnActivity.class);
-        intent.putExtra(ManualReturnActivity.EXTRA_WAYBILL, waybill);
+        if (waybill != null && !waybill.trim().isEmpty()) {
+            intent.putExtra(ManualReturnActivity.EXTRA_WAYBILL, waybill);
+        }
         startActivity(intent);
     }
 

@@ -215,6 +215,18 @@ public class ReturnActionCreateRequest
     public string Tresc { get; set; } = string.Empty;
 }
 
+public class ReturnPhotoDto
+{
+    public int Id { get; set; }
+    public int ReturnId { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string? ContentType { get; set; }
+    public long? Size { get; set; }
+    public DateTime AddedAt { get; set; }
+    public string? AddedByName { get; set; }
+    public string Url { get; set; } = string.Empty;
+}
+
 public class MessageDto
 {
     public int Id { get; set; }
