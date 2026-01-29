@@ -309,6 +309,47 @@ public class ReturnsListActivity extends AppCompatActivity {
         currentStatusAllegro = null;
     }
 
+    private void setupSummaryFilters() {
+        spinnerStatusAllegro.setVisibility(View.GONE);
+        btnFilterOczekujace.setVisibility(View.GONE);
+        btnFilterWDrodze.setVisibility(View.GONE);
+        btnFilterWszystkie.setVisibility(View.GONE);
+        if (filtersDecisionRow != null) {
+            filtersDecisionRow.setVisibility(View.VISIBLE);
+        }
+
+        btnFilterNaDecyzje.setText("Czekają na decyzję");
+        btnFilterNaDecyzje.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterNaDecyzje);
+            loadReturns();
+        });
+
+        if (btnFilterWTrakcie != null) {
+            btnFilterWTrakcie.setVisibility(View.VISIBLE);
+            btnFilterWTrakcie.setText("Po decyzji");
+            btnFilterWTrakcie.setOnClickListener(v -> {
+                currentStatusWewnetrzny = "Po decyzji";
+                currentStatusAllegro = null;
+                setActiveFilter(btnFilterWTrakcie);
+                loadReturns();
+            });
+        }
+
+        btnFilterPoDecyzji.setText("Zakończone");
+        btnFilterPoDecyzji.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Zakończony";
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterPoDecyzji);
+            loadReturns();
+        });
+
+        setActiveFilter(btnFilterWTrakcie != null ? btnFilterWTrakcie : btnFilterNaDecyzje);
+        currentStatusWewnetrzny = "Po decyzji";
+        currentStatusAllegro = null;
+    }
+
     private void setupSearch() {
         editSearch.addTextChangedListener(new TextWatcher() {
             @Override
