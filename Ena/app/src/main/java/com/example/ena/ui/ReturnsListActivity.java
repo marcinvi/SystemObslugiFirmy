@@ -187,7 +187,42 @@ public class ReturnsListActivity extends AppCompatActivity {
             setupWarehouseFilters();
             return;
         }
-        setupSummaryFilters();
+        spinnerStatusAllegro.setVisibility(View.GONE);
+
+        btnFilterOczekujace.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = "DELIVERED";
+            setActiveFilter(btnFilterOczekujace);
+            loadReturns();
+        });
+        btnFilterNaDecyzje.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterNaDecyzje);
+            loadReturns();
+        });
+        btnFilterPoDecyzji.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Po decyzji";
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterPoDecyzji);
+            loadReturns();
+        });
+        btnFilterWDrodze.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = "IN_TRANSIT";
+            setActiveFilter(btnFilterWDrodze);
+            loadReturns();
+        });
+        btnFilterWszystkie.setOnClickListener(v -> {
+            currentStatusWewnetrzny = null;
+            currentStatusAllegro = null;
+            setActiveFilter(btnFilterWszystkie);
+            loadReturns();
+        });
+
+        setActiveFilter(btnFilterPoDecyzji);
+        currentStatusWewnetrzny = "Po decyzji";
+        currentStatusAllegro = null;
     }
 
     // ✅ ZAKTUALIZOWANA METODA - 3 ZAKŁADKI DLA HANDLOWCA
