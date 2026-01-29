@@ -76,13 +76,9 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private View cardClient;
     private View cardWarehouse;
     private View cardDecision;
-    private View sectionPhotos;
     private View sectionJournal;
     private View decisionStrip;
     private View decisionContainer;
-    private RecyclerView listReturnPhotos;
-
-    private ActivityResultLauncher<String> photoPicker;
 
     private enum DecisionType {
         NONE,
@@ -145,11 +141,9 @@ public class ReturnDetailActivity extends AppCompatActivity {
         cardClient = findViewById(R.id.cardClient);
         cardWarehouse = findViewById(R.id.cardWarehouse);
         cardDecision = findViewById(R.id.cardDecision);
-        sectionPhotos = findViewById(R.id.sectionPhotos);
         sectionJournal = findViewById(R.id.sectionJournal);
         decisionStrip = findViewById(R.id.decisionStrip);
         decisionContainer = findViewById(R.id.decisionContainer);
-        listReturnPhotos = findViewById(R.id.listReturnPhotos);
 
         RecyclerView listActions = findViewById(R.id.listWarehouseActions);
         listActions.setLayoutManager(new LinearLayoutManager(this));
@@ -757,7 +751,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
             addIfPresent(container, cardShipment);
             addIfPresent(container, cardClient);
             addIfPresent(container, cardWarehouse);
-            addIfPresent(container, sectionPhotos);
         } else if (isAfter) {
             addIfPresent(container, cardProduct);
             addIfPresent(container, cardDecision);
@@ -765,13 +758,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
             addIfPresent(container, cardShipment);
             addIfPresent(container, cardClient);
             addIfPresent(container, cardWarehouse);
-            addIfPresent(container, sectionPhotos);
         } else {
             addIfPresent(container, cardProduct);
             addIfPresent(container, cardShipment);
             addIfPresent(container, cardClient);
             addIfPresent(container, cardWarehouse);
-            addIfPresent(container, sectionPhotos);
             addIfPresent(container, sectionJournal);
         }
 
