@@ -19,6 +19,7 @@ public class ReturnsService
     private readonly ApplicationDbContext _context;
     private readonly AllegroApiClient _allegroApiClient;
     private readonly ReturnSyncProgressService _progressService;
+    private readonly NotificationsService _notificationsService;
     private readonly ILogger<ReturnsService> _logger;
     private string? _uwagiMagazynuColumn;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -31,12 +32,14 @@ public class ReturnsService
         ApplicationDbContext context,
         AllegroApiClient allegroApiClient,
         ReturnSyncProgressService progressService,
+        NotificationsService notificationsService,
         ILogger<ReturnsService> logger)
     {
         _configuration = configuration;
         _context = context;
         _allegroApiClient = allegroApiClient;
         _progressService = progressService;
+        _notificationsService = notificationsService;
         _logger = logger;
     }
 
@@ -576,11 +579,18 @@ public class ReturnsService
                 IFNULL(s1.Nazwa, 'Nieprzypisany') AS StanProduktuName,
                 IFNULL(s2.Nazwa, 'Nieprzypisany') AS StatusWewnetrzny,
                 IFNULL(s3.Nazwa, 'Nieprzypisany') AS DecyzjaHandlowca,
-                acr.{uwagiColumn} AS UwagiMagazynuResolved
+                acr.{uwagiColumn} AS UwagiMagazynuResolved,
+                COALESCE(acr.HandlowiecOpiekunId, aao.OpiekunId) AS AssignedSalesId,
+                uo.`Nazwa Wyświetlana` AS AssignedSalesName
             FROM AllegroCustomerReturns acr
             LEFT JOIN Statusy s1 ON acr.StanProduktuId = s1.Id
             LEFT JOIN Statusy s2 ON acr.StatusWewnetrznyId = s2.Id
             LEFT JOIN Statusy s3 ON acr.DecyzjaHandlowcaId = s3.Id
+            LEFT JOIN AllegroAccountOpiekun aao
+                ON aao.AllegroAccountId = acr.AllegroAccountId
+                AND (aao.CzyAktywny = 1 OR aao.CzyAktywny IS NULL)
+            LEFT JOIN Uzytkownicy uo
+                ON uo.Id = COALESCE(acr.HandlowiecOpiekunId, aao.OpiekunId)
             WHERE acr.Id = @id
             LIMIT 1";
 
@@ -667,7 +677,9 @@ public class ReturnsService
             DataDecyzji = reader["DataDecyzji"] as DateTime?,
             IsManual = GetOptionalBool(reader, "IsManual"),
             AllegroReturnId = reader["AllegroReturnId"] as string,
-            OrderId = reader["OrderId"] as string
+            OrderId = reader["OrderId"] as string,
+            AssignedSalesId = GetNullableInt(reader, "AssignedSalesId"),
+            AssignedSalesName = reader["AssignedSalesName"] as string
         };
     }
 
@@ -718,7 +730,7 @@ public class ReturnsService
         return updated;
     }
 
-    public async Task<ReturnDecisionResponse?> SaveDecisionAsync(int id, ReturnDecisionRequest request, string userDisplayName)
+    public async Task<ReturnDecisionResponse?> SaveDecisionAsync(int id, int userId, ReturnDecisionRequest request, string userDisplayName)
     {
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
@@ -767,7 +779,7 @@ public class ReturnsService
         }
 
         const string fetchQuery = @"
-            SELECT s2.Nazwa AS StatusWewnetrzny, s3.Nazwa AS DecyzjaHandlowca
+            SELECT acr.ReferenceNumber, s2.Nazwa AS StatusWewnetrzny, s3.Nazwa AS DecyzjaHandlowca
             FROM AllegroCustomerReturns acr
             LEFT JOIN Statusy s2 ON acr.StatusWewnetrznyId = s2.Id
             LEFT JOIN Statusy s3 ON acr.DecyzjaHandlowcaId = s3.Id
@@ -777,6 +789,7 @@ public class ReturnsService
         fetchCommand.Parameters.AddWithValue("@id", id);
         string statusWewnetrzny;
         string decyzjaHandlowca;
+        string referenceNumber;
 
         await using (var reader = await fetchCommand.ExecuteReaderAsync())
         {
@@ -785,12 +798,18 @@ public class ReturnsService
                 return null;
             }
 
+            referenceNumber = reader["ReferenceNumber"]?.ToString() ?? $"ZWROT-{id}";
             statusWewnetrzny = reader["StatusWewnetrzny"]?.ToString() ?? string.Empty;
             decyzjaHandlowca = reader["DecyzjaHandlowca"]?.ToString() ?? string.Empty;
         }
 
         await AddReturnActionInternalAsync(connection, id, userDisplayName,
             $"Podjęto decyzję: {decyzjaHandlowca}. Komentarz: {request.Komentarz}");
+
+        if (userId > 0)
+        {
+            await _notificationsService.NotifyMagazynDecisionMadeAsync(id, referenceNumber, decyzjaHandlowca, userId);
+        }
 
         return new ReturnDecisionResponse
         {
@@ -858,7 +877,7 @@ public class ReturnsService
         return results;
     }
 
-    public async Task<ReturnActionDto?> AddActionAsync(int returnId, string userDisplayName, ReturnActionCreateRequest request)
+    public async Task<ReturnActionDto?> AddActionAsync(int returnId, int userId, string userDisplayName, ReturnActionCreateRequest request)
     {
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
@@ -871,6 +890,13 @@ public class ReturnsService
         if (!actionId.HasValue)
         {
             return null;
+        }
+
+        if (userId > 0)
+        {
+            var referenceNumber = await GetReturnReferenceNumberAsync(connection, returnId)
+                ?? $"ZWROT-{returnId}";
+            await _notificationsService.NotifyJournalEntryAsync(returnId, referenceNumber, userId, request.Tresc);
         }
 
         return new ReturnActionDto
@@ -1816,6 +1842,15 @@ public class ReturnsService
         command.Parameters.AddWithValue("@id", returnId);
         var result = await command.ExecuteScalarAsync();
         return result != null;
+    }
+
+    private static async Task<string?> GetReturnReferenceNumberAsync(MySqlConnection connection, int returnId)
+    {
+        const string query = "SELECT ReferenceNumber FROM AllegroCustomerReturns WHERE Id = @id LIMIT 1";
+        await using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@id", returnId);
+        var result = await command.ExecuteScalarAsync();
+        return result?.ToString();
     }
 
     private async Task AddMagazynDziennikAsync(MySqlConnection connection, int? returnId, string userDisplayName, string action, MySqlTransaction? transaction)

@@ -12,6 +12,7 @@ namespace Reklamacje_Dane
         private readonly DatabaseService _dbServiceMagazyn;
         private readonly DatabaseService _dbServiceBaza;
         private DataRow _dbDataRow;
+        private string _currentDecision = string.Empty;
 
         public FormPodsumowanieZwrotu(int returnDbId)
         {
@@ -91,48 +92,161 @@ namespace Reklamacje_Dane
             }
             lblDecyzjaHandlowca.Text = decyzja;
             lblKomentarzHandlowca.Text = _dbDataRow["KomentarzHandlowca"]?.ToString();
+            _currentDecision = decyzja;
 
-            // Pokaż odpowiedni przycisk finalizujący
-            if (decyzja == "Przekaż do reklamacji")
+            await ConfigureDecisionActionsAsync(decyzja);
+        }
+
+        private async Task ConfigureDecisionActionsAsync(string decyzja)
+        {
+            panelPonownaWysylka.Visible = false;
+            btnPrzekazanoDoReklamacji.Visible = false;
+            btnNaPolke.Visible = false;
+            btnArchiwizuj.Visible = false;
+            btnZatwierdzPonowna.Visible = false;
+
+            if (string.IsNullOrWhiteSpace(decyzja))
+            {
+                return;
+            }
+
+            if (IsDecisionPonownaWysylka(decyzja))
+            {
+                panelPonownaWysylka.Visible = true;
+                btnZatwierdzPonowna.Visible = true;
+                dtpPonownaData.Value = DateTime.Today;
+                await LoadCarrierOptionsAsync();
+                return;
+            }
+
+            if (IsDecisionReklamacje(decyzja))
             {
                 btnPrzekazanoDoReklamacji.Visible = true;
-                btnArchiwizuj.Visible = false;
+                return;
             }
-            else
+
+            if (IsDecisionNaPolke(decyzja))
             {
-                btnPrzekazanoDoReklamacji.Visible = false;
-                btnArchiwizuj.Visible = true;
+                btnNaPolke.Visible = true;
+                return;
             }
+
+            btnArchiwizuj.Visible = true;
+        }
+
+        private async Task LoadCarrierOptionsAsync()
+        {
+            try
+            {
+                var dt = await _dbServiceMagazyn.GetDataTableAsync(@"
+                    SELECT DISTINCT CarrierName
+                    FROM AllegroCustomerReturns
+                    WHERE CarrierName IS NOT NULL AND CarrierName <> ''
+                    ORDER BY CarrierName");
+
+                comboCarrier.Items.Clear();
+                foreach (DataRow row in dt.Rows)
+                {
+                    comboCarrier.Items.Add(row["CarrierName"].ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd wczytywania przewoźników: {ex.Message}");
+            }
+        }
+
+        private async void btnZatwierdzPonowna_Click(object sender, EventArgs e)
+        {
+            var przewoznik = comboCarrier.Text?.Trim();
+            var numerListu = txtNumerListu.Text?.Trim();
+            var dataWysylki = dtpPonownaData.Value.Date;
+
+            if (string.IsNullOrWhiteSpace(przewoznik))
+            {
+                MessageBox.Show("Wybierz przewoźnika.", "Uwaga", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(numerListu))
+            {
+                MessageBox.Show("Podaj numer listu przewozowego.", "Uwaga", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var actionText = $"Ponowna wysyłka: data {dataWysylki:dd.MM.yyyy}, przewoźnik {przewoznik}, list {numerListu}.";
+            await FinalizeReturnAsync(actionText, przewoznik, numerListu);
+        }
+
+        private async void btnPrzekazanoDoReklamacji_Click(object sender, EventArgs e)
+        {
+            await FinalizeReturnAsync("Przekazano fizycznie na reklamacje.", null, null);
+        }
+
+        private async void btnNaPolke_Click(object sender, EventArgs e)
+        {
+            await FinalizeReturnAsync("Odłożone na stan magazynowy.", null, null);
         }
 
         private async void btnArchiwizuj_Click(object sender, EventArgs e)
         {
-            var confirm = MessageBox.Show("Czy na pewno chcesz zarchiwizować ten zwrot? Zniknie on z aktywnej listy.", "Potwierdzenie", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (confirm == DialogResult.Yes)
+            await FinalizeReturnAsync("Zwrot zakończony zgodnie z decyzją.", null, null);
+        }
+
+        private async Task FinalizeReturnAsync(string actionText, string? carrierName, string? waybill)
+        {
+            var confirm = MessageBox.Show("Czy na pewno chcesz zakończyć zwrot zgodnie z decyzją?", "Potwierdzenie", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (confirm != DialogResult.Yes)
             {
-                try
-                {
-                    // Zmieniamy status na archiwalny (musisz dodać taki status do tabeli Statusy)
-                    var statusArchiwalnyId = await _dbServiceMagazyn.ExecuteScalarAsync("SELECT Id FROM Statusy WHERE Nazwa = 'Archiwalny'");
-                    if (statusArchiwalnyId == null)
-                    {
-                        MessageBox.Show("Brak statusu 'Archiwalny' w bazie danych. Skonfiguruj go w ustawieniach.", "Błąd Konfiguracji", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
+                return;
+            }
 
-                    await _dbServiceMagazyn.ExecuteNonQueryAsync(
-                        "UPDATE AllegroCustomerReturns SET StatusWewnetrznyId = @statusId WHERE Id = @id",
-                        new MySqlParameter("@statusId", statusArchiwalnyId),
-                        new MySqlParameter("@id", _returnDbId));
+            try
+            {
+                var statusZakonczonyId = await _dbServiceMagazyn.ExecuteScalarAsync(
+                    "SELECT Id FROM Statusy WHERE Nazwa = 'Zakończony' AND TypStatusu = 'StatusWewnetrzny' LIMIT 1");
 
-                    ToastManager.ShowToast("Sukces", "Zwrot został zarchiwizowany.", NotificationType.Success);
-                    this.DialogResult = DialogResult.OK;
-                    this.Close();
-                }
-                catch (Exception ex)
+                if (statusZakonczonyId == null)
                 {
-                    MessageBox.Show("Błąd podczas archiwizacji: " + ex.Message, "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Brak statusu 'Zakończony' w bazie danych. Skonfiguruj go w ustawieniach.", "Błąd Konfiguracji", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
                 }
+
+                var updateQuery = @"
+                    UPDATE AllegroCustomerReturns
+                    SET StatusWewnetrznyId = @statusId,
+                        CarrierName = COALESCE(@carrierName, CarrierName),
+                        Waybill = COALESCE(@waybill, Waybill)
+                    WHERE Id = @id";
+
+                await _dbServiceMagazyn.ExecuteNonQueryAsync(
+                    updateQuery,
+                    new MySqlParameter("@statusId", statusZakonczonyId),
+                    new MySqlParameter("@carrierName", (object?)carrierName ?? DBNull.Value),
+                    new MySqlParameter("@waybill", (object?)waybill ?? DBNull.Value),
+                    new MySqlParameter("@id", _returnDbId));
+
+                var userName = GuessCurrentUserDisplayName();
+                await _dbServiceMagazyn.ExecuteNonQueryAsync(
+                    "INSERT INTO ZwrotDzialania (ZwrotId, Data, Uzytkownik, Tresc) VALUES (@id, NOW(), @user, @tresc)",
+                    new MySqlParameter("@id", _returnDbId),
+                    new MySqlParameter("@user", userName),
+                    new MySqlParameter("@tresc", actionText));
+
+                await _dbServiceMagazyn.ExecuteNonQueryAsync(
+                    "INSERT INTO MagazynDziennik (Data, Uzytkownik, Akcja, DotyczyZwrotuId) VALUES (@data, @user, @akcja, @id)",
+                    new MySqlParameter("@data", DateTime.Now),
+                    new MySqlParameter("@user", userName),
+                    new MySqlParameter("@akcja", actionText),
+                    new MySqlParameter("@id", _returnDbId));
+
+                ToastManager.ShowToast("Sukces", "Zwrot został zakończony.", NotificationType.Success);
+                DialogResult = DialogResult.OK;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Błąd podczas kończenia zwrotu: " + ex.Message, "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -155,6 +269,35 @@ namespace Reklamacje_Dane
             }
 
             return "Brak";
+        }
+
+        private static bool IsDecisionPonownaWysylka(string decyzja)
+            => decyzja.Equals("Ponowna wysyłka", StringComparison.OrdinalIgnoreCase)
+               || decyzja.IndexOf("ponown", StringComparison.OrdinalIgnoreCase) >= 0
+               || decyzja.IndexOf("wysył", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static bool IsDecisionReklamacje(string decyzja)
+            => decyzja.Equals("Na dział Reklamacji", StringComparison.OrdinalIgnoreCase)
+               || decyzja.Equals("Przekaż do reklamacji", StringComparison.OrdinalIgnoreCase)
+               || decyzja.IndexOf("reklam", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static bool IsDecisionNaPolke(string decyzja)
+            => decyzja.Equals("Na półkę", StringComparison.OrdinalIgnoreCase)
+               || decyzja.IndexOf("półk", StringComparison.OrdinalIgnoreCase) >= 0
+               || decyzja.IndexOf("polk", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static string GuessCurrentUserDisplayName()
+        {
+            try
+            {
+                var env = Environment.UserName;
+                if (!string.IsNullOrWhiteSpace(env)) return env;
+            }
+            catch
+            {
+            }
+
+            return "Magazyn";
         }
     
         /// <summary>
