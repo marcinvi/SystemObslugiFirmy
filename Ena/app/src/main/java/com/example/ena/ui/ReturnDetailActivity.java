@@ -63,6 +63,8 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private EditText editWarehouseAction;
     private Button btnWarehouseAddAction;
     private ProgressBar progressBar;
+    private RecyclerView listReturnPhotos;
+    private ActivityResultLauncher<String> photoPicker;
     private int returnId;
     private ReturnDetailsDto details;
     private final List<StatusDto> stanProduktuStatuses = new ArrayList<>();
@@ -132,6 +134,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
         photoPicker = registerForActivityResult(new ActivityResultContracts.GetContent(), this::handlePhotoPicked);
         btnAddResendInfo = findViewById(R.id.btnAddResendInfo);
         btnAddReturnPhoto = findViewById(R.id.btnAddReturnPhoto);
+        listReturnPhotos = findViewById(R.id.listReturnPhotos);
         editWarehouseAction = findViewById(R.id.editWarehouseAction);
         btnWarehouseAddAction = findViewById(R.id.btnWarehouseAddAction);
         progressBar = findViewById(R.id.progressDetail);
