@@ -35,8 +35,8 @@ public class NotificationsService
                 u1.`Nazwa Wyświetlana` AS NadawcaNazwa,
                 u2.`Nazwa Wyświetlana` AS OdbiorcaNazwa
             FROM Wiadomosci w
-            LEFT JOIN magazyn.Uzytkownicy u1 ON w.NadawcaId = u1.Id
-            LEFT JOIN magazyn.Uzytkownicy u2 ON w.OdbiorcaId = u2.Id
+            LEFT JOIN uzytkownicy u1 ON w.NadawcaId = u1.Id
+            LEFT JOIN uzytkownicy u2 ON w.OdbiorcaId = u2.Id
             WHERE w.OdbiorcaId = @userId";
 
         if (onlyUnread.HasValue && onlyUnread.Value)
@@ -172,7 +172,7 @@ public class NotificationsService
         // Pobierz wszystkich użytkowników Magazyn
         var magazyniersQuery = @"
             SELECT Id 
-            FROM magazyn.Uzytkownicy 
+            FROM uzytkownicy 
             WHERE Rola = 'Magazyn'";
 
         var magazynierIds = new List<int>();
@@ -221,8 +221,8 @@ public class NotificationsService
         // Pobierz opiekuna zwrotu i wszystkich magazynierów
         var recipientsQuery = @"
             SELECT DISTINCT u.Id, u.Rola
-            FROM magazyn.Uzytkownicy u
-            LEFT JOIN magazyn.AllegroCustomerReturns acr ON acr.HandlowiecOpiekunId = u.Id
+            FROM uzytkownicy u
+            LEFT JOIN AllegroCustomerReturns acr ON acr.HandlowiecOpiekunId = u.Id
             WHERE (acr.Id = @returnId AND u.Rola = 'Handlowiec')
                OR u.Rola = 'Magazyn'";
 
