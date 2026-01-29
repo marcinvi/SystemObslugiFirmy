@@ -1501,7 +1501,19 @@ public class ReturnsService
 
         await InsertUnregisteredComplaintAsync(connection, returnId, request);
         var przekazal = string.IsNullOrWhiteSpace(request.Przekazal) ? userDisplayName : request.Przekazal;
-        var actionText = $"Przekazano fizycznie na reklamacje. Przekazał: {przekazal}.";
+        var statusId = await FindComplaintStatusIdAsync(connection);
+        if (statusId.HasValue)
+        {
+            await using var updateCommand = new MySqlCommand(@"
+                UPDATE AllegroCustomerReturns
+                SET StatusWewnetrznyId = @statusId
+                WHERE Id = @id", connection);
+            updateCommand.Parameters.AddWithValue("@statusId", statusId.Value);
+            updateCommand.Parameters.AddWithValue("@id", returnId);
+            await updateCommand.ExecuteNonQueryAsync();
+        }
+
+        var actionText = $"Przekazano fizycznie zwrot do działu reklamacji. Przekazał: {przekazal}.";
         await AddReturnActionInternalAsync(connection, returnId, userDisplayName, actionText);
         await AddMagazynDziennikAsync(connection, returnId, userDisplayName, actionText, null);
 
@@ -1710,6 +1722,28 @@ public class ReturnsService
         }
 
         return await GetStatusIdByLikeAsync(connection, "%magaz%");
+    }
+
+    private async Task<int?> FindComplaintStatusIdAsync(MySqlConnection connection)
+    {
+        var candidates = new[]
+        {
+            "Przekazany na reklamacje",
+            "Przekazano na reklamacje",
+            "Przekazany na dział reklamacji",
+            "Przekazano do reklamacji"
+        };
+
+        foreach (var name in candidates)
+        {
+            var id = await GetStatusIdByExactNameAsync(connection, name);
+            if (id.HasValue)
+            {
+                return id;
+            }
+        }
+
+        return await GetStatusIdByLikeAsync(connection, "%reklam%");
     }
 
     private static async Task<int?> GetStatusIdByExactNameAsync(MySqlConnection connection, string name)

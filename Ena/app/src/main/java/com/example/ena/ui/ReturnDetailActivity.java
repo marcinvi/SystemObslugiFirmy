@@ -204,7 +204,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
         preselectStanProduktu(data.getStanProduktuId());
 
         String statusWewnetrzny = safe(data.getStatusWewnetrzny());
-        boolean isPoDecyzji = "Po decyzji".equalsIgnoreCase(statusWewnetrzny);
+        boolean isPoDecyzji = isAfterDecisionStatus(statusWewnetrzny);
         boolean isZakonczony = "Zakończony".equalsIgnoreCase(statusWewnetrzny) || "Archiwalny".equalsIgnoreCase(statusWewnetrzny);
         btnForwardToSales.setEnabled(!isZakonczony);
         btnForwardToComplaints.setEnabled(!isZakonczony);
@@ -227,20 +227,20 @@ public class ReturnDetailActivity extends AppCompatActivity {
             switch (decisionType) {
                 case RESEND:
                     if (btnCompleteReturn != null) {
-                        btnCompleteReturn.setText("Zakończ ponowną wysyłkę");
+                        btnCompleteReturn.setText("Wysłano ponownie");
                         btnCompleteReturn.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
                     }
                     if (btnAddResendInfo != null) {
-                        btnAddResendInfo.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
+                        btnAddResendInfo.setVisibility(View.GONE);
                     }
                     break;
                 case COMPLAINTS:
-                    btnForwardToComplaints.setText("Przekazano fizycznie na reklamacje");
+                    btnForwardToComplaints.setText("Przekazano fizycznie na dział reklamacji");
                     btnForwardToComplaints.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
                     break;
                 case STOCK:
                     if (btnCompleteReturn != null) {
-                        btnCompleteReturn.setText("Odłożone na stan magazynowy");
+                        btnCompleteReturn.setText("Wróciło na stan");
                         btnCompleteReturn.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
                     }
                     break;
@@ -335,7 +335,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Brak danych zwrotu", Toast.LENGTH_SHORT).show();
             return;
         }
-        boolean isPoDecyzji = "Po decyzji".equalsIgnoreCase(safe(details.getStatusWewnetrzny()));
+        boolean isPoDecyzji = isAfterDecisionStatus(safe(details.getStatusWewnetrzny()));
         String title = isPoDecyzji ? "Przekazanie do reklamacji" : "Przekaż do reklamacji";
         String message = isPoDecyzji
                 ? "Czy potwierdzasz fizyczne przekazanie zwrotu do działu reklamacji?"
@@ -457,15 +457,41 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private void showResendCompleteDialog() {
         View view = getLayoutInflater().inflate(R.layout.dialog_resend_info, null);
         EditText editDate = view.findViewById(R.id.editResendDate);
-        EditText editCarrier = view.findViewById(R.id.editResendCarrier);
+        android.widget.Spinner spinnerCarrier = view.findViewById(R.id.spinnerResendCarrier);
+        EditText editCarrierOther = view.findViewById(R.id.editResendCarrierOther);
         EditText editWaybill = view.findViewById(R.id.editResendWaybill);
         editDate.setText(DateUtils.today());
+        ArrayAdapter<CharSequence> carrierAdapter = ArrayAdapter.createFromResource(
+                this,
+                R.array.resend_carrier_options,
+                android.R.layout.simple_spinner_item
+        );
+        carrierAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCarrier.setAdapter(carrierAdapter);
+        spinnerCarrier.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                String value = String.valueOf(parent.getItemAtPosition(position));
+                if ("Inny".equalsIgnoreCase(value)) {
+                    editCarrierOther.setVisibility(View.VISIBLE);
+                } else {
+                    editCarrierOther.setVisibility(View.GONE);
+                    editCarrierOther.setText("");
+                }
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                editCarrierOther.setVisibility(View.GONE);
+                editCarrierOther.setText("");
+            }
+        });
         new AlertDialog.Builder(this)
                 .setTitle("Ponowna wysyłka")
                 .setView(view)
                 .setPositiveButton("Zatwierdź", (dialog, which) -> submitResendInfo(
                         editDate.getText().toString().trim(),
-                        editCarrier.getText().toString().trim(),
+                        resolveCarrierValue(spinnerCarrier, editCarrierOther),
                         editWaybill.getText().toString().trim()
                 ))
                 .setNegativeButton("Anuluj", null)
@@ -482,7 +508,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
             return;
         }
         String resendDate = date.isEmpty() ? DateUtils.today() : date;
-        String actionText = "Ponowna wysyłka: data " + resendDate + ", przewoźnik " + carrier + ", list " + waybill + ".";
+        String actionText = "Wysłano ponownie dnia " + resendDate + " kurierem " + carrier + " listem przewozowym numer " + waybill + ".";
         completeReturnWithAction(actionText);
     }
 
@@ -547,7 +573,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private String resolveCompletionActionText() {
         switch (decisionType) {
             case STOCK:
-                return "Odłożone na stan magazynowy.";
+                return "Zwrot wrócił na stan.";
             case OTHER:
                 return "Zwrot zakończony zgodnie z decyzją.";
             case RESEND:
@@ -575,6 +601,24 @@ public class ReturnDetailActivity extends AppCompatActivity {
             return DecisionType.OTHER;
         }
         return DecisionType.OTHER;
+    }
+
+    private boolean isAfterDecisionStatus(String status) {
+        if (status == null) {
+            return false;
+        }
+        String normalized = status.trim().toLowerCase();
+        return normalized.equals("po decyzji")
+                || normalized.equals("oczekuje na realizację")
+                || normalized.equals("oczekuje na realizacje");
+    }
+
+    private String resolveCarrierValue(android.widget.Spinner spinner, EditText editOther) {
+        String selected = spinner.getSelectedItem() == null ? "" : spinner.getSelectedItem().toString().trim();
+        if ("Inny".equalsIgnoreCase(selected)) {
+            return editOther.getText().toString().trim();
+        }
+        return selected;
     }
 
     private static class DateUtils {
