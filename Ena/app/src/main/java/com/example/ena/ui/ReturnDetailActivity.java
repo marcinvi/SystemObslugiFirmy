@@ -61,6 +61,15 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private final List<StatusDto> stanProduktuStatuses = new ArrayList<>();
     private ReturnActionAdapter actionAdapter;
     private boolean isReadOnly;
+    private DecisionType decisionType = DecisionType.NONE;
+
+    private enum DecisionType {
+        NONE,
+        RESEND,
+        COMPLAINTS,
+        STOCK,
+        OTHER
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,7 +128,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
         // ✅ LISTENER DLA NOWEGO PRZYCISKU
         if (btnCompleteReturn != null) {
-            btnCompleteReturn.setOnClickListener(v -> showCompleteReturnDialog());
+            btnCompleteReturn.setOnClickListener(v -> handleCompleteAction());
         }
 
         if (btnCancel != null) btnCancel.setVisibility(View.GONE);
@@ -194,42 +203,60 @@ public class ReturnDetailActivity extends AppCompatActivity {
         editUwagiMagazynu.setText(safe(data.getUwagiMagazynu()));
         preselectStanProduktu(data.getStanProduktuId());
 
-        boolean isPoDecyzji = "Po decyzji".equalsIgnoreCase(safe(data.getStatusWewnetrzny()));
-        boolean blokujPrzekazanie = "Archiwalny".equalsIgnoreCase(safe(data.getStatusWewnetrzny()));
-        btnForwardToSales.setEnabled(!blokujPrzekazanie);
-        btnForwardToComplaints.setEnabled(!blokujPrzekazanie);
+        String statusWewnetrzny = safe(data.getStatusWewnetrzny());
+        boolean isPoDecyzji = "Po decyzji".equalsIgnoreCase(statusWewnetrzny);
+        boolean isZakonczony = "Zakończony".equalsIgnoreCase(statusWewnetrzny) || "Archiwalny".equalsIgnoreCase(statusWewnetrzny);
+        btnForwardToSales.setEnabled(!isZakonczony);
+        btnForwardToComplaints.setEnabled(!isZakonczony);
 
-        // ✅ NOWA LOGIKA WYŚWIETLANIA PRZYCISKÓW
+        if (btnAddResendInfo != null) {
+            btnAddResendInfo.setVisibility(View.GONE);
+        }
+
+        // ✅ LOGIKA WYŚWIETLANIA PRZYCISKÓW
         if (isPoDecyzji) {
             String decyzja = safe(data.getDecyzjaHandlowcaName());
-            boolean isNaDzialReklamacji = decyzja != null && decyzja.toLowerCase().contains("reklamacji");
+            decisionType = resolveDecisionType(decyzja);
 
-            // Ukryj przycisk "Przekaż do handlowca"
             btnForwardToSales.setVisibility(View.GONE);
+            btnForwardToComplaints.setVisibility(View.GONE);
+            if (btnCompleteReturn != null) {
+                btnCompleteReturn.setVisibility(View.GONE);
+            }
 
-            // Zmień tekst przycisku reklamacji na krótszy
-            btnForwardToComplaints.setText("Przekaż na reklamacje");
-
-            if (isNaDzialReklamacji) {
-                // Decyzja "Na dział reklamacji" → TYLKO przycisk "Przekaż na reklamacje"
-                if (btnCompleteReturn != null) {
-                    btnCompleteReturn.setVisibility(View.GONE);
-                }
-                btnForwardToComplaints.setVisibility(View.VISIBLE);
-            } else {
-                // Inna decyzja → OBA przyciski
-                if (!isReadOnly && btnCompleteReturn != null) {
-                    btnCompleteReturn.setVisibility(View.VISIBLE);
-                } else if (btnCompleteReturn != null) {
-                    btnCompleteReturn.setVisibility(View.GONE);
-                }
-                btnForwardToComplaints.setVisibility(View.VISIBLE);
+            switch (decisionType) {
+                case RESEND:
+                    if (btnCompleteReturn != null) {
+                        btnCompleteReturn.setText("Zakończ ponowną wysyłkę");
+                        btnCompleteReturn.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
+                    }
+                    if (btnAddResendInfo != null) {
+                        btnAddResendInfo.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
+                    }
+                    break;
+                case COMPLAINTS:
+                    btnForwardToComplaints.setText("Przekazano fizycznie na reklamacje");
+                    btnForwardToComplaints.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
+                    break;
+                case STOCK:
+                    if (btnCompleteReturn != null) {
+                        btnCompleteReturn.setText("Odłożone na stan magazynowy");
+                        btnCompleteReturn.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
+                    }
+                    break;
+                case OTHER:
+                default:
+                    if (btnCompleteReturn != null) {
+                        btnCompleteReturn.setText("Zwrot zakończony zgodnie z decyzją");
+                        btnCompleteReturn.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
+                    }
+                    break;
             }
         } else {
-            // Status != "Po decyzji"
-            btnForwardToSales.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
+            decisionType = DecisionType.NONE;
+            btnForwardToSales.setVisibility(isReadOnly || isZakonczony ? View.GONE : View.VISIBLE);
             btnForwardToComplaints.setText("Reklamacja / inne");
-            btnForwardToComplaints.setVisibility(View.VISIBLE);
+            btnForwardToComplaints.setVisibility(isZakonczony ? View.GONE : View.VISIBLE);
             if (btnCompleteReturn != null) {
                 btnCompleteReturn.setVisibility(View.GONE);
             }
@@ -322,47 +349,16 @@ public class ReturnDetailActivity extends AppCompatActivity {
     }
 
     // ✅ NOWA METODA - DIALOG POTWIERDZENIA
-    private void showCompleteReturnDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Zakończ zwrot")
-                .setMessage("Czy na pewno chcesz zakończyć ten zwrot?\n\nZwrot zostanie oznaczony jako \"Zakończony\".")
-                .setPositiveButton("Tak, zakończ", (dialog, which) -> completeReturn())
-                .setNegativeButton("Anuluj", null)
-                .show();
-    }
-
-    // ✅ NOWA METODA - WYKONANIE ZAKOŃCZENIA ZWROTU
-    private void completeReturn() {
-        if (btnCompleteReturn != null) {
-            btnCompleteReturn.setEnabled(false);
+    private void handleCompleteAction() {
+        if (decisionType == DecisionType.RESEND) {
+            showResendCompleteDialog();
+            return;
         }
-        progressBar.setVisibility(View.VISIBLE);
 
-        ApiClient client = new ApiClient(this);
-        client.completeReturn(returnId, new ApiClient.ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void data) {
-                runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    if (btnCompleteReturn != null) {
-                        btnCompleteReturn.setEnabled(true);
-                    }
-                    Toast.makeText(ReturnDetailActivity.this, "Zwrot zakończony.", Toast.LENGTH_SHORT).show();
-                    finish();
-                });
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> {
-                    progressBar.setVisibility(View.GONE);
-                    if (btnCompleteReturn != null) {
-                        btnCompleteReturn.setEnabled(true);
-                    }
-                    Toast.makeText(ReturnDetailActivity.this, "Błąd: " + message, Toast.LENGTH_LONG).show();
-                });
-            }
-        });
+        String actionText = resolveCompletionActionText();
+        showDecisionCompleteDialog("Zakończ zwrot",
+                "Czy na pewno chcesz zakończyć ten zwrot?\n\nZwrot zostanie oznaczony jako \"Zakończony\".",
+                actionText);
     }
 
     private void submitForwardToSales() {
@@ -451,52 +447,142 @@ public class ReturnDetailActivity extends AppCompatActivity {
     }
 
     private void showResendInfoDialog() {
+        if (decisionType != DecisionType.RESEND) {
+            Toast.makeText(this, "Brak decyzji o ponownej wysyłce.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        showResendCompleteDialog();
+    }
+
+    private void showResendCompleteDialog() {
         View view = getLayoutInflater().inflate(R.layout.dialog_resend_info, null);
         EditText editDate = view.findViewById(R.id.editResendDate);
+        EditText editCarrier = view.findViewById(R.id.editResendCarrier);
         EditText editWaybill = view.findViewById(R.id.editResendWaybill);
+        editDate.setText(DateUtils.today());
         new AlertDialog.Builder(this)
                 .setTitle("Ponowna wysyłka")
                 .setView(view)
-                .setPositiveButton("Zapisz", (dialog, which) -> submitResendInfo(
+                .setPositiveButton("Zatwierdź", (dialog, which) -> submitResendInfo(
                         editDate.getText().toString().trim(),
+                        editCarrier.getText().toString().trim(),
                         editWaybill.getText().toString().trim()
                 ))
                 .setNegativeButton("Anuluj", null)
                 .show();
     }
 
-    private void submitResendInfo(String date, String waybill) {
-        if (date.isEmpty() && waybill.isEmpty()) {
-            Toast.makeText(this, "Uzupełnij datę lub numer listu.", Toast.LENGTH_SHORT).show();
+    private void submitResendInfo(String date, String carrier, String waybill) {
+        if (carrier.isEmpty()) {
+            Toast.makeText(this, "Uzupełnij przewoźnika.", Toast.LENGTH_SHORT).show();
             return;
         }
-        StringBuilder builder = new StringBuilder("Ponowna wysyłka: ");
-        boolean hasDate = !date.isEmpty();
-        if (hasDate) {
-            builder.append("data ").append(date);
+        if (waybill.isEmpty()) {
+            Toast.makeText(this, "Uzupełnij numer listu przewozowego.", Toast.LENGTH_SHORT).show();
+            return;
         }
-        if (!waybill.isEmpty()) {
-            if (hasDate) {
-                builder.append(", ");
-            }
-            builder.append("list ").append(waybill);
+        String resendDate = date.isEmpty() ? DateUtils.today() : date;
+        String actionText = "Ponowna wysyłka: data " + resendDate + ", przewoźnik " + carrier + ", list " + waybill + ".";
+        completeReturnWithAction(actionText);
+    }
+
+    private void showDecisionCompleteDialog(String title, String message, String actionText) {
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("Tak, zakończ", (dialog, which) -> completeReturnWithAction(actionText))
+                .setNegativeButton("Anuluj", null)
+                .show();
+    }
+
+    private void completeReturnWithAction(String actionText) {
+        if (btnCompleteReturn != null) {
+            btnCompleteReturn.setEnabled(false);
         }
-        String actionText = builder.toString().trim();
+        progressBar.setVisibility(View.VISIBLE);
+
         ApiClient client = new ApiClient(this);
         client.addReturnAction(returnId, new ReturnActionCreateRequest(actionText), new ApiClient.ApiCallback<Void>() {
             @Override
             public void onSuccess(Void data) {
-                runOnUiThread(() -> {
-                    Toast.makeText(ReturnDetailActivity.this, "Dodano informację o wysyłce.", Toast.LENGTH_SHORT).show();
-                    loadActions();
+                client.completeReturn(returnId, new ApiClient.ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void data) {
+                        runOnUiThread(() -> {
+                            progressBar.setVisibility(View.GONE);
+                            if (btnCompleteReturn != null) {
+                                btnCompleteReturn.setEnabled(true);
+                            }
+                            Toast.makeText(ReturnDetailActivity.this, "Zwrot zakończony.", Toast.LENGTH_SHORT).show();
+                            finish();
+                        });
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        runOnUiThread(() -> {
+                            progressBar.setVisibility(View.GONE);
+                            if (btnCompleteReturn != null) {
+                                btnCompleteReturn.setEnabled(true);
+                            }
+                            Toast.makeText(ReturnDetailActivity.this, "Błąd zakończenia: " + message, Toast.LENGTH_LONG).show();
+                        });
+                    }
                 });
             }
 
             @Override
             public void onError(String message) {
-                runOnUiThread(() -> Toast.makeText(ReturnDetailActivity.this, "Błąd zapisu: " + message, Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    if (btnCompleteReturn != null) {
+                        btnCompleteReturn.setEnabled(true);
+                    }
+                    Toast.makeText(ReturnDetailActivity.this, "Błąd zapisu: " + message, Toast.LENGTH_LONG).show();
+                });
             }
         });
+    }
+
+    private String resolveCompletionActionText() {
+        switch (decisionType) {
+            case STOCK:
+                return "Odłożone na stan magazynowy.";
+            case OTHER:
+                return "Zwrot zakończony zgodnie z decyzją.";
+            case RESEND:
+                return "Ponowna wysyłka zakończona.";
+            default:
+                return "Zwrot zakończony zgodnie z decyzją.";
+        }
+    }
+
+    private DecisionType resolveDecisionType(String decyzja) {
+        if (decyzja == null) {
+            return DecisionType.OTHER;
+        }
+        String normalized = decyzja.trim().toLowerCase();
+        if (normalized.contains("reklam")) {
+            return DecisionType.COMPLAINTS;
+        }
+        if (normalized.contains("półk") || normalized.contains("polk")) {
+            return DecisionType.STOCK;
+        }
+        if (normalized.contains("wysył") || normalized.contains("wysyl") || normalized.contains("ponown")) {
+            return DecisionType.RESEND;
+        }
+        if (normalized.contains("inne")) {
+            return DecisionType.OTHER;
+        }
+        return DecisionType.OTHER;
+    }
+
+    private static class DateUtils {
+        private static final java.text.SimpleDateFormat DATE_FORMAT = new java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault());
+
+        static String today() {
+            return DATE_FORMAT.format(new java.util.Date());
+        }
     }
 
     private void showAddressesDialog() {
