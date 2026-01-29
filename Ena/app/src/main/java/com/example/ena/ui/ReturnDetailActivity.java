@@ -59,7 +59,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private Button btnCancel;
     private Button btnCloseReturn;
     private Button btnAddResendInfo;
-    @Nullable
     private Button btnAddReturnPhoto;
     private EditText editWarehouseAction;
     private Button btnWarehouseAddAction;
@@ -77,15 +76,9 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private View cardClient;
     private View cardWarehouse;
     private View cardDecision;
-    private View sectionPhotos;
     private View sectionJournal;
     private View decisionStrip;
     private View decisionContainer;
-    @Nullable
-    private RecyclerView listReturnPhotos;
-
-    @Nullable
-    private ActivityResultLauncher<String> photoPicker;
 
     private enum DecisionType {
         NONE,
@@ -148,11 +141,9 @@ public class ReturnDetailActivity extends AppCompatActivity {
         cardClient = findViewById(R.id.cardClient);
         cardWarehouse = findViewById(R.id.cardWarehouse);
         cardDecision = findViewById(R.id.cardDecision);
-        sectionPhotos = findViewById(R.id.sectionPhotos);
         sectionJournal = findViewById(R.id.sectionJournal);
         decisionStrip = findViewById(R.id.decisionStrip);
         decisionContainer = findViewById(R.id.decisionContainer);
-        listReturnPhotos = findViewById(R.id.listReturnPhotos);
 
         RecyclerView listActions = findViewById(R.id.listWarehouseActions);
         listActions.setLayoutManager(new LinearLayoutManager(this));
@@ -181,11 +172,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
             btnAddResendInfo.setOnClickListener(v -> showResendInfoDialog());
         }
         if (btnAddReturnPhoto != null) {
-            btnAddReturnPhoto.setOnClickListener(v -> {
-                if (photoPicker != null) {
-                    photoPicker.launch("image/*");
-                }
-            });
+            btnAddReturnPhoto.setOnClickListener(v -> photoPicker.launch("image/*"));
         }
 
         if (isReadOnly) {
@@ -375,9 +362,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
     }
 
     private void loadPhotos() {
-        if (photoAdapter == null) {
-            return;
-        }
         ApiClient client = new ApiClient(this);
         client.fetchReturnPhotos(returnId, new ApiClient.ApiCallback<List<ReturnPhotoDto>>() {
             @Override
@@ -398,14 +382,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
     private void handlePhotoPicked(Uri uri) {
         if (uri == null) {
-            return;
-        }
-        if (isReadOnly) {
-            Toast.makeText(this, "Podgląd tylko do odczytu - nie można dodać zdjęcia.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (returnId <= 0) {
-            Toast.makeText(this, "Brak identyfikatora zwrotu.", Toast.LENGTH_SHORT).show();
             return;
         }
         ApiClient client = new ApiClient(this);
@@ -775,7 +751,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
             addIfPresent(container, cardShipment);
             addIfPresent(container, cardClient);
             addIfPresent(container, cardWarehouse);
-            addIfPresent(container, sectionPhotos);
         } else if (isAfter) {
             addIfPresent(container, cardProduct);
             addIfPresent(container, cardDecision);
@@ -783,13 +758,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
             addIfPresent(container, cardShipment);
             addIfPresent(container, cardClient);
             addIfPresent(container, cardWarehouse);
-            addIfPresent(container, sectionPhotos);
         } else {
             addIfPresent(container, cardProduct);
             addIfPresent(container, cardShipment);
             addIfPresent(container, cardClient);
             addIfPresent(container, cardWarehouse);
-            addIfPresent(container, sectionPhotos);
             addIfPresent(container, sectionJournal);
         }
 
