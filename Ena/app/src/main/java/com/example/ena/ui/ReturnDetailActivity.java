@@ -9,6 +9,7 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -44,6 +45,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private TextView txtBuyerAddress;
     private TextView txtBuyerPhone;
     private TextView txtAssignedSales;
+    private TextView txtDecisionValue;
     private Button btnShowAddresses;
     private EditText editUwagiMagazynu;
     private android.widget.Spinner spinnerStanProduktu;
@@ -62,6 +64,15 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private ReturnActionAdapter actionAdapter;
     private boolean isReadOnly;
     private DecisionType decisionType = DecisionType.NONE;
+    private View detailsContainer;
+    private View cardProduct;
+    private View cardShipment;
+    private View cardClient;
+    private View cardWarehouse;
+    private View cardDecision;
+    private View sectionJournal;
+    private View decisionStrip;
+    private View decisionContainer;
 
     private enum DecisionType {
         NONE,
@@ -96,6 +107,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
         txtBuyerAddress = findViewById(R.id.txtBuyerAddress);
         txtBuyerPhone = findViewById(R.id.txtBuyerPhone);
         txtAssignedSales = findViewById(R.id.txtAssignedSales);
+        txtDecisionValue = findViewById(R.id.txtDecisionValue);
 
         btnShowAddresses = findViewById(R.id.btnShowAddresses);
         editUwagiMagazynu = findViewById(R.id.editUwagiMagazynu);
@@ -115,6 +127,15 @@ public class ReturnDetailActivity extends AppCompatActivity {
         editWarehouseAction = findViewById(R.id.editWarehouseAction);
         btnWarehouseAddAction = findViewById(R.id.btnWarehouseAddAction);
         progressBar = findViewById(R.id.progressDetail);
+        detailsContainer = findViewById(R.id.detailsContainer);
+        cardProduct = findViewById(R.id.cardProduct);
+        cardShipment = findViewById(R.id.cardShipment);
+        cardClient = findViewById(R.id.cardClient);
+        cardWarehouse = findViewById(R.id.cardWarehouse);
+        cardDecision = findViewById(R.id.cardDecision);
+        sectionJournal = findViewById(R.id.sectionJournal);
+        decisionStrip = findViewById(R.id.decisionStrip);
+        decisionContainer = findViewById(R.id.decisionContainer);
 
         RecyclerView listActions = findViewById(R.id.listWarehouseActions);
         listActions.setLayoutManager(new LinearLayoutManager(this));
@@ -205,13 +226,18 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
         String statusWewnetrzny = safe(data.getStatusWewnetrzny());
         boolean isPoDecyzji = isAfterDecisionStatus(statusWewnetrzny);
+        boolean isWaitingDecision = isWaitingDecisionStatus(statusWewnetrzny);
         boolean isZakonczony = "Zakończony".equalsIgnoreCase(statusWewnetrzny) || "Archiwalny".equalsIgnoreCase(statusWewnetrzny);
-        btnForwardToSales.setEnabled(!isZakonczony);
+        boolean canForwardToSales = canForwardToSales(statusWewnetrzny);
+        btnForwardToSales.setEnabled(!isZakonczony && canForwardToSales);
         btnForwardToComplaints.setEnabled(!isZakonczony);
 
         if (btnAddResendInfo != null) {
             btnAddResendInfo.setVisibility(View.GONE);
         }
+
+        updateDecisionSection(statusWewnetrzny, data.getDecyzjaHandlowcaName());
+        arrangeSections(statusWewnetrzny);
 
         // ✅ LOGIKA WYŚWIETLANIA PRZYCISKÓW
         if (isPoDecyzji) {
@@ -254,9 +280,9 @@ public class ReturnDetailActivity extends AppCompatActivity {
             }
         } else {
             decisionType = DecisionType.NONE;
-            btnForwardToSales.setVisibility(isReadOnly || isZakonczony ? View.GONE : View.VISIBLE);
+            btnForwardToSales.setVisibility(isReadOnly || isZakonczony || !canForwardToSales ? View.GONE : View.VISIBLE);
             btnForwardToComplaints.setText("Reklamacja / inne");
-            btnForwardToComplaints.setVisibility(isZakonczony ? View.GONE : View.VISIBLE);
+            btnForwardToComplaints.setVisibility(isZakonczony || isWaitingDecision ? View.GONE : View.VISIBLE);
             if (btnCompleteReturn != null) {
                 btnCompleteReturn.setVisibility(View.GONE);
             }
@@ -603,6 +629,92 @@ public class ReturnDetailActivity extends AppCompatActivity {
         return DecisionType.OTHER;
     }
 
+    private void updateDecisionSection(String statusWewnetrzny, String decyzja) {
+        if (cardDecision == null || txtDecisionValue == null) {
+            return;
+        }
+        boolean isWaiting = isWaitingDecisionStatus(statusWewnetrzny);
+        boolean isAfter = isAfterDecisionStatus(statusWewnetrzny);
+        if (!isWaiting && !isAfter) {
+            cardDecision.setVisibility(View.GONE);
+            return;
+        }
+        String label = decyzja == null || decyzja.trim().isEmpty()
+                ? (isWaiting ? "Oczekuje na decyzję handlowca" : "Brak decyzji")
+                : decyzja;
+        txtDecisionValue.setText(label);
+        DecisionStyle style = resolveDecisionStyle(label, isWaiting);
+        if (decisionStrip != null) {
+            decisionStrip.setBackgroundColor(style.stripColor);
+        }
+        if (decisionContainer != null) {
+            decisionContainer.setBackgroundColor(style.containerColor);
+        }
+        txtDecisionValue.setTextColor(style.textColor);
+        cardDecision.setVisibility(View.VISIBLE);
+    }
+
+    private DecisionStyle resolveDecisionStyle(String decyzja, boolean isWaiting) {
+        if (isWaiting) {
+            return DecisionStyle.NEUTRAL;
+        }
+        String normalized = decyzja == null ? "" : decyzja.trim().toLowerCase();
+        if (normalized.contains("półk") || normalized.contains("polk")) {
+            return DecisionStyle.STOCK;
+        }
+        if (normalized.contains("wysył") || normalized.contains("wysyl") || normalized.contains("ponown")) {
+            return DecisionStyle.RESEND;
+        }
+        if (normalized.contains("reklam")) {
+            return DecisionStyle.COMPLAINT;
+        }
+        if (normalized.contains("inne")) {
+            return DecisionStyle.OTHER;
+        }
+        return DecisionStyle.NEUTRAL;
+    }
+
+    private void arrangeSections(String statusWewnetrzny) {
+        if (!(detailsContainer instanceof android.widget.LinearLayout)) {
+            return;
+        }
+        android.widget.LinearLayout container = (android.widget.LinearLayout) detailsContainer;
+        container.removeAllViews();
+        boolean isWaiting = isWaitingDecisionStatus(statusWewnetrzny);
+        boolean isAfter = isAfterDecisionStatus(statusWewnetrzny);
+
+        if (isWaiting) {
+            addIfPresent(container, sectionJournal);
+            addIfPresent(container, cardProduct);
+            addIfPresent(container, cardShipment);
+            addIfPresent(container, cardClient);
+            addIfPresent(container, cardWarehouse);
+        } else if (isAfter) {
+            addIfPresent(container, cardProduct);
+            addIfPresent(container, cardDecision);
+            addIfPresent(container, sectionJournal);
+            addIfPresent(container, cardShipment);
+            addIfPresent(container, cardClient);
+            addIfPresent(container, cardWarehouse);
+        } else {
+            addIfPresent(container, cardProduct);
+            addIfPresent(container, cardShipment);
+            addIfPresent(container, cardClient);
+            addIfPresent(container, cardWarehouse);
+            addIfPresent(container, sectionJournal);
+        }
+
+        if (btnAddResendInfo != null) {
+            container.addView(btnAddResendInfo);
+        }
+    }
+
+    private void addIfPresent(android.widget.LinearLayout container, @Nullable View view) {
+        if (container != null && view != null) {
+            container.addView(view);
+        }
+    }
+
     private boolean isAfterDecisionStatus(String status) {
         if (status == null) {
             return false;
@@ -613,12 +725,49 @@ public class ReturnDetailActivity extends AppCompatActivity {
                 || normalized.equals("oczekuje na realizacje");
     }
 
+    private boolean isWaitingDecisionStatus(String status) {
+        if (status == null) {
+            return false;
+        }
+        String normalized = status.trim().toLowerCase();
+        return normalized.equals("oczekuje na decyzję handlowca")
+                || normalized.equals("oczekuje na decyzje handlowca");
+    }
+
+    private boolean canForwardToSales(String status) {
+        if (status == null) {
+            return true;
+        }
+        String normalized = status.trim().toLowerCase();
+        return normalized.equals("oczekuje na przyjęcie")
+                || normalized.equals("przyjęty do magazynu")
+                || normalized.equals("przyjety do magazynu");
+    }
+
     private String resolveCarrierValue(android.widget.Spinner spinner, EditText editOther) {
         String selected = spinner.getSelectedItem() == null ? "" : spinner.getSelectedItem().toString().trim();
         if ("Inny".equalsIgnoreCase(selected)) {
             return editOther.getText().toString().trim();
         }
         return selected;
+    }
+
+    private static class DecisionStyle {
+        final int stripColor;
+        final int containerColor;
+        final int textColor;
+
+        private DecisionStyle(int stripColor, int containerColor, int textColor) {
+            this.stripColor = stripColor;
+            this.containerColor = containerColor;
+            this.textColor = textColor;
+        }
+
+        static final DecisionStyle STOCK = new DecisionStyle(0xFF43A047, 0xFFE8F5E9, 0xFF2E7D32);
+        static final DecisionStyle RESEND = new DecisionStyle(0xFF7E57C2, 0xFFF3E5F5, 0xFF5E35B1);
+        static final DecisionStyle COMPLAINT = new DecisionStyle(0xFFFF8F00, 0xFFFFF3E0, 0xFFF57C00);
+        static final DecisionStyle OTHER = new DecisionStyle(0xFFD32F2F, 0xFFFFEBEE, 0xFFC62828);
+        static final DecisionStyle NEUTRAL = new DecisionStyle(0xFF9E9E9E, 0xFFF5F5F5, 0xFF616161);
     }
 
     private static class DateUtils {
