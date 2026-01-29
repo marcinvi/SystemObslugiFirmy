@@ -30,7 +30,6 @@ import com.example.ena.api.ReturnDetailsDto;
 import com.example.ena.api.RejectCustomerReturnRequest;
 import com.example.ena.api.ReturnRejectionDto;
 import com.example.ena.api.StatusDto;
-import com.example.ena.api.ReturnForwardToWarehouseRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -166,38 +165,21 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         boolean hasOrderId = details.getOrderId() != null && !details.getOrderId().isEmpty();
         btnReject.setVisibility(!isManual && hasAllegroReturn ? View.VISIBLE : View.GONE);
         btnRefund.setVisibility(!isManual && hasOrderId ? View.VISIBLE : View.GONE);
-        if (isManual) {
-            btnComplaint.setText("WYŚLIJ INFORMACJE O ZWROCIE");
-            if (decisionTemplatesContainer != null) {
-                decisionTemplatesContainer.setVisibility(View.GONE);
-            }
-            if (editDecisionComment != null) {
-                editDecisionComment.setVisibility(View.GONE);
-            }
-            if (journalEntryContainer != null) {
-                journalEntryContainer.setVisibility(View.GONE);
-            }
-        } else {
-            boolean isPoDecyzji = "Po decyzji".equalsIgnoreCase(safe(details.getStatusWewnetrzny()));
-            btnComplaint.setText(isPoDecyzji ? "ZMIEŃ DECYZJĘ" : "ZATWIERDŹ DECYZJĘ");
-            if (decisionTemplatesContainer != null) {
-                decisionTemplatesContainer.setVisibility(View.VISIBLE);
-            }
-            if (editDecisionComment != null) {
-                editDecisionComment.setVisibility(View.VISIBLE);
-            }
-            if (journalEntryContainer != null) {
-                journalEntryContainer.setVisibility(View.VISIBLE);
-            }
+        boolean isPoDecyzji = "Po decyzji".equalsIgnoreCase(safe(details.getStatusWewnetrzny()));
+        btnComplaint.setText(isPoDecyzji ? "ZMIEŃ DECYZJĘ" : "ZATWIERDŹ DECYZJĘ");
+        if (decisionTemplatesContainer != null) {
+            decisionTemplatesContainer.setVisibility(View.VISIBLE);
+        }
+        if (editDecisionComment != null) {
+            editDecisionComment.setVisibility(View.VISIBLE);
+        }
+        if (journalEntryContainer != null) {
+            journalEntryContainer.setVisibility(View.VISIBLE);
         }
     }
 
     private void handlePrimaryAction() {
-        if (details != null && details.isManual()) {
-            showManualInfoDialog();
-        } else {
-            submitSelectedDecision();
-        }
+        submitSelectedDecision();
     }
 
     private void ensureDecisionsThenShowDialog() {
@@ -229,44 +211,6 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         }
         boolean forwardToComplaints = DECISION_KEY_COMPLAINTS.equalsIgnoreCase(selected.key);
         submitDecision(selected.id, comment, forwardToComplaints);
-    }
-
-    private void showManualInfoDialog() {
-        EditText commentInput = new EditText(this);
-        commentInput.setHint("Dodatkowy komentarz (opcjonalnie)");
-
-        new AlertDialog.Builder(this)
-                .setTitle("Wyślij informacje o zwrocie")
-                .setView(commentInput)
-                .setPositiveButton("Wyślij", (dialog, which) -> submitManualInfo(commentInput.getText().toString().trim()))
-                .setNegativeButton("Anuluj", null)
-                .show();
-    }
-
-    private void submitManualInfo(String comment) {
-        btnComplaint.setEnabled(false);
-        ApiClient client = new ApiClient(this);
-        ReturnForwardToWarehouseRequest request = new ReturnForwardToWarehouseRequest(
-                TextUtils.isEmpty(comment) ? null : comment
-        );
-        client.forwardToWarehouse(returnId, request, new ApiClient.ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void data) {
-                runOnUiThread(() -> {
-                    btnComplaint.setEnabled(true);
-                    Toast.makeText(SalesReturnDetailActivity.this, "Informacja o zwrocie została wysłana.", Toast.LENGTH_SHORT).show();
-                    loadActions();
-                });
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> {
-                    btnComplaint.setEnabled(true);
-                    Toast.makeText(SalesReturnDetailActivity.this, "Błąd wysyłki informacji: " + message, Toast.LENGTH_LONG).show();
-                });
-            }
-        });
     }
 
     private void loadDecyzje() {

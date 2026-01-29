@@ -294,6 +294,19 @@
         app:tint="#FFFFFF"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnManualReturn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:layout_marginEnd="16dp"
+        android:contentDescription="Dodaj zwrot ręcznie"
+        android:src="@android:drawable/ic_input_add"
+        app:backgroundTint="#455A64"
+        app:tint="#FFFFFF"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/btnScanCode" />
     <ProgressBar
         android:id="@+id/progressBarSync"
         android:layout_width="wrap_content"
