@@ -18,16 +18,35 @@ public class FileService : IFileService
     private readonly ApplicationDbContext _context;
     private readonly string _uploadPath;
 
-    public FileService(ApplicationDbContext context, IWebHostEnvironment environment)
+    public FileService(
+        ApplicationDbContext context,
+        IWebHostEnvironment environment,
+        Microsoft.Extensions.Options.IOptions<FileStorageOptions> storageOptions)
     {
         _context = context;
-        _uploadPath = Path.Combine(environment.ContentRootPath, "uploads");
+        var configuredPath = storageOptions.Value?.UploadPath;
+        _uploadPath = ResolveUploadPath(configuredPath, environment.ContentRootPath);
         
         // Create uploads directory if it doesn't exist
         if (!Directory.Exists(_uploadPath))
         {
             Directory.CreateDirectory(_uploadPath);
         }
+    }
+
+    private static string ResolveUploadPath(string? configuredPath, string contentRootPath)
+    {
+        if (string.IsNullOrWhiteSpace(configuredPath))
+        {
+            return Path.Combine(contentRootPath, "uploads");
+        }
+
+        if (Path.IsPathRooted(configuredPath))
+        {
+            return configuredPath;
+        }
+
+        return Path.Combine(contentRootPath, configuredPath);
     }
 
     public async Task<FileUploadResponse> UploadFileAsync(

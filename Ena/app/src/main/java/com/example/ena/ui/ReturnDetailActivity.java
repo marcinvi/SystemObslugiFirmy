@@ -1,5 +1,6 @@
 package com.example.ena.ui;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -12,6 +13,8 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.ena.R;
@@ -24,6 +27,7 @@ import com.example.ena.api.ReturnForwardToSalesRequest;
 import com.example.ena.api.ComplaintAddressDto;
 import com.example.ena.api.ComplaintCustomerDto;
 import com.example.ena.api.ComplaintProductDto;
+import com.example.ena.api.ReturnPhotoDto;
 import com.example.ena.api.StatusDto;
 import com.example.ena.PairingManager;
 import java.util.ArrayList;
@@ -55,6 +59,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private Button btnCancel;
     private Button btnCloseReturn;
     private Button btnAddResendInfo;
+    private Button btnAddReturnPhoto;
     private EditText editWarehouseAction;
     private Button btnWarehouseAddAction;
     private ProgressBar progressBar;
@@ -62,6 +67,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private ReturnDetailsDto details;
     private final List<StatusDto> stanProduktuStatuses = new ArrayList<>();
     private ReturnActionAdapter actionAdapter;
+    private ReturnPhotoAdapter photoAdapter;
     private boolean isReadOnly;
     private DecisionType decisionType = DecisionType.NONE;
     private View detailsContainer;
@@ -124,6 +130,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
         }
 
         btnAddResendInfo = findViewById(R.id.btnAddResendInfo);
+        btnAddReturnPhoto = findViewById(R.id.btnAddReturnPhoto);
         editWarehouseAction = findViewById(R.id.editWarehouseAction);
         btnWarehouseAddAction = findViewById(R.id.btnWarehouseAddAction);
         progressBar = findViewById(R.id.progressDetail);
@@ -142,6 +149,12 @@ public class ReturnDetailActivity extends AppCompatActivity {
         actionAdapter = new ReturnActionAdapter();
         listActions.setAdapter(actionAdapter);
 
+        if (listReturnPhotos != null) {
+            listReturnPhotos.setLayoutManager(new LinearLayoutManager(this));
+            photoAdapter = new ReturnPhotoAdapter(this);
+            listReturnPhotos.setAdapter(photoAdapter);
+        }
+
         btnShowAddresses.setOnClickListener(v -> showAddressesDialog());
         btnForwardToSales.setOnClickListener(v -> showForwardDialog());
         btnForwardToComplaints.setOnClickListener(v -> showForwardToComplaintsDialog());
@@ -157,6 +170,9 @@ public class ReturnDetailActivity extends AppCompatActivity {
         if (btnAddResendInfo != null) {
             btnAddResendInfo.setOnClickListener(v -> showResendInfoDialog());
         }
+        if (btnAddReturnPhoto != null) {
+            btnAddReturnPhoto.setOnClickListener(v -> photoPicker.launch("image/*"));
+        }
 
         if (isReadOnly) {
             btnForwardToSales.setVisibility(View.GONE);
@@ -165,6 +181,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
         loadStatuses();
         loadDetails();
         loadActions();
+        loadPhotos();
     }
 
     private void loadDetails() {
@@ -231,6 +248,10 @@ public class ReturnDetailActivity extends AppCompatActivity {
         boolean canForwardToSales = canForwardToSales(statusWewnetrzny);
         btnForwardToSales.setEnabled(!isZakonczony && canForwardToSales);
         btnForwardToComplaints.setEnabled(!isZakonczony);
+
+        if (btnAddReturnPhoto != null) {
+            btnAddReturnPhoto.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
+        }
 
         if (btnAddResendInfo != null) {
             btnAddResendInfo.setVisibility(View.GONE);
@@ -335,6 +356,46 @@ public class ReturnDetailActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> Toast.makeText(ReturnDetailActivity.this, "Błąd historii: " + message, Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private void loadPhotos() {
+        ApiClient client = new ApiClient(this);
+        client.fetchReturnPhotos(returnId, new ApiClient.ApiCallback<List<ReturnPhotoDto>>() {
+            @Override
+            public void onSuccess(List<ReturnPhotoDto> data) {
+                runOnUiThread(() -> {
+                    if (photoAdapter != null) {
+                        photoAdapter.setItems(data);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> Toast.makeText(ReturnDetailActivity.this, "Błąd zdjęć: " + message, Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private void handlePhotoPicked(Uri uri) {
+        if (uri == null) {
+            return;
+        }
+        ApiClient client = new ApiClient(this);
+        client.uploadReturnPhoto(returnId, uri, new ApiClient.ApiCallback<ReturnPhotoDto>() {
+            @Override
+            public void onSuccess(ReturnPhotoDto data) {
+                runOnUiThread(() -> {
+                    Toast.makeText(ReturnDetailActivity.this, "Dodano zdjęcie.", Toast.LENGTH_SHORT).show();
+                    loadPhotos();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> Toast.makeText(ReturnDetailActivity.this, "Błąd uploadu: " + message, Toast.LENGTH_LONG).show());
             }
         });
     }

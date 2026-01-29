@@ -1,13 +1,18 @@
 package com.example.ena.api;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.OpenableColumns;
 import com.example.ena.NetworkUtils;
 import com.example.ena.PairingManager;
 import com.example.ena.UserSession;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.net.SocketTimeoutException;
 import java.net.URLEncoder;
@@ -24,6 +29,7 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -148,6 +154,12 @@ public class ApiClient {
         if (url == null) { callback.onError("Brak adresu API."); return; }
         RequestBody body = RequestBody.create(GSON.toJson(payload), JSON);
         executeSendWithResponseWithFallback(url, path, method, body, type, callback);
+    }
+
+    private <T> void sendMultipartWithResponse(String path, RequestBody body, Type type, ApiCallback<T> callback) {
+        String url = buildUrl(path);
+        if (url == null) { callback.onError("Brak adresu API."); return; }
+        executeSendWithResponseWithFallback(url, path, "POST", body, type, callback);
     }
 
     private <T> void executeGetWithFallback(String url, String path, Type type, ApiCallback<T> callback) {
@@ -369,6 +381,37 @@ public class ApiClient {
         get("api/returns/" + id + "/actions", type, callback);
     }
 
+    public void fetchReturnPhotos(int id, ApiCallback<List<ReturnPhotoDto>> callback) {
+        Type type = new TypeToken<ApiResponse<List<ReturnPhotoDto>>>(){}.getType();
+        get("api/returns/" + id + "/photos", type, callback);
+    }
+
+    public void uploadReturnPhoto(int id, Uri uri, ApiCallback<ReturnPhotoDto> callback) {
+        if (uri == null) {
+            callback.onError("Brak zdjęcia.");
+            return;
+        }
+        String fileName = resolveFileName(uri);
+        String mime = context.getContentResolver().getType(uri);
+        MediaType mediaType = MediaType.parse(mime != null ? mime : "image/jpeg");
+        byte[] data;
+        try {
+            data = readBytes(uri);
+        } catch (IOException e) {
+            callback.onError("Nie udało się odczytać zdjęcia.");
+            return;
+        }
+
+        RequestBody fileBody = RequestBody.create(data, mediaType);
+        MultipartBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", fileName, fileBody)
+                .build();
+
+        Type type = new TypeToken<ApiResponse<ReturnPhotoDto>>(){}.getType();
+        sendMultipartWithResponse("api/returns/" + id + "/photos", requestBody, type, callback);
+    }
+
     public void addReturnAction(int id, ReturnActionCreateRequest payload, ApiCallback<Void> callback) {
         sendJson("api/returns/" + id + "/actions", payload, "POST", callback);
     }
@@ -448,5 +491,37 @@ public class ApiClient {
 
     public void createManualReturn(ReturnManualCreateRequest payload, ApiCallback<Void> callback) {
         sendJson("api/returns/manual", payload, "POST", callback);
+    }
+
+    private String resolveFileName(Uri uri) {
+        String name = null;
+        Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
+        if (cursor != null) {
+            try {
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (nameIndex >= 0 && cursor.moveToFirst()) {
+                    name = cursor.getString(nameIndex);
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return name != null && !name.trim().isEmpty() ? name : "zdjecie.jpg";
+    }
+
+    private byte[] readBytes(Uri uri) throws IOException {
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri);
+             ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            if (inputStream == null) {
+                throw new IOException("Brak strumienia wejściowego");
+            }
+            byte[] data = new byte[8192];
+            int nRead;
+            while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
+            }
+            buffer.flush();
+            return buffer.toByteArray();
+        }
     }
 }

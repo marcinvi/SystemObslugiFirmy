@@ -2,6 +2,7 @@ using System.Data.Common;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MySqlConnector;
@@ -21,6 +22,8 @@ public class ReturnsService
     private readonly ReturnSyncProgressService _progressService;
     private readonly NotificationsService _notificationsService;
     private readonly ILogger<ReturnsService> _logger;
+    private readonly FileStorageOptions _fileStorageOptions;
+    private readonly IWebHostEnvironment _environment;
     private string? _uwagiMagazynuColumn;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -33,7 +36,9 @@ public class ReturnsService
         AllegroApiClient allegroApiClient,
         ReturnSyncProgressService progressService,
         NotificationsService notificationsService,
-        ILogger<ReturnsService> logger)
+        ILogger<ReturnsService> logger,
+        Microsoft.Extensions.Options.IOptions<FileStorageOptions> storageOptions,
+        IWebHostEnvironment environment)
     {
         _configuration = configuration;
         _context = context;
@@ -41,6 +46,8 @@ public class ReturnsService
         _progressService = progressService;
         _notificationsService = notificationsService;
         _logger = logger;
+        _fileStorageOptions = storageOptions.Value ?? new FileStorageOptions();
+        _environment = environment;
     }
 
     public async Task<ReturnSyncResponse> SyncReturnsFromAllegroAsync(ReturnSyncRequest? request, string userDisplayName)
@@ -875,6 +882,200 @@ public class ReturnsService
         }
 
         return results;
+    }
+
+    public async Task<List<ReturnPhotoDto>> GetReturnPhotosAsync(int returnId)
+    {
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        const string query = @"
+            SELECT Id, ZwrotId, NazwaPliku, SciezkaPliku, TypPliku, RozmiarPliku, DataDodania, DodanyPrzezNazwa
+            FROM ZwrotPliki
+            WHERE ZwrotId = @returnId
+            ORDER BY DataDodania DESC";
+
+        await using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@returnId", returnId);
+
+        var results = new List<ReturnPhotoDto>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetInt32("Id");
+            results.Add(new ReturnPhotoDto
+            {
+                Id = id,
+                ReturnId = reader.GetInt32("ZwrotId"),
+                FileName = reader["NazwaPliku"]?.ToString() ?? string.Empty,
+                ContentType = reader["TypPliku"]?.ToString(),
+                Size = reader["RozmiarPliku"] == DBNull.Value ? null : reader.GetInt64("RozmiarPliku"),
+                AddedAt = reader.GetDateTime("DataDodania"),
+                AddedByName = reader["DodanyPrzezNazwa"]?.ToString(),
+                Url = $"/api/returns/photos/{id}"
+            });
+        }
+
+        return results;
+    }
+
+    public async Task<ReturnPhotoDetails?> GetReturnPhotoAsync(int photoId)
+    {
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        const string query = @"
+            SELECT Id, ZwrotId, NazwaPliku, SciezkaPliku, TypPliku, RozmiarPliku, DataDodania, DodanyPrzezNazwa
+            FROM ZwrotPliki
+            WHERE Id = @id
+            LIMIT 1";
+
+        await using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@id", photoId);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
+        return new ReturnPhotoDetails
+        {
+            Id = reader.GetInt32("Id"),
+            ReturnId = reader.GetInt32("ZwrotId"),
+            FileName = reader["NazwaPliku"]?.ToString() ?? string.Empty,
+            FilePath = reader["SciezkaPliku"]?.ToString() ?? string.Empty,
+            ContentType = reader["TypPliku"]?.ToString(),
+            Size = reader["RozmiarPliku"] == DBNull.Value ? null : reader.GetInt64("RozmiarPliku"),
+            AddedAt = reader.GetDateTime("DataDodania"),
+            AddedByName = reader["DodanyPrzezNazwa"]?.ToString()
+        };
+    }
+
+    public async Task<ReturnPhotoDto?> UploadReturnPhotoAsync(int returnId, IFormFile file, int? userId, string userDisplayName)
+    {
+        if (file == null || file.Length == 0)
+        {
+            throw new InvalidOperationException("Plik jest pusty.");
+        }
+
+        if (file.Length > 10 * 1024 * 1024)
+        {
+            throw new InvalidOperationException("Plik jest za duży (max 10MB).");
+        }
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif" };
+        if (!allowedTypes.Contains(file.ContentType))
+        {
+            throw new InvalidOperationException("Nieobsługiwany typ pliku.");
+        }
+
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        if (!await ReturnExistsAsync(connection, returnId))
+        {
+            return null;
+        }
+
+        var uploadPath = ResolveReturnPhotosPath();
+        if (!Directory.Exists(uploadPath))
+        {
+            Directory.CreateDirectory(uploadPath);
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(uploadPath, fileName);
+
+        await using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        const string insertQuery = @"
+            INSERT INTO ZwrotPliki
+                (ZwrotId, NazwaPliku, SciezkaPliku, TypPliku, RozmiarPliku, DataDodania, DodanyPrzez, DodanyPrzezNazwa)
+            VALUES
+                (@zwrotId, @nazwa, @sciezka, @typ, @rozmiar, @data, @dodanyPrzez, @dodanyPrzezNazwa)";
+
+        await using var command = new MySqlCommand(insertQuery, connection);
+        command.Parameters.AddWithValue("@zwrotId", returnId);
+        command.Parameters.AddWithValue("@nazwa", fileName);
+        command.Parameters.AddWithValue("@sciezka", filePath);
+        command.Parameters.AddWithValue("@typ", file.ContentType);
+        command.Parameters.AddWithValue("@rozmiar", file.Length);
+        command.Parameters.AddWithValue("@data", DateTime.Now);
+        command.Parameters.AddWithValue("@dodanyPrzez", (object?)userId ?? DBNull.Value);
+        command.Parameters.AddWithValue("@dodanyPrzezNazwa", userDisplayName);
+
+        var inserted = await command.ExecuteNonQueryAsync() > 0;
+        if (!inserted)
+        {
+            return null;
+        }
+
+        var photoId = (int)command.LastInsertedId;
+        await AddReturnActionInternalAsync(connection, returnId, userDisplayName, "Dodano zdjęcie do zwrotu.");
+
+        return new ReturnPhotoDto
+        {
+            Id = photoId,
+            ReturnId = returnId,
+            FileName = fileName,
+            ContentType = file.ContentType,
+            Size = file.Length,
+            AddedAt = DateTime.Now,
+            AddedByName = userDisplayName,
+            Url = $"/api/returns/photos/{photoId}"
+        };
+    }
+
+    public async Task<bool> DeleteReturnPhotoAsync(int photoId, string userDisplayName)
+    {
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        const string selectQuery = @"
+            SELECT ZwrotId, SciezkaPliku
+            FROM ZwrotPliki
+            WHERE Id = @id
+            LIMIT 1";
+        await using var selectCommand = new MySqlCommand(selectQuery, connection);
+        selectCommand.Parameters.AddWithValue("@id", photoId);
+
+        int? returnId = null;
+        string? filePath = null;
+        await using (var reader = await selectCommand.ExecuteReaderAsync())
+        {
+            if (await reader.ReadAsync())
+            {
+                returnId = reader["ZwrotId"] == DBNull.Value ? null : reader.GetInt32("ZwrotId");
+                filePath = reader["SciezkaPliku"]?.ToString();
+            }
+        }
+
+        if (returnId == null)
+        {
+            return false;
+        }
+
+        const string deleteQuery = "DELETE FROM ZwrotPliki WHERE Id = @id";
+        await using var deleteCommand = new MySqlCommand(deleteQuery, connection);
+        deleteCommand.Parameters.AddWithValue("@id", photoId);
+        var deleted = await deleteCommand.ExecuteNonQueryAsync() > 0;
+
+        if (deleted && !string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
+
+        if (deleted)
+        {
+            await AddReturnActionInternalAsync(connection, returnId, userDisplayName, "Usunięto zdjęcie zwrotu.");
+        }
+
+        return deleted;
     }
 
     public async Task<ReturnActionDto?> AddActionAsync(int returnId, int userId, string userDisplayName, ReturnActionCreateRequest request)
@@ -1897,6 +2098,40 @@ public class ReturnsService
         command.Parameters.AddWithValue("@akcja", action);
         command.Parameters.AddWithValue("@id", returnId ?? (object)DBNull.Value);
         await command.ExecuteNonQueryAsync();
+    }
+
+    private string ResolveReturnPhotosPath()
+    {
+        if (!string.IsNullOrWhiteSpace(_fileStorageOptions.ReturnPhotosPath))
+        {
+            return Path.IsPathRooted(_fileStorageOptions.ReturnPhotosPath)
+                ? _fileStorageOptions.ReturnPhotosPath
+                : Path.Combine(_environment.ContentRootPath, _fileStorageOptions.ReturnPhotosPath);
+        }
+
+        var basePath = _fileStorageOptions.UploadPath;
+        if (string.IsNullOrWhiteSpace(basePath))
+        {
+            basePath = Path.Combine(_environment.ContentRootPath, "uploads");
+        }
+        else if (!Path.IsPathRooted(basePath))
+        {
+            basePath = Path.Combine(_environment.ContentRootPath, basePath);
+        }
+
+        return Path.Combine(basePath, "returns");
+    }
+
+    public class ReturnPhotoDetails
+    {
+        public int Id { get; set; }
+        public int ReturnId { get; set; }
+        public string FileName { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
+        public string? ContentType { get; set; }
+        public long? Size { get; set; }
+        public DateTime AddedAt { get; set; }
+        public string? AddedByName { get; set; }
     }
 
     private async Task<int?> GetDefaultWarehouseStatusIdAsync(MySqlConnection connection)
