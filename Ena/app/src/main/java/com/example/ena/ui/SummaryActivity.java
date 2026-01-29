@@ -70,7 +70,6 @@ public class SummaryActivity extends AppCompatActivity {
         adapter = new ReturnListAdapter(item -> {
             Intent intent = new Intent(this, ReturnDetailActivity.class);
             intent.putExtra("return_id", item.getId());
-            intent.putExtra(ReturnDetailActivity.EXTRA_READ_ONLY, true);
             startActivity(intent);
         }, ReturnListAdapter.DisplayMode.SUMMARY);
         recyclerView.setAdapter(adapter);
