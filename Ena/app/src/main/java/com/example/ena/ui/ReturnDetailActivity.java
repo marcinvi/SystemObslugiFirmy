@@ -129,6 +129,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
             btnCloseReturn.setVisibility(View.GONE);
         }
 
+        photoPicker = registerForActivityResult(new ActivityResultContracts.GetContent(), this::handlePhotoPicked);
         btnAddResendInfo = findViewById(R.id.btnAddResendInfo);
         btnAddReturnPhoto = findViewById(R.id.btnAddReturnPhoto);
         editWarehouseAction = findViewById(R.id.editWarehouseAction);
