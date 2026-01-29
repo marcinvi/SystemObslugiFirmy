@@ -88,7 +88,7 @@ public class ReturnsController : ControllerBase
         var data = await _returnsService.GetReturnDetailsAsync(id);
         if (data == null)
         {
-            return NotFound(ApiResponse<ReturnDetailsDto>.ErrorResponse("Return not found."));
+            return NotFound(ApiResponse<ReturnDetailsDto>.ErrorResponse("Nie znaleziono zwrotu."));
         }
         return Ok(ApiResponse<ReturnDetailsDto>.SuccessResponse(data));
     }
@@ -99,7 +99,7 @@ public class ReturnsController : ControllerBase
         var data = await _returnsService.GetReturnByCodeAsync(code);
         if (data == null)
         {
-            return NotFound(ApiResponse<ReturnDetailsDto>.ErrorResponse("Return not found."));
+            return NotFound(ApiResponse<ReturnDetailsDto>.ErrorResponse("Nie znaleziono zwrotu."));
         }
 
         return Ok(ApiResponse<ReturnDetailsDto>.SuccessResponse(data));
@@ -108,14 +108,39 @@ public class ReturnsController : ControllerBase
     [HttpPost("sync")]
     public async Task<ActionResult<ApiResponse<ReturnSyncResponse>>> SyncReturns([FromBody] ReturnSyncRequest? request)
     {
-        var result = await _returnsService.SyncReturnsFromAllegroAsync(request, GetUserDisplayName());
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var result = await _returnsService.SyncReturnsFromAllegroAsync(request, userDisplayName);
         return Ok(ApiResponse<ReturnSyncResponse>.SuccessResponse(result));
     }
 
     [HttpPost("sync/start")]
-    public ActionResult<ApiResponse<ReturnSyncJobResponse>> StartSync([FromBody] ReturnSyncRequest? request)
+    public async Task<ActionResult<ApiResponse<ReturnSyncJobResponse>>> StartSync([FromBody] ReturnSyncRequest? request)
     {
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userId = GetUserIdFromClaims();
         var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
         var job = _progressService.StartJob(userDisplayName);
 
         _ = Task.Run(async () =>
@@ -127,7 +152,7 @@ public class ReturnsController : ControllerBase
             catch (Exception ex)
             {
                 _progressService.Fail(job, ex.Message);
-                _logger.LogError(ex, "Synchronizacja zwrotw zakoczona bdem. JobId={JobId}", job.JobId);
+                _logger.LogError(ex, "Synchronizacja zwrotów zakończona błędem. JobId={JobId}", job.JobId);
             }
         });
 
@@ -156,10 +181,23 @@ public class ReturnsController : ControllerBase
     [HttpPatch("{id:int}/warehouse")]
     public async Task<ActionResult<ApiResponse<object>>> UpdateWarehouse(int id, [FromBody] ReturnWarehouseUpdateRequest request)
     {
-        var success = await _returnsService.UpdateWarehouseAsync(id, request, GetUserDisplayName());
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var success = await _returnsService.UpdateWarehouseAsync(id, request, userDisplayName);
         if (!success)
         {
-            return NotFound(ApiResponse<object>.ErrorResponse("Return not found."));
+            return NotFound(ApiResponse<object>.ErrorResponse("Nie znaleziono zwrotu."));
         }
         return Ok(ApiResponse<object>.SuccessResponse(new { id }));
     }
@@ -179,7 +217,10 @@ public class ReturnsController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
         }
 
-        var success = await _returnsService.ForwardToSalesAsync(id, request, userId.Value, GetUserDisplayName());
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+
+        var success = await _returnsService.ForwardToSalesAsync(id, request, userId.Value, userDisplayName);
         if (!success)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się przekazać zwrotu do handlowca."));
@@ -191,7 +232,20 @@ public class ReturnsController : ControllerBase
     [HttpPatch("{id:int}/decision")]
     public async Task<ActionResult<ApiResponse<ReturnDecisionResponse>>> SaveDecision(int id, [FromBody] ReturnDecisionRequest request)
     {
-        var response = await _returnsService.SaveDecisionAsync(id, request, GetUserDisplayName());
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var response = await _returnsService.SaveDecisionAsync(id, request, userDisplayName);
         if (response == null)
         {
             return BadRequest(ApiResponse<ReturnDecisionResponse>.ErrorResponse("Nie udało się zapisać decyzji."));
@@ -202,7 +256,20 @@ public class ReturnsController : ControllerBase
     [HttpPost("{id:int}/forward-to-warehouse")]
     public async Task<ActionResult<ApiResponse<object>>> ForwardToWarehouse(int id, [FromBody] ReturnForwardToWarehouseRequest request)
     {
-        var updated = await _returnsService.ForwardToWarehouseAsync(id, request, GetUserDisplayName());
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var updated = await _returnsService.ForwardToWarehouseAsync(id, request, userDisplayName);
         return Ok(ApiResponse<object>.SuccessResponse(new { id, statusUpdated = updated }));
     }
 
@@ -226,7 +293,20 @@ public class ReturnsController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak powodu odrzucenia."));
         }
 
-        var success = await _returnsService.RejectReturnAsync(id, request, GetUserDisplayName());
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var success = await _returnsService.RejectReturnAsync(id, request, userDisplayName);
         if (!success)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się odrzucić zwrotu."));
@@ -248,7 +328,20 @@ public class ReturnsController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak powodu zwrotu."));
         }
 
-        var success = await _returnsService.RefundPaymentAsync(id, request, GetUserDisplayName());
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var success = await _returnsService.RefundPaymentAsync(id, request, userDisplayName);
         if (!success)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się zlecić zwrotu wpłaty."));
@@ -296,6 +389,7 @@ public class ReturnsController : ControllerBase
             userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
             if (userId.HasValue)
             {
+                // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
                 userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
             }
         }
@@ -315,10 +409,23 @@ public class ReturnsController : ControllerBase
     [HttpPatch("{id:int}/archive")]
     public async Task<ActionResult<ApiResponse<object>>> ArchiveReturn(int id)
     {
-        var success = await _returnsService.ArchiveReturnAsync(id, GetUserDisplayName());
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var success = await _returnsService.ArchiveReturnAsync(id, userDisplayName);
         if (!success)
         {
-            return NotFound(ApiResponse<object>.ErrorResponse("Return not found."));
+            return NotFound(ApiResponse<object>.ErrorResponse("Nie znaleziono zwrotu."));
         }
 
         return Ok(ApiResponse<object>.SuccessResponse(new { id }));
@@ -334,10 +441,23 @@ public class ReturnsController : ControllerBase
     [HttpPost("{id:int}/actions")]
     public async Task<ActionResult<ApiResponse<ReturnActionDto>>> AddAction(int id, [FromBody] ReturnActionCreateRequest request)
     {
-        var action = await _returnsService.AddActionAsync(id, GetUserDisplayName(), request);
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var action = await _returnsService.AddActionAsync(id, userDisplayName, request);
         if (action == null)
         {
-            return NotFound(ApiResponse<ReturnActionDto>.ErrorResponse("Return not found."));
+            return NotFound(ApiResponse<ReturnActionDto>.ErrorResponse("Nie znaleziono zwrotu."));
         }
 
         return Ok(ApiResponse<ReturnActionDto>.SuccessResponse(action));
@@ -405,13 +525,11 @@ public class ReturnsController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak danych przekazania reklamacji."));
         }
 
-        // Jeśli w body przekazujesz ReturnId, musi pasować do {id} z URL
         if (request.ReturnId != 0 && request.ReturnId != id)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Niezgodny identyfikator zwrotu."));
         }
 
-        // Ustal userId (claims -> fallback po loginie z nagłówka / Identity)
         var userId = GetUserIdFromClaims();
         if (!userId.HasValue)
         {
@@ -424,17 +542,44 @@ public class ReturnsController : ControllerBase
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak informacji o użytkowniku."));
         }
 
-        // (opcjonalnie) jeśli serwis potrzebuje ReturnId w request, możesz go “dopiąć”
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+
         if (request.ReturnId == 0)
             request.ReturnId = id;
 
-        var complaintId = await _returnsService.ForwardToComplaintsAsync(id, request, GetUserDisplayName());
+        var complaintId = await _returnsService.ForwardToComplaintsAsync(id, request, userDisplayName);
         if (!complaintId.HasValue)
         {
             return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się przekazać do reklamacji."));
         }
 
         return Ok(ApiResponse<object>.SuccessResponse(new { id, complaintId }));
+    }
+
+    [HttpPost("{id:int}/complete")]
+    public async Task<ActionResult<ApiResponse<object>>> CompleteReturn(int id)
+    {
+        // ✅ NAPRAWIONE: Pobierz prawdziwą nazwę z bazy
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var success = await _returnsService.CompleteReturnAsync(id, userDisplayName);
+        if (!success)
+        {
+            return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się zakończyć zwrotu."));
+        }
+
+        return Ok(ApiResponse<object>.SuccessResponse(new { id }));
     }
 
     private int? GetUserIdFromClaims()
@@ -458,17 +603,5 @@ public class ReturnsController : ControllerBase
         }
 
         return "System";
-    }
-
-    [HttpPost("{id:int}/complete")]
-    public async Task<ActionResult<ApiResponse<object>>> CompleteReturn(int id)
-    {
-        var success = await _returnsService.CompleteReturnAsync(id, GetUserDisplayName());
-        if (!success)
-        {
-            return BadRequest(ApiResponse<object>.ErrorResponse("Nie udało się zakończyć zwrotu."));
-        }
-
-        return Ok(ApiResponse<object>.SuccessResponse(new { id }));
     }
 }

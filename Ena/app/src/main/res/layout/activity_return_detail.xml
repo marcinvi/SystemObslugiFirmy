@@ -356,6 +356,7 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
+    <!-- ✅ NOWY LAYOUT PRZYCISKÓW - WSZYSTKIE PEŁNEJ SZEROKOŚCI -->
     <LinearLayout
         android:id="@+id/bottomPanel"
         android:layout_width="match_parent"
@@ -366,60 +367,57 @@
         android:elevation="8dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <LinearLayout
+        <!-- ✅ NOWY PRZYCISK - Zwrot zakończony (zielony) -->
+        <Button
+            android:id="@+id/btnCompleteReturn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="2">
+            android:layout_height="50dp"
+            android:layout_marginBottom="8dp"
+            android:text="Zwrot zakończony"
+            android:backgroundTint="#4CAF50"
+            android:textColor="#FFFFFF"
+            android:visibility="gone" />
 
-            <Button
-                android:id="@+id/btnCancel"
-                android:layout_width="0dp"
-                android:layout_height="50dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="Wróć"
-                android:backgroundTint="#9E9E9E"
-                android:textColor="#FFFFFF"/>
-
-            <Button
-                android:id="@+id/btnCloseReturn"
-                android:layout_width="0dp"
-                android:layout_height="50dp"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="Zamknij"
-                android:backgroundTint="#4CAF50"
-                android:textColor="#FFFFFF"/>
-        </LinearLayout>
-
-        <LinearLayout
+        <!-- Przekaż do handlowca (niebieski) -->
+        <Button
+            android:id="@+id/btnForwardToSales"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal"
-            android:weightSum="2">
+            android:layout_height="50dp"
+            android:layout_marginBottom="8dp"
+            android:text="Przekaż do handlowca"
+            android:backgroundTint="#1976D2"
+            android:textColor="#FFFFFF"/>
 
-            <Button
-                android:id="@+id/btnForwardToComplaints"
-                android:layout_width="0dp"
-                android:layout_height="50dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="Reklamacja / inne"
-                android:backgroundTint="#FF9800"
-                android:textColor="#FFFFFF"/>
+        <!-- ✅ ZMIENIONY TEKST - Przekaż na reklamacje (pomarańczowy) -->
+        <Button
+            android:id="@+id/btnForwardToComplaints"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginBottom="8dp"
+            android:text="Przekaż na reklamacje"
+            android:backgroundTint="#FF9800"
+            android:textColor="#FFFFFF"/>
 
-            <Button
-                android:id="@+id/btnForwardToSales"
-                android:layout_width="0dp"
-                android:layout_height="50dp"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="Przekaż do handlowca"
-                android:backgroundTint="#1976D2"
-                android:textColor="#FFFFFF"/>
-        </LinearLayout>
+        <!-- Stary przycisk Zamknij (ukryty, ale zostawiony dla kompatybilności) -->
+        <Button
+            android:id="@+id/btnCloseReturn"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginBottom="8dp"
+            android:text="Zamknij"
+            android:backgroundTint="#4CAF50"
+            android:textColor="#FFFFFF"
+            android:visibility="gone"/>
+
+        <!-- Przycisk Wróć (szary, ukryty - używamy strzałki) -->
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="Wróć"
+            android:backgroundTint="#9E9E9E"
+            android:textColor="#FFFFFF"
+            android:visibility="gone"/>
     </LinearLayout>
 
     <ProgressBar

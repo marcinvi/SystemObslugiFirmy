@@ -49,6 +49,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private android.widget.Spinner spinnerStanProduktu;
     private Button btnForwardToSales;
     private Button btnForwardToComplaints;
+    private Button btnCompleteReturn; // ✅ NOWY PRZYCISK
     private Button btnCancel;
     private Button btnCloseReturn;
     private Button btnAddResendInfo;
@@ -69,7 +70,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
         returnId = getIntent().getIntExtra(EXTRA_RETURN_ID, 0);
         isReadOnly = getIntent().getBooleanExtra(EXTRA_READ_ONLY, false);
 
-        // ZMIANA: Obsługa customowej strzałki wstecz
         ImageButton btnBack = findViewById(R.id.btnBack);
         if (btnBack != null) {
             btnBack.setOnClickListener(v -> finish());
@@ -94,6 +94,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
 
         btnForwardToSales = findViewById(R.id.btnForwardToSales);
         btnForwardToComplaints = findViewById(R.id.btnForwardToComplaints);
+        btnCompleteReturn = findViewById(R.id.btnCompleteReturn); // ✅ INICJALIZACJA
 
         btnCancel = findViewById(R.id.btnCancel);
         btnCloseReturn = findViewById(R.id.btnCloseReturn);
@@ -116,19 +117,16 @@ public class ReturnDetailActivity extends AppCompatActivity {
         btnForwardToComplaints.setOnClickListener(v -> showForwardToComplaintsDialog());
         btnWarehouseAddAction.setOnClickListener(v -> submitWarehouseAction());
 
-        // ZMIANA: Ukrycie zbędnych przycisków (Anuluj) - zostawiamy tylko przekazania
-        if (btnCancel != null) btnCancel.setVisibility(View.GONE);
-        // btnAddResendInfo zostawiam widoczne, bo może być potrzebne do logowania zdarzeń,
-        // ale jeśli chcesz ukryć też "Dodaj info o ponownej wysyłce", odkomentuj linię niżej:
-        // if (btnAddResendInfo != null) btnAddResendInfo.setVisibility(View.GONE);
+        // ✅ LISTENER DLA NOWEGO PRZYCISKU
+        if (btnCompleteReturn != null) {
+            btnCompleteReturn.setOnClickListener(v -> showCompleteReturnDialog());
+        }
 
-        // Listenerów dla ukrytych przycisków nie musimy usuwać, ale dla porządku:
-        // btnCloseReturn.setOnClickListener(v -> confirmCloseReturn());
-        // btnAddResendInfo.setOnClickListener(v -> showResendInfoDialog());
+        if (btnCancel != null) btnCancel.setVisibility(View.GONE);
+
         if (btnAddResendInfo != null) {
             btnAddResendInfo.setOnClickListener(v -> showResendInfoDialog());
         }
-        // btnCancel.setOnClickListener(v -> finish()); // Obsługuje to teraz strzałka u góry
 
         if (isReadOnly) {
             btnForwardToSales.setVisibility(View.GONE);
@@ -201,19 +199,44 @@ public class ReturnDetailActivity extends AppCompatActivity {
         btnForwardToSales.setEnabled(!blokujPrzekazanie);
         btnForwardToComplaints.setEnabled(!blokujPrzekazanie);
 
+        // ✅ NOWA LOGIKA WYŚWIETLANIA PRZYCISKÓW
         if (isPoDecyzji) {
+            String decyzja = safe(data.getDecyzjaHandlowcaName());
+            boolean isNaDzialReklamacji = decyzja != null && decyzja.toLowerCase().contains("reklamacji");
+
+            // Ukryj przycisk "Przekaż do handlowca"
             btnForwardToSales.setVisibility(View.GONE);
-            btnForwardToComplaints.setText("Przekazany fizycznie na reklamacje");
-            btnCloseReturn.setText("Zwrot zakończony");
-            if (!isReadOnly) {
-                btnCloseReturn.setVisibility(View.VISIBLE);
-                btnCloseReturn.setOnClickListener(v -> confirmCloseReturn());
+
+            // Zmień tekst przycisku reklamacji na krótszy
+            btnForwardToComplaints.setText("Przekaż na reklamacje");
+
+            if (isNaDzialReklamacji) {
+                // Decyzja "Na dział reklamacji" → TYLKO przycisk "Przekaż na reklamacje"
+                if (btnCompleteReturn != null) {
+                    btnCompleteReturn.setVisibility(View.GONE);
+                }
+                btnForwardToComplaints.setVisibility(View.VISIBLE);
             } else {
-                btnCloseReturn.setVisibility(View.GONE);
+                // Inna decyzja → OBA przyciski
+                if (!isReadOnly && btnCompleteReturn != null) {
+                    btnCompleteReturn.setVisibility(View.VISIBLE);
+                } else if (btnCompleteReturn != null) {
+                    btnCompleteReturn.setVisibility(View.GONE);
+                }
+                btnForwardToComplaints.setVisibility(View.VISIBLE);
             }
         } else {
+            // Status != "Po decyzji"
             btnForwardToSales.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
             btnForwardToComplaints.setText("Reklamacja / inne");
+            btnForwardToComplaints.setVisibility(View.VISIBLE);
+            if (btnCompleteReturn != null) {
+                btnCompleteReturn.setVisibility(View.GONE);
+            }
+        }
+
+        // Stary przycisk "Zamknij" zawsze ukryty (używamy nowego)
+        if (btnCloseReturn != null) {
             btnCloseReturn.setVisibility(View.GONE);
         }
     }
@@ -298,6 +321,50 @@ public class ReturnDetailActivity extends AppCompatActivity {
                 .show();
     }
 
+    // ✅ NOWA METODA - DIALOG POTWIERDZENIA
+    private void showCompleteReturnDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Zakończ zwrot")
+                .setMessage("Czy na pewno chcesz zakończyć ten zwrot?\n\nZwrot zostanie oznaczony jako \"Zakończony\".")
+                .setPositiveButton("Tak, zakończ", (dialog, which) -> completeReturn())
+                .setNegativeButton("Anuluj", null)
+                .show();
+    }
+
+    // ✅ NOWA METODA - WYKONANIE ZAKOŃCZENIA ZWROTU
+    private void completeReturn() {
+        if (btnCompleteReturn != null) {
+            btnCompleteReturn.setEnabled(false);
+        }
+        progressBar.setVisibility(View.VISIBLE);
+
+        ApiClient client = new ApiClient(this);
+        client.completeReturn(returnId, new ApiClient.ApiCallback<Void>() {
+            @Override
+            public void onSuccess(Void data) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    if (btnCompleteReturn != null) {
+                        btnCompleteReturn.setEnabled(true);
+                    }
+                    Toast.makeText(ReturnDetailActivity.this, "Zwrot zakończony.", Toast.LENGTH_SHORT).show();
+                    finish();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    if (btnCompleteReturn != null) {
+                        btnCompleteReturn.setEnabled(true);
+                    }
+                    Toast.makeText(ReturnDetailActivity.this, "Błąd: " + message, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
     private void submitForwardToSales() {
         int stanId = getSelectedStatusId();
         if (stanId <= 0) {
@@ -378,38 +445,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     btnWarehouseAddAction.setEnabled(true);
                     Toast.makeText(ReturnDetailActivity.this, "Błąd zapisu działania: " + message, Toast.LENGTH_LONG).show();
-                });
-            }
-        });
-    }
-
-    private void confirmCloseReturn() {
-        new AlertDialog.Builder(this)
-                .setTitle("Zamknij zwrot")
-                .setMessage("Czy potwierdzasz wykonanie decyzji i zamknięcie zwrotu?")
-                .setPositiveButton("Zamknij", (dialog, which) -> closeReturn())
-                .setNegativeButton("Anuluj", null)
-                .show();
-    }
-
-    private void closeReturn() {
-        btnCloseReturn.setEnabled(false);
-        ApiClient client = new ApiClient(this);
-        client.completeReturn(returnId, new ApiClient.ApiCallback<Void>() {
-            @Override
-            public void onSuccess(Void data) {
-                runOnUiThread(() -> {
-                    btnCloseReturn.setEnabled(true);
-                    Toast.makeText(ReturnDetailActivity.this, "Zwrot zamknięty.", Toast.LENGTH_SHORT).show();
-                    finish();
-                });
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> {
-                    btnCloseReturn.setEnabled(true);
-                    Toast.makeText(ReturnDetailActivity.this, "Błąd zamknięcia: " + message, Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -690,10 +725,11 @@ public class ReturnDetailActivity extends AppCompatActivity {
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
+
     @Override
     public boolean onOptionsItemSelected(android.view.MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            finish(); // To zamyka ekran i wraca do poprzedniego
+            finish();
             return true;
         }
         return super.onOptionsItemSelected(item);

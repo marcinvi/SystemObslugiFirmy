@@ -15,7 +15,7 @@ public class ReturnListItemDto
     public int? HandlowiecId { get; set; }
     public bool IsManual { get; set; }
     public string Opiekun { get; set; }        // Np. Imie i Nazwisko handlowca przypisanego do klienta
-    public string AdresatDecyzji { get; set; } // Kto podj¹³/ma podj¹æ decyzjê
+    public string AdresatDecyzji { get; set; } // Kto podjął/ma podjąć decyzję
 }
 
 public class ReturnDetailsDto
@@ -55,6 +55,10 @@ public class ReturnDetailsDto
     public bool IsManual { get; set; }
     public string? AllegroReturnId { get; set; }
     public string? OrderId { get; set; }
+
+    // ✅ NOWE POLA: Informacje o opiekunie (handlowcu przypisanym do konta Allegro)
+    public int? AssignedSalesId { get; set; }
+    public string? AssignedSalesName { get; set; }
 }
 
 public class ReturnWarehouseUpdateRequest

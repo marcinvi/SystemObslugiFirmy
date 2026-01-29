@@ -57,6 +57,7 @@ public class ReturnsListActivity extends AppCompatActivity {
     private Button btnFilterOczekujace;
     private Button btnFilterNaDecyzje;
     private Button btnFilterPoDecyzji;
+    private Button btnFilterWTrakcie; // ✅ NOWA ZAKŁADKA
     private Button btnFilterWDrodze;
     private Button btnFilterWszystkie;
     private ImageButton btnRefresh;
@@ -70,6 +71,7 @@ public class ReturnsListActivity extends AppCompatActivity {
     private String currentStatusWewnetrzny;
     private String currentStatusAllegro;
     private int pendingCount;
+    private int inProgressCount; // ✅ LICZNIK DLA "W TRAKCIE"
     private int completedCount;
     private String pendingManualCode;
     private boolean isManualDialogVisible;
@@ -87,7 +89,6 @@ public class ReturnsListActivity extends AppCompatActivity {
             pendingManualCode = savedInstanceState.getString(STATE_PENDING_MANUAL_CODE);
         }
 
-        // ZMIANA: Przypisanie do progressBarSync (ten z elevation w XML), zamiast starego id.progress
         progressBar = findViewById(R.id.progressBarSync);
 
         txtEmpty = findViewById(R.id.txtEmpty);
@@ -98,6 +99,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnFilterOczekujace = findViewById(R.id.btnFilterOczekujace);
         btnFilterNaDecyzje = findViewById(R.id.btnFilterNaDecyzje);
         btnFilterPoDecyzji = findViewById(R.id.btnFilterPoDecyzji);
+        btnFilterWTrakcie = findViewById(R.id.btnFilterWTrakcie); // ✅ INICJALIZACJA
         btnFilterWDrodze = findViewById(R.id.btnFilterWDrodze);
         btnFilterWszystkie = findViewById(R.id.btnFilterWszystkie);
         btnRefresh = findViewById(R.id.btnRefresh);
@@ -107,7 +109,6 @@ public class ReturnsListActivity extends AppCompatActivity {
         txtLoadingMessage = findViewById(R.id.txtLoadingMessage);
         filtersDecisionRow = findViewById(R.id.filtersDecisionRow);
 
-        // ZMIANA: Obsługa przycisku wstecz (strzałki w nagłówku)
         ImageButton btnBack = findViewById(R.id.btnBack);
         if (btnBack != null) {
             btnBack.setOnClickListener(v -> finish());
@@ -142,10 +143,6 @@ public class ReturnsListActivity extends AppCompatActivity {
             btnSync.setOnClickListener(v -> syncReturns());
         }
 
-        // Nie ładujemy od razu, żeby uniknąć podwójnego requestu przy powrocie,
-        // ale jeśli lista jest pusta przy starcie, to warto załadować.
-        // loadReturns(); // Zakomentowane, bo onResume lub filtry mogą to wywołać
-        // Wywołajmy raz na start:
         loadReturns();
     }
 
@@ -212,6 +209,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         currentStatusAllegro = null;
     }
 
+    // ✅ ZAKTUALIZOWANA METODA - 3 ZAKŁADKI DLA HANDLOWCA
     private void setupSalesFilters() {
         spinnerStatusAllegro.setVisibility(View.GONE);
         btnFilterOczekujace.setVisibility(View.GONE);
@@ -221,22 +219,37 @@ public class ReturnsListActivity extends AppCompatActivity {
             filtersDecisionRow.setVisibility(View.VISIBLE);
         }
 
+        // Zakładka 1: Nowe sprawy
         btnFilterNaDecyzje.setText("Nowe sprawy");
-        btnFilterPoDecyzji.setText("Zakończone");
-
         btnFilterNaDecyzje.setOnClickListener(v -> {
             currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
             currentStatusAllegro = null;
             setActiveFilter(btnFilterNaDecyzje);
             loadReturns();
         });
+
+        // ✅ Zakładka 2: W trakcie (NOWA!)
+        if (btnFilterWTrakcie != null) {
+            btnFilterWTrakcie.setVisibility(View.VISIBLE);
+            btnFilterWTrakcie.setText("W trakcie");
+            btnFilterWTrakcie.setOnClickListener(v -> {
+                currentStatusWewnetrzny = "Po decyzji";
+                currentStatusAllegro = null;
+                setActiveFilter(btnFilterWTrakcie);
+                loadReturns();
+            });
+        }
+
+        // Zakładka 3: Zakończone
+        btnFilterPoDecyzji.setText("Zakończone");
         btnFilterPoDecyzji.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Po decyzji";
+            currentStatusWewnetrzny = "Zakończony";
             currentStatusAllegro = null;
             setActiveFilter(btnFilterPoDecyzji);
             loadReturns();
         });
 
+        // Domyślnie: Nowe sprawy
         setActiveFilter(btnFilterNaDecyzje);
         currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
         currentStatusAllegro = null;
@@ -247,6 +260,9 @@ public class ReturnsListActivity extends AppCompatActivity {
         spinnerStatusAllegro.setVisibility(View.GONE);
         btnFilterNaDecyzje.setVisibility(View.GONE);
         btnFilterPoDecyzji.setVisibility(View.GONE);
+        if (btnFilterWTrakcie != null) {
+            btnFilterWTrakcie.setVisibility(View.GONE);
+        }
         if (filtersDecisionRow != null) {
             filtersDecisionRow.setVisibility(View.GONE);
         }
@@ -296,13 +312,10 @@ public class ReturnsListActivity extends AppCompatActivity {
     }
 
     private void loadReturns() {
-        // POPRAWKA: Używamy TU TYLKO progressBar (małe kółko), bez Overlay (dużej ramki)
-        // żeby nie było "dwóch ramek" na raz.
         if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
         if (txtEmpty != null) txtEmpty.setVisibility(View.GONE);
         if (txtCount != null) txtCount.setText("Wyświetlono: 0");
 
-        // Ukrywamy overlay na wypadek jakby został
         hideLoadingOverlay();
 
         ApiClient client = new ApiClient(this);
@@ -360,17 +373,14 @@ public class ReturnsListActivity extends AppCompatActivity {
     }
 
     private void syncReturns() {
-        // POPRAWKA: Tu używamy LoadingOverlay (duża ramka z napisem), bo to trwa dłużej
-        // i chcemy zablokować ekran.
         showLoadingOverlay("Trwa synchronizacja z Allegro...");
 
-        // Ukrywamy mały progress bar, żeby nie było dublowania
         if (progressBar != null) progressBar.setVisibility(View.GONE);
 
         if (btnSync != null) btnSync.setEnabled(false);
 
         ApiClient client = new ApiClient(this);
-        ReturnSyncRequest request = new ReturnSyncRequest(null, null); // null = domyślne parametry API
+        ReturnSyncRequest request = new ReturnSyncRequest(null, null);
 
         client.syncReturns(request, new ApiClient.ApiCallback<ReturnSyncResponse>() {
             @Override
@@ -385,16 +395,13 @@ public class ReturnsListActivity extends AppCompatActivity {
                                 ", Przetworzono: " + data.getReturnsProcessed() +
                                 " (Konta: " + data.getAccountsProcessed() + ").";
 
-                        // Wyświetlenie błędów z API w Toast, jeśli są
                         if (data.getErrors() != null && !data.getErrors().isEmpty()) {
-                            // Łączymy błędy w jeden tekst
                             String errorDetails = TextUtils.join("\n", data.getErrors());
                             Toast.makeText(ReturnsListActivity.this, "Błędy:\n" + errorDetails, Toast.LENGTH_LONG).show();
                         } else {
                             Toast.makeText(ReturnsListActivity.this, message, Toast.LENGTH_LONG).show();
                         }
                     }
-                    // Po udanej synchronizacji odświeżamy listę
                     loadReturns();
                 });
             }
@@ -410,15 +417,18 @@ public class ReturnsListActivity extends AppCompatActivity {
         });
     }
 
+    // ✅ ZAKTUALIZOWANA METODA - OBSŁUGA 3 PRZYCISKÓW
     private void setActiveFilter(Button activeButton) {
         Button[] buttons = new Button[] {
                 btnFilterOczekujace,
                 btnFilterNaDecyzje,
+                btnFilterWTrakcie, // ✅ DODANY
                 btnFilterPoDecyzji,
                 btnFilterWDrodze,
                 btnFilterWszystkie
         };
         for (Button button : buttons) {
+            if (button == null) continue;
             if (button == activeButton) {
                 button.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_blue_light));
             } else {
@@ -450,13 +460,26 @@ public class ReturnsListActivity extends AppCompatActivity {
         return sb.toString();
     }
 
+    // ✅ ZAKTUALIZOWANA METODA - POBIERANIE LICZNIKÓW DLA 3 ZAKŁADEK
     private void updateSalesCounts() {
         ApiClient client = new ApiClient(this);
+
+        // Licznik: Nowe sprawy
         fetchSalesCount(client, "Oczekuje na decyzję handlowca", count -> {
             pendingCount = count;
             btnFilterNaDecyzje.setText("Nowe sprawy (" + pendingCount + ")");
         });
+
+        // ✅ Licznik: W trakcie
         fetchSalesCount(client, "Po decyzji", count -> {
+            inProgressCount = count;
+            if (btnFilterWTrakcie != null) {
+                btnFilterWTrakcie.setText("W trakcie (" + inProgressCount + ")");
+            }
+        });
+
+        // Licznik: Zakończone
+        fetchSalesCount(client, "Zakończony", count -> {
             completedCount = count;
             btnFilterPoDecyzji.setText("Zakończone (" + completedCount + ")");
         });

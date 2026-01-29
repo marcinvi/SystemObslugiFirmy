@@ -171,31 +171,30 @@
                 android:id="@+id/filtersDecisionRow"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:visibility="gone">
 
                 <Button
                     android:id="@+id/btnFilterNaDecyzje"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:background="@drawable/bg_spinner"
-                    android:text="Na decyzję"
-                    android:textAllCaps="false"
-                    android:textSize="12sp"
-                    style="?android:attr/borderlessButtonStyle"/>
+                    android:text="Nowe" />
+
+                <!-- ✅ NOWY PRZYCISK -->
+                <Button
+                    android:id="@+id/btnFilterWTrakcie"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="W trakcie" />
 
                 <Button
                     android:id="@+id/btnFilterPoDecyzji"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:background="@drawable/bg_spinner"
-                    android:text="Po decyzji"
-                    android:textAllCaps="false"
-                    android:textSize="12sp"
-                    style="?android:attr/borderlessButtonStyle"/>
+                    android:text="Zakończone" />
             </LinearLayout>
 
             <Spinner
