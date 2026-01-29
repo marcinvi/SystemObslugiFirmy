@@ -9,6 +9,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -51,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
         btnLogout = findViewById(R.id.btnLogout);
 
         apiClient = new ApiClient(this);
+        startBackgroundService();
 
         // 3. Ustawienie nagłówka
         String userDisplay = UserSession.getDisplayName(this);
@@ -63,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
         // 5. Obsługa wylogowania
         btnLogout.setOnClickListener(v -> {
             UserSession.clear(this);
+            stopBackgroundService();
             startLogin();
         });
 
@@ -143,5 +146,14 @@ public class MainActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    private void startBackgroundService() {
+        Intent serviceIntent = new Intent(this, BackgroundService.class);
+        ContextCompat.startForegroundService(this, serviceIntent);
+    }
+
+    private void stopBackgroundService() {
+        stopService(new Intent(this, BackgroundService.class));
     }
 }

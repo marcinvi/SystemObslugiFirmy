@@ -245,7 +245,7 @@ public class ReturnsController : ControllerBase
             }
         }
 
-        var response = await _returnsService.SaveDecisionAsync(id, request, userDisplayName);
+        var response = await _returnsService.SaveDecisionAsync(id, userId ?? 0, request, userDisplayName);
         if (response == null)
         {
             return BadRequest(ApiResponse<ReturnDecisionResponse>.ErrorResponse("Nie udało się zapisać decyzji."));
@@ -454,7 +454,7 @@ public class ReturnsController : ControllerBase
             }
         }
 
-        var action = await _returnsService.AddActionAsync(id, userDisplayName, request);
+        var action = await _returnsService.AddActionAsync(id, userId ?? 0, userDisplayName, request);
         if (action == null)
         {
             return NotFound(ApiResponse<ReturnActionDto>.ErrorResponse("Nie znaleziono zwrotu."));

@@ -72,6 +72,7 @@ builder.Services.AddScoped<IZgloszeniaService, ZgloszeniaService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IDzialanieService, DzialanieService>();
 builder.Services.AddScoped<ReturnsService>();
+builder.Services.AddScoped<NotificationsService>();
 builder.Services.AddSingleton<ReturnSyncProgressService>();
 builder.Services.AddScoped<MessagesService>();
 builder.Services.AddHttpClient<AllegroApiClient>();
