@@ -46,10 +46,13 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private TextView txtWarehouseNotes;
     private LinearLayout decisionTemplatesContainer;
     private EditText editDecisionComment;
+    private EditText editJournalEntry;
+    private LinearLayout journalEntryContainer;
     private ImageButton btnBack;
     private Button btnRefund;
     private Button btnReject;
     private Button btnComplaint;
+    private Button btnAddJournalEntry;
     private ProgressBar progressBar;
     private Integer selectedDecisionId;
 
@@ -83,10 +86,13 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         txtWarehouseNotes = findViewById(R.id.txtWarehouseNotes);
         decisionTemplatesContainer = findViewById(R.id.decisionTemplatesContainer);
         editDecisionComment = findViewById(R.id.editDecisionComment);
+        editJournalEntry = findViewById(R.id.editJournalEntry);
+        journalEntryContainer = findViewById(R.id.journalEntryContainer);
         btnBack = findViewById(R.id.btnBack);
         btnRefund = findViewById(R.id.btnRefund);
         btnReject = findViewById(R.id.btnReject);
         btnComplaint = findViewById(R.id.btnComplaint);
+        btnAddJournalEntry = findViewById(R.id.btnAddJournalEntry);
         progressBar = findViewById(R.id.progressBar);
 
         RecyclerView listActions = findViewById(R.id.listActions);
@@ -98,6 +104,9 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         btnRefund.setOnClickListener(v -> openRefundPayment());
         btnReject.setOnClickListener(v -> showRejectDialog());
         btnComplaint.setOnClickListener(v -> handlePrimaryAction());
+        if (btnAddJournalEntry != null) {
+            btnAddJournalEntry.setOnClickListener(v -> submitJournalEntry());
+        }
 
         loadDecyzje();
         loadDetails();
@@ -165,6 +174,9 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             if (editDecisionComment != null) {
                 editDecisionComment.setVisibility(View.GONE);
             }
+            if (journalEntryContainer != null) {
+                journalEntryContainer.setVisibility(View.GONE);
+            }
         } else {
             boolean isPoDecyzji = "Po decyzji".equalsIgnoreCase(safe(details.getStatusWewnetrzny()));
             btnComplaint.setText(isPoDecyzji ? "ZMIEŃ DECYZJĘ" : "ZATWIERDŹ DECYZJĘ");
@@ -173,6 +185,9 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             }
             if (editDecisionComment != null) {
                 editDecisionComment.setVisibility(View.VISIBLE);
+            }
+            if (journalEntryContainer != null) {
+                journalEntryContainer.setVisibility(View.VISIBLE);
             }
         }
     }
@@ -306,6 +321,39 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> Toast.makeText(SalesReturnDetailActivity.this, "Błąd historii: " + message, Toast.LENGTH_LONG).show());
             }
         });
+    }
+
+    private void submitJournalEntry() {
+        if (editJournalEntry == null || btnAddJournalEntry == null) {
+            return;
+        }
+        String text = editJournalEntry.getText().toString().trim();
+        if (text.isEmpty()) {
+            Toast.makeText(this, "Treść wpisu do dziennika nie może być pusta.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        btnAddJournalEntry.setEnabled(false);
+        ApiClient client = new ApiClient(this);
+        client.addReturnAction(returnId, new com.example.ena.api.ReturnActionCreateRequest(text),
+                new ApiClient.ApiCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void data) {
+                        runOnUiThread(() -> {
+                            btnAddJournalEntry.setEnabled(true);
+                            editJournalEntry.setText("");
+                            loadActions();
+                        });
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        runOnUiThread(() -> {
+                            btnAddJournalEntry.setEnabled(true);
+                            Toast.makeText(SalesReturnDetailActivity.this,
+                                    "Błąd zapisu wpisu: " + message, Toast.LENGTH_LONG).show();
+                        });
+                    }
+                });
     }
 
     private void showDecisionDialog() {
