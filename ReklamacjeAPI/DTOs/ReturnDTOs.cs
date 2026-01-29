@@ -20,6 +20,7 @@ public class ReturnListItemDto
 
 public class ReturnDetailsDto
 {
+    
     public int Id { get; set; }
     public string ReferenceNumber { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
