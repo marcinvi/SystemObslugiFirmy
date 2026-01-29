@@ -589,7 +589,7 @@ public class ReturnsService
             LEFT JOIN AllegroAccountOpiekun aao
                 ON aao.AllegroAccountId = acr.AllegroAccountId
                 AND (aao.CzyAktywny = 1 OR aao.CzyAktywny IS NULL)
-            LEFT JOIN Uzytkownicy uo
+            LEFT JOIN uzytkownicy uo
                 ON uo.Id = COALESCE(acr.HandlowiecOpiekunId, aao.OpiekunId)
             WHERE acr.Id = @id
             LIMIT 1";
@@ -1273,7 +1273,7 @@ public class ReturnsService
             await connection.OpenAsync();
             const string query = @"
                 SELECT Id, `Nazwa Wyświetlana` AS NazwaWyswietlana
-                FROM Uzytkownicy
+                FROM uzytkownicy
                 WHERE Rola = 'Handlowiec'
                 ORDER BY `Nazwa Wyświetlana`";
             await using var command = new MySqlCommand(query, connection);
@@ -1334,7 +1334,7 @@ public class ReturnsService
     {
         await using var connection = DbConnectionFactory.CreateDefaultConnection(_configuration);
         await connection.OpenAsync();
-        const string query = "SELECT `Nazwa Wyświetlana` FROM Uzytkownicy WHERE Id = @id LIMIT 1";
+        const string query = "SELECT `Nazwa Wyświetlana` FROM uzytkownicy WHERE Id = @id LIMIT 1";
         await using var command = new MySqlCommand(query, connection);
         command.Parameters.AddWithValue("@id", userId);
         var result = await command.ExecuteScalarAsync();
@@ -1501,7 +1501,19 @@ public class ReturnsService
 
         await InsertUnregisteredComplaintAsync(connection, returnId, request);
         var przekazal = string.IsNullOrWhiteSpace(request.Przekazal) ? userDisplayName : request.Przekazal;
-        var actionText = $"Przekazano fizycznie na reklamacje. Przekazał: {przekazal}.";
+        var statusId = await FindComplaintStatusIdAsync(connection);
+        if (statusId.HasValue)
+        {
+            await using var updateCommand = new MySqlCommand(@"
+                UPDATE AllegroCustomerReturns
+                SET StatusWewnetrznyId = @statusId
+                WHERE Id = @id", connection);
+            updateCommand.Parameters.AddWithValue("@statusId", statusId.Value);
+            updateCommand.Parameters.AddWithValue("@id", returnId);
+            await updateCommand.ExecuteNonQueryAsync();
+        }
+
+        var actionText = $"Przekazano fizycznie zwrot do działu reklamacji. Przekazał: {przekazal}.";
         await AddReturnActionInternalAsync(connection, returnId, userDisplayName, actionText);
         await AddMagazynDziennikAsync(connection, returnId, userDisplayName, actionText, null);
 
@@ -1585,7 +1597,7 @@ public class ReturnsService
 
         await using var connection = DbConnectionFactory.CreateDefaultConnection(_configuration);
         await connection.OpenAsync();
-        await using var command = new MySqlCommand("SELECT Id FROM Uzytkownicy WHERE Login = @login LIMIT 1", connection);
+        await using var command = new MySqlCommand("SELECT Id FROM uzytkownicy WHERE Login = @login LIMIT 1", connection);
         command.Parameters.AddWithValue("@login", login);
         var result = await command.ExecuteScalarAsync();
         return result == null ? null : Convert.ToInt32(result);
@@ -1668,7 +1680,7 @@ public class ReturnsService
 
         await using var connection = DbConnectionFactory.CreateDefaultConnection(_configuration);
         await connection.OpenAsync();
-        await using var command = new MySqlCommand("SELECT `Nazwa Wyświetlana` FROM Uzytkownicy WHERE Id = @id LIMIT 1", connection);
+        await using var command = new MySqlCommand("SELECT `Nazwa Wyświetlana` FROM uzytkownicy WHERE Id = @id LIMIT 1", connection);
         command.Parameters.AddWithValue("@id", userId.Value);
         var result = await command.ExecuteScalarAsync();
         return result?.ToString();
@@ -1712,6 +1724,28 @@ public class ReturnsService
         return await GetStatusIdByLikeAsync(connection, "%magaz%");
     }
 
+    private async Task<int?> FindComplaintStatusIdAsync(MySqlConnection connection)
+    {
+        var candidates = new[]
+        {
+            "Przekazany na reklamacje",
+            "Przekazano na reklamacje",
+            "Przekazany na dział reklamacji",
+            "Przekazano do reklamacji"
+        };
+
+        foreach (var name in candidates)
+        {
+            var id = await GetStatusIdByExactNameAsync(connection, name);
+            if (id.HasValue)
+            {
+                return id;
+            }
+        }
+
+        return await GetStatusIdByLikeAsync(connection, "%reklam%");
+    }
+
     private static async Task<int?> GetStatusIdByExactNameAsync(MySqlConnection connection, string name)
     {
         await using var command = new MySqlCommand("SELECT Id FROM Statusy WHERE Nazwa = @name LIMIT 1", connection);
@@ -1742,7 +1776,7 @@ public class ReturnsService
         var placeholders = userIds.Select((_, index) => $"@p{index}").ToList();
         var query = $@"
             SELECT Id, `Nazwa Wyświetlana`
-            FROM Uzytkownicy
+            FROM uzytkownicy
             WHERE Id IN ({string.Join(", ", placeholders)})";
 
         await using var command = new MySqlCommand(query, connection);

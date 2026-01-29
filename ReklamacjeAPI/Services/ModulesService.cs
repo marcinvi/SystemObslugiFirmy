@@ -24,7 +24,7 @@ public class ModulesService
             SELECT DISTINCT m.NazwaModulu
             FROM Uprawnienia u
             JOIN Moduly m ON u.ModulId = m.Id
-            JOIN Uzytkownicy usr ON u.UzytkownikId = usr.Id
+            JOIN uzytkownicy usr ON u.UzytkownikId = usr.Id
             WHERE usr.Login = @login
             ORDER BY m.Id";
 

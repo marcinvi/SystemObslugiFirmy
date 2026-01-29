@@ -12,13 +12,20 @@
         android:hint="Data ponownej wysyłki (domyślnie dzisiaj)"
         android:inputType="text" />
 
-    <EditText
-        android:id="@+id/editResendCarrier"
+    <Spinner
+        android:id="@+id/spinnerResendCarrier"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:hint="Przewoźnik"
-        android:inputType="text" />
+        android:layout_marginTop="12dp" />
+
+    <EditText
+        android:id="@+id/editResendCarrierOther"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Inny przewoźnik"
+        android:inputType="text"
+        android:visibility="gone" />
 
     <EditText
         android:id="@+id/editResendWaybill"
