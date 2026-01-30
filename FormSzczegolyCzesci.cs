@@ -85,30 +85,34 @@ namespace Reklamacje_Dane
             Panel pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 80, BackColor = Color.WhiteSmoke };
 
             // Obliczamy pozycje przycisków dynamicznie lub na sztywno, ale szerzej
-            int btnWidth = 180;
-            int gap = 20;
-            int startX = (this.ClientSize.Width - (3 * btnWidth + 2 * gap)) / 2;
+            int btnWidth = 160;
+            int gap = 15;
+            int startX = (this.ClientSize.Width - (4 * btnWidth + 3 * gap)) / 2;
             if (startX < 10) startX = 10;
 
             Button btnUzyj = CreateButton("UŻYJ DO NAPRAWY", Color.SeaGreen, 20); // Pozycje poprawię w Resize
             btnUzyj.Click += async (s, e) => await AkcjaUzyj();
 
-            Button btnUsun = CreateButton("USUŃ (POMYŁKA)", Color.IndianRed, 220);
+            Button btnRozchod = CreateButton("ROZCHÓD", Color.SteelBlue, 195);
+            btnRozchod.Click += async (s, e) => await AkcjaRozchod();
+
+            Button btnUsun = CreateButton("USUŃ (POMYŁKA)", Color.IndianRed, 370);
             btnUsun.Click += async (s, e) => await AkcjaUsun("Usunięcie (korekta)");
 
-            Button btnUtylizacja = CreateButton("UTYLIZACJA", Color.Gray, 420);
+            Button btnUtylizacja = CreateButton("UTYLIZACJA", Color.Gray, 545);
             btnUtylizacja.Click += async (s, e) => await AkcjaUsun("Utylizacja");
 
-            pnlButtons.Controls.AddRange(new Control[] { btnUzyj, btnUsun, btnUtylizacja });
+            pnlButtons.Controls.AddRange(new Control[] { btnUzyj, btnRozchod, btnUsun, btnUtylizacja });
 
             // Centrowanie przycisków przy starcie
             pnlButtons.Resize += (s, e) => {
-                int totalW = 3 * 180 + 40; // 3 guziki + odstępy
+                int totalW = 4 * btnWidth + 3 * gap; // 4 guziki + odstępy
                 int x = (pnlButtons.Width - totalW) / 2;
                 if (x < 10) x = 10;
                 btnUzyj.Left = x;
-                btnUsun.Left = x + 180 + 20;
-                btnUtylizacja.Left = x + 360 + 40;
+                btnRozchod.Left = x + btnWidth + gap;
+                btnUsun.Left = x + (2 * btnWidth) + (2 * gap);
+                btnUtylizacja.Left = x + (3 * btnWidth) + (3 * gap);
             };
 
             // Składanie
@@ -179,7 +183,7 @@ namespace Reklamacje_Dane
             {
                 Text = text,
                 Location = new Point(x, 20),
-                Size = new Size(180, 45), // Duże, wygodne przyciski
+                Size = new Size(160, 45), // Duże, wygodne przyciski
                 FlatStyle = FlatStyle.Flat,
                 BackColor = color,
                 ForeColor = Color.White,
@@ -229,6 +233,22 @@ namespace Reklamacje_Dane
                 string nrZgl = _czesc.ZgloszenieDawcy != "-" ? _czesc.ZgloszenieDawcy : "MAGAZYN";
                 await new DziennikLogger().DodajAsync(Program.fullName, log, nrZgl);
                 MessageBox.Show("Część usunięta.", "Info");
+                this.Close();
+            }
+            catch (Exception ex) { MessageBox.Show("Błąd: " + ex.Message); }
+        }
+
+        private async Task AkcjaRozchod()
+        {
+            string komentarz = Interaction.InputBox($"Rozchód: {_czesc.NazwaCzesci}\nPodaj komentarz:", "Rozchód magazynowy", "Rozchód magazynowy");
+            if (string.IsNullOrWhiteSpace(komentarz)) return;
+            try
+            {
+                await _service.RozchodCzescAsync(_czesc.Id, komentarz);
+                string log = $"ROZCHÓD CZĘŚCI: {_czesc.NazwaCzesci} (ID: {_czesc.Id}). Komentarz: {komentarz}. Użytkownik: {Program.fullName}";
+                await new DziennikLogger().DodajAsync(Program.fullName, log, "MAGAZYN");
+                new Dzialaniee().DodajNoweDzialanie("MAGAZYN", Program.fullName, log);
+                MessageBox.Show("Rozchód zapisany.", "Info");
                 this.Close();
             }
             catch (Exception ex) { MessageBox.Show("Błąd: " + ex.Message); }

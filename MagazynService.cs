@@ -421,6 +421,13 @@ namespace Reklamacje_Dane
                 new MySqlParameter("@nr", nrZgloszenia), new MySqlParameter("@d", DateTime.Now.ToString("yyyy-MM-dd HH:mm")), new MySqlParameter("@id", czescId));
         }
 
+        public async Task RozchodCzescAsync(int czescId, string komentarz)
+        {
+            string opis = $"ROZCHÓD: {komentarz}";
+            await _dbService.ExecuteNonQueryAsync("UPDATE DostepneCzesci SET CzyDostepna=0, UzytoWZgloszeniu=@opis, DataUzycia=@d WHERE Id=@id",
+                new MySqlParameter("@opis", opis), new MySqlParameter("@d", DateTime.Now.ToString("yyyy-MM-dd HH:mm")), new MySqlParameter("@id", czescId));
+        }
+
         public async Task PrzywrocCzescNaStanAsync(int czescId)
         {
             await _dbService.ExecuteNonQueryAsync("UPDATE DostepneCzesci SET CzyDostepna=1, UzytoWZgloszeniu=NULL, DataUzycia=NULL WHERE Id=@id", new MySqlParameter("@id", czescId));
