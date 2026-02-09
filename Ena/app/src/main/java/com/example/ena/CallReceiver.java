@@ -35,6 +35,7 @@ import androidx.core.content.ContextCompat;
 public class CallReceiver extends BroadcastReceiver {
 
     private static final String TAG = "EnaCallReceiver";
+    private static final String EXTRA_TRACE_ID = "trace_id";
     private static final String PREFS_NAME = "ena_prefs";
     private static final String PREF_SHOW_SMS_LINKS = "show_sms_links";
     private static final String PREF_CALL_WAS_INCOMING = "call_was_incoming";
@@ -192,6 +193,7 @@ public class CallReceiver extends BroadcastReceiver {
     private void handleIdle(Context context) {
         IncomingCallTracker tracker = IncomingCallTracker.getInstance();
 
+        long traceId = System.currentTimeMillis();
         String number = tracker.getBestNumber();
 
         // Ostatnia szansa: CallLog po zakończeniu
@@ -209,6 +211,10 @@ public class CallReceiver extends BroadcastReceiver {
         boolean persistedAnswered = prefs.getBoolean(PREF_CALL_WAS_ANSWERED, false);
         boolean persistedOutgoing = prefs.getBoolean(PREF_CALL_WAS_OUTGOING, false);
         String persistedNumber = prefs.getString(PREF_CALL_INCOMING_NUMBER, null);
+        Log.d(TAG, "[Trace " + traceId + "] persistedIncoming=" + persistedIncoming
+                + " persistedAnswered=" + persistedAnswered
+                + " persistedOutgoing=" + persistedOutgoing
+                + " persistedNumber=" + persistedNumber);
 
         if (!wasIncomingCall && persistedIncoming) {
             wasIncomingCall = true;
@@ -235,7 +241,7 @@ public class CallReceiver extends BroadcastReceiver {
         BackgroundService.sendPhoneEvent(context, "CALL_IDLE", finalNumber, null);
 
         // === Pokaż okno z linkami reklamacyjnymi ===
-        Log.i(TAG, "=== SPRAWDZAM WARUNKI LINKÓW: incoming=" + wasIncomingCall +
+        Log.i(TAG, "[Trace " + traceId + "] === SPRAWDZAM WARUNKI LINKÓW: incoming=" + wasIncomingCall +
                 " answered=" + wasAnswered +
                 " number=" + finalNumber +
                 " valid=" + isValidNumber(finalNumber) + " ===");
@@ -245,19 +251,19 @@ public class CallReceiver extends BroadcastReceiver {
             boolean smsEnabled = isSmsLinksEnabled(context);
             Log.i(TAG, "Ustawienie show_sms_links = " + smsEnabled);
             if (smsEnabled) {
-                Log.i(TAG, "✅ URUCHAMIAM dialog linków dla: " + finalNumber);
-                showSmsLinkNotification(context, finalNumber);
+                Log.i(TAG, "[Trace " + traceId + "] ✅ URUCHAMIAM dialog linków dla: " + finalNumber);
+                showSmsLinkNotification(context, finalNumber, traceId);
             } else {
-                Log.w(TAG, "❌ Pominięto dialog linków - opcja WYŁĄCZONA w ustawieniach!");
+                Log.w(TAG, "[Trace " + traceId + "] ❌ Pominięto dialog linków - opcja WYŁĄCZONA w ustawieniach!");
                 Log.w(TAG, "Włącz w: Ustawienia > Opcje połączeń > Pokazuj opcję wysyłania linków");
             }
         } else {
             if (!wasIncomingCall) {
-                Log.d(TAG, "Pominięto dialog - nie było połączenie przychodzące");
+                Log.d(TAG, "[Trace " + traceId + "] Pominięto dialog - nie było połączenie przychodzące");
             } else if (!wasAnswered) {
-                Log.d(TAG, "Pominięto dialog - połączenie nieodebrane");
+                Log.d(TAG, "[Trace " + traceId + "] Pominięto dialog - połączenie nieodebrane");
             } else {
-                Log.d(TAG, "Pominięto dialog - numer nieznany/pusty: '" + finalNumber + "'");
+                Log.d(TAG, "[Trace " + traceId + "] Pominięto dialog - numer nieznany/pusty: '" + finalNumber + "'");
             }
         }
 
@@ -282,8 +288,8 @@ public class CallReceiver extends BroadcastReceiver {
      * 2. Bezpośredni startActivity (Android < 10)
      * 3. Powiadomienie z FullScreenIntent (backup - zawsze działa)
      */
-    private void showSmsLinkNotification(Context context, String phoneNumber) {
-        Log.i(TAG, "=== URUCHAMIAM DIALOG LINKÓW dla: " + phoneNumber + " ===");
+    private void showSmsLinkNotification(Context context, String phoneNumber, long traceId) {
+        Log.i(TAG, "[Trace " + traceId + "] === URUCHAMIAM DIALOG LINKÓW dla: " + phoneNumber + " ===");
 
         // === METODA 1: Przez BackgroundService (foreground service) ===
         // Foreground service ma uprawnienie do startowania Activity na Android 10-11
@@ -292,14 +298,15 @@ public class CallReceiver extends BroadcastReceiver {
             Intent serviceIntent = new Intent(context, BackgroundService.class);
             serviceIntent.setAction("com.example.ena.SHOW_SMS_LINKS");
             serviceIntent.putExtra("phone_number", phoneNumber);
+            serviceIntent.putExtra(EXTRA_TRACE_ID, traceId);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 ContextCompat.startForegroundService(context, serviceIntent);
             } else {
                 context.startService(serviceIntent);
             }
-            Log.d(TAG, "[Metoda 1] Wysłano intent do BackgroundService");
+            Log.d(TAG, "[Trace " + traceId + "] [Metoda 1] Wysłano intent do BackgroundService");
         } catch (Exception e) {
-            Log.w(TAG, "[Metoda 1] Nie udało się wysłać do BackgroundService: " + e.getMessage());
+            Log.w(TAG, "[Trace " + traceId + "] [Metoda 1] Nie udało się wysłać do BackgroundService: " + e.getMessage());
         }
 
         // === METODA 2: Bezpośredni startActivity ===
@@ -307,11 +314,12 @@ public class CallReceiver extends BroadcastReceiver {
         try {
             Intent directIntent = new Intent(context, SendLinkActivity.class);
             directIntent.putExtra("phone_number", phoneNumber);
+            directIntent.putExtra(EXTRA_TRACE_ID, traceId);
             directIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             context.startActivity(directIntent);
-            Log.d(TAG, "[Metoda 2] Bezpośrednie uruchomienie SendLinkActivity dla: " + phoneNumber);
+            Log.d(TAG, "[Trace " + traceId + "] [Metoda 2] Bezpośrednie uruchomienie SendLinkActivity dla: " + phoneNumber);
         } catch (Exception e) {
-            Log.w(TAG, "[Metoda 2] Bezpośrednie uruchomienie nie powiodło się: " + e.getMessage());
+            Log.w(TAG, "[Trace " + traceId + "] [Metoda 2] Bezpośrednie uruchomienie nie powiodło się: " + e.getMessage());
         }
 
         // === METODA 3: Powiadomienie z FullScreenIntent (backup) ===
@@ -334,6 +342,7 @@ public class CallReceiver extends BroadcastReceiver {
 
             Intent linkIntent = new Intent(context, SendLinkActivity.class);
             linkIntent.putExtra("phone_number", phoneNumber);
+            linkIntent.putExtra(EXTRA_TRACE_ID, traceId);
             linkIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
             int flags = PendingIntent.FLAG_UPDATE_CURRENT;
@@ -356,16 +365,20 @@ public class CallReceiver extends BroadcastReceiver {
                     .setTimeoutAfter(120_000)
                     .setOngoing(false)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+            builder.addAction(new NotificationCompat.Action(
+                    R.mipmap.ic_launcher,
+                    "Wyślij link",
+                    pendingIntent));
 
             try {
                 NotificationManagerCompat notifManager = NotificationManagerCompat.from(context);
                 notifManager.notify(NOTIFICATION_ID_LINK, builder.build());
-                Log.d(TAG, "[Metoda 3] Powiadomienie o linkach wyświetlone dla: " + phoneNumber);
+                Log.d(TAG, "[Trace " + traceId + "] [Metoda 3] Powiadomienie o linkach wyświetlone dla: " + phoneNumber);
             } catch (SecurityException se) {
-                Log.w(TAG, "[Metoda 3] Brak uprawnienia POST_NOTIFICATIONS: " + se.getMessage());
+                Log.w(TAG, "[Trace " + traceId + "] [Metoda 3] Brak uprawnienia POST_NOTIFICATIONS: " + se.getMessage());
             }
         } catch (Exception e) {
-            Log.e(TAG, "[Metoda 3] Błąd tworzenia powiadomienia: " + e.getMessage());
+            Log.e(TAG, "[Trace " + traceId + "] [Metoda 3] Błąd tworzenia powiadomienia: " + e.getMessage());
         }
     }
 
