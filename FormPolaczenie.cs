@@ -14,10 +14,10 @@ namespace Reklamacje_Dane
 
         // Twoje serwisy
         private DatabaseService _db;
-        private PhoneClient _client;
+        private PhoneApiClient _client;
         private ContactRepository _repo = new ContactRepository();
 
-        public FormPolaczenie(string numer, Klient klient, DataTable dtZgloszenia, DatabaseService db, PhoneClient client)
+        public FormPolaczenie(string numer, Klient klient, DataTable dtZgloszenia, DatabaseService db, PhoneApiClient client)
         {
             InitializeComponent();
 

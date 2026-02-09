@@ -77,28 +77,55 @@
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"/>
 
+            <EditText
+                android:id="@+id/editJournalEntry"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:hint="Wpis do dziennika" />
+
             <LinearLayout
                 android:id="@+id/journalEntryContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="8dp"
                 android:layout_marginBottom="16dp"
                 android:orientation="horizontal">
 
-                <EditText
-                    android:id="@+id/editJournalEntry"
+                <Button
+                    android:id="@+id/btnAddJournalEntry"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="Wpis do dziennika" />
+                    android:text="Dodaj wpis" />
 
                 <Button
-                    android:id="@+id/btnAddJournalEntry"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/btnAddReturnPhoto"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:layout_marginStart="8dp"
-                    android:text="Dodaj" />
+                    android:text="📷 Dodaj zdjęcie"
+                    android:backgroundTint="#2196F3"
+                    android:textColor="#FFFFFF" />
             </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:text="Zdjęcia zwrotu"
+                android:textColor="#333333"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/listReturnPhotos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:nestedScrollingEnabled="false" />
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"

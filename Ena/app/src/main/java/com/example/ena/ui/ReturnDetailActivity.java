@@ -30,13 +30,22 @@ import com.example.ena.api.ComplaintProductDto;
 import com.example.ena.api.ReturnPhotoDto;
 import com.example.ena.api.StatusDto;
 import com.example.ena.PairingManager;
+import android.app.ProgressDialog;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ReturnDetailActivity extends AppCompatActivity {
     public static final String EXTRA_RETURN_ID = "return_id";
     public static final String EXTRA_READ_ONLY = "read_only";
-
+    private ActivityResultLauncher<String> photoPicker;
+    private ActivityResultLauncher<String> multiPhotoPicker;
+    private ActivityResultLauncher<Uri> takePicture;
+    private Uri tempPhotoUri;
     private TextView txtHeaderNumber;
     private TextView txtHeaderStatus;
     private TextView txtProductName;
@@ -64,7 +73,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private Button btnWarehouseAddAction;
     private ProgressBar progressBar;
     private RecyclerView listReturnPhotos;
-    private ActivityResultLauncher<String> photoPicker;
     private int returnId;
     private ReturnDetailsDto details;
     private final List<StatusDto> stanProduktuStatuses = new ArrayList<>();
@@ -94,7 +102,26 @@ public class ReturnDetailActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_return_detail);
+        photoPicker = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                this::handlePhotoPicked
+        );
 
+        // Wiele zdjęć
+        multiPhotoPicker = registerForActivityResult(
+                new ActivityResultContracts.GetMultipleContents(),
+                this::handleMultiplePhotosPicked
+        );
+        
+        // Aparat
+        takePicture = registerForActivityResult(
+                new ActivityResultContracts.TakePicture(),
+                success -> {
+                    if (success && tempPhotoUri != null) {
+                        handlePhotoPicked(tempPhotoUri);
+                    }
+                }
+        );
         returnId = getIntent().getIntExtra(EXTRA_RETURN_ID, 0);
         isReadOnly = getIntent().getBooleanExtra(EXTRA_READ_ONLY, false);
 
@@ -131,7 +158,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
             btnCloseReturn.setVisibility(View.GONE);
         }
 
-        photoPicker = registerForActivityResult(new ActivityResultContracts.GetContent(), this::handlePhotoPicked);
         btnAddResendInfo = findViewById(R.id.btnAddResendInfo);
         btnAddReturnPhoto = findViewById(R.id.btnAddReturnPhoto);
         listReturnPhotos = findViewById(R.id.listReturnPhotos);
@@ -175,7 +201,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
             btnAddResendInfo.setOnClickListener(v -> showResendInfoDialog());
         }
         if (btnAddReturnPhoto != null) {
-            btnAddReturnPhoto.setOnClickListener(v -> photoPicker.launch("image/*"));
+            btnAddReturnPhoto.setOnClickListener(v -> showPhotoOptionsDialog());
         }
 
         if (isReadOnly) {
@@ -360,25 +386,6 @@ public class ReturnDetailActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> Toast.makeText(ReturnDetailActivity.this, "Błąd historii: " + message, Toast.LENGTH_LONG).show());
-            }
-        });
-    }
-
-    private void loadPhotos() {
-        ApiClient client = new ApiClient(this);
-        client.fetchReturnPhotos(returnId, new ApiClient.ApiCallback<List<ReturnPhotoDto>>() {
-            @Override
-            public void onSuccess(List<ReturnPhotoDto> data) {
-                runOnUiThread(() -> {
-                    if (photoAdapter != null) {
-                        photoAdapter.setItems(data);
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> Toast.makeText(ReturnDetailActivity.this, "Błąd zdjęć: " + message, Toast.LENGTH_LONG).show());
             }
         });
     }
@@ -1077,5 +1084,152 @@ public class ReturnDetailActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    // Dialog z opcjami (aparat / pojedyncze / wiele zdjęć)
+    private void showPhotoOptionsDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Dodaj zdjęcia")
+                .setItems(new String[]{"📷 Zrób zdjęcie", "🖼️ Wybierz zdjęcie", "🖼️ Wybierz wiele (max 10)"}, (dialog, which) -> {
+                    if (which == 0) {
+                        // Aparat
+                        tempPhotoUri = createImageUri();
+                        if (tempPhotoUri != null) {
+                            takePicture.launch(tempPhotoUri);
+                        } else {
+                            Toast.makeText(this, "Nie udało się utworzyć pliku zdjęcia", Toast.LENGTH_SHORT).show();
+                        }
+                    } else if (which == 1) {
+                        // Pojedyncze zdjęcie z galerii
+                        photoPicker.launch("image/*");
+                    } else {
+                        // Wiele zdjęć z galerii
+                        multiPhotoPicker.launch("image/*");
+                    }
+                })
+                .show();
+    }
+    
+    // Tworzy Uri dla nowego zdjęcia z aparatu
+    private Uri createImageUri() {
+        File imageFile = new File(getExternalFilesDir(null), "temp_photo_" + System.currentTimeMillis() + ".jpg");
+        try {
+            if (imageFile.getParentFile() != null && !imageFile.getParentFile().exists()) {
+                imageFile.getParentFile().mkdirs();
+            }
+            if (imageFile.createNewFile()) {
+                return FileProvider.getUriForFile(
+                        this,
+                        getApplicationContext().getPackageName() + ".fileprovider",
+                        imageFile
+                );
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    // 5. Obsługa wielu zdjęć (NOWA METODA)
+    private void handleMultiplePhotosPicked(List<Uri> uris) {
+        if (uris == null || uris.isEmpty()) {
+            return;
+        }
+
+        if (uris.size() > 10) {
+            Toast.makeText(this, "Maksymalnie 10 zdjęć jednocześnie", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Pokaż progress dialog
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Wysyłanie " + uris.size() + " zdjęć...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        ApiClient client = new ApiClient(this);
+        client.uploadReturnPhotos(returnId, uris, new ApiClient.ApiCallback<List<ReturnPhotoDto>>() {
+            @Override
+            public void onSuccess(List<ReturnPhotoDto> data) {
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(ReturnDetailActivity.this,
+                            "Dodano " + data.size() + " zdjęć",
+                            Toast.LENGTH_SHORT).show();
+                    loadPhotos();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(ReturnDetailActivity.this,
+                            "Błąd uploadu: " + message,
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    // 6. Zoptymalizowana metoda loadPhotos z cache (MODYFIKACJA)
+    private void loadPhotos() {
+        ApiClient client = new ApiClient(this);
+        client.fetchReturnPhotos(returnId, new ApiClient.ApiCallback<List<ReturnPhotoDto>>() {
+            @Override
+            public void onSuccess(List<ReturnPhotoDto> data) {
+                runOnUiThread(() -> {
+                    if (photoAdapter != null) {
+                        photoAdapter.setItems(data);
+                    }
+
+                    // Opcjonalnie: Prefetch thumbnails do cache
+                    prefetchThumbnails(data);
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() ->
+                        Toast.makeText(ReturnDetailActivity.this,
+                                "Błąd zdjęć: " + message,
+                                Toast.LENGTH_LONG).show()
+                );
+            }
+        });
+    }
+
+    // 7. Prefetch thumbnails dla szybszego wyświetlania (NOWA METODA)
+    private void prefetchThumbnails(List<ReturnPhotoDto> photos) {
+        File cacheDir = new File(getCacheDir(), "photo_cache");
+        if (!cacheDir.exists()) {
+            cacheDir.mkdirs();
+        }
+
+        ApiClient client = new ApiClient(this);
+
+        // Prefetch w tle (max 5 jednocześnie)
+        ExecutorService executor = Executors.newFixedThreadPool(5);
+        for (ReturnPhotoDto photo : photos) {
+            executor.submit(() -> {
+                client.fetchReturnPhoto(photo.getId(), cacheDir, new ApiClient.PhotoCallback() {
+                    @Override
+                    public void onSuccess(File file) {
+                        // Zdjęcie w cache
+                    }
+
+                    @Override
+                    public void onCachedPhoto(File file) {
+                        // Już w cache
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        // Ignoruj błędy prefetch
+                    }
+                });
+            });
+        }
+        executor.shutdown();
     }
 }

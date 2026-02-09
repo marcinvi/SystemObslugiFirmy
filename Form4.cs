@@ -501,13 +501,13 @@ namespace Reklamacje_Dane
         {
             string tel = daneZgloszenia["{{KlientTelefon}}"];
             if (string.IsNullOrEmpty(tel)) throw new Exception("Brak telefonu klienta.");
-            if (PhoneClient.Instance == null) throw new Exception("Telefon niepołączony.");
+            if (PhoneApiClient.Instance == null) throw new Exception("Telefon niepołączony.");
 
             // ### POPRAWKA: Dodajemy podpis tekstowy DLA SMS ###
             string trescSms = rtbPodgladWiadomosci.Text;
             trescSms += $"\n\nPozdrawiam,\n{Program.fullName}";
 
-            if (!await PhoneClient.Instance.SendSmsAsync(tel, trescSms))
+            if (!await PhoneApiClient.Instance.SendSmsAsync(tel, trescSms))
                 throw new Exception("Błąd bramki SMS.");
         }
 

@@ -350,11 +350,11 @@ namespace Reklamacje_Dane
                 string numer = lbl.Text.Replace(" ", "").Replace("-", "").Trim();
                 if (!string.IsNullOrEmpty(numer))
                 {
-                    if (PhoneClient.Instance != null)
+                    if (PhoneApiClient.Instance != null)
                     {
                         try
                         {
-                             PhoneClient.Instance.Dial(numer); // ODKOMENTUJ JEŚLI MASZ METODĘ DIAL
+                             PhoneApiClient.Instance.Dial(numer); // ODKOMENTUJ JEŚLI MASZ METODĘ DIAL
                             MessageBox.Show($"Łap telefon! Wybieranie numeru: {numer}...", "Telefon", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
                         catch (Exception ex) { MessageBox.Show("Błąd: " + ex.Message); }
@@ -790,7 +790,7 @@ namespace Reklamacje_Dane
         private void button5_Click(object sender, EventArgs e) => UruchomAkcje(new WRLForm(this.nrZgloszenia));
         private void button6_Click(object sender, EventArgs e) => UruchomAkcje(new KWZForm(this.nrZgloszenia));
         private void button7_Click(object sender, EventArgs e) => UruchomAkcje(new FakturaForm(this.nrZgloszenia));
-        private void button8_Click(object sender, EventArgs e) { new FormUploader(this.nrZgloszenia, PhoneClient.Instance).Show(); }
+        private void button8_Click(object sender, EventArgs e) { new FormUploader(this.nrZgloszenia, PhoneApiClient.Instance).Show(); }
         private void button9_Click(object sender, EventArgs e) => new FormFileViewer(this.nrZgloszenia).ShowDialog(this);
         private void button11_Click(object sender, EventArgs e) => new FormDpdTracking().ShowDialog(this);
         private async void btnFetchPart_Click(object sender, EventArgs e)

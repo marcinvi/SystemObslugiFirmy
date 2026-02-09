@@ -12,12 +12,12 @@ namespace Reklamacje_Dane
         private readonly string _numer;
         private readonly string _tresc;
         private readonly DatabaseService _db;
-        private readonly PhoneClient _client;
+        private readonly PhoneApiClient _client;
 
         private ComboBox cmbZgloszenia, cmbSzablony;
         private TextBox txtOdpowiedz;
 
-        public FormSmsPopup(string numer, string tresc, DatabaseService db, PhoneClient client)
+        public FormSmsPopup(string numer, string tresc, DatabaseService db, PhoneApiClient client)
         {
             _numer = numer;
             _tresc = tresc;

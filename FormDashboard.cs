@@ -24,11 +24,12 @@ namespace Reklamacje_Dane
         private string _lastCallerNumber = "";
         private DateTime _lastCallTime = DateTime.MinValue;
         private bool _userClosedCallPopup = false;
-        private PhoneClient _phoneClient;
+        private PhoneApiClient _phoneApiClient;
         private Timer _timerPhone;
-        private TextBox txtPhoneIp;
-        private Button btnConnectPhone;
-        private Button btnQrPair;
+        private Panel _phoneStatusIndicator;
+          private Label _phoneStatusLabel;
+           private ToolTip _phoneTooltip = new ToolTip();
+
         private bool _isCallPopupOpen = false;
 
         // --- UI I NAWIGACJA ---
@@ -88,156 +89,104 @@ namespace Reklamacje_Dane
 
         private void SetupPhonePanel()
         {
-            Label lblIp = new Label { Text = "IP Telefonu:", AutoSize = true, Location = new Point(this.panelTop.Width - 520, 15), ForeColor = Color.DimGray, Anchor = AnchorStyles.Top | AnchorStyles.Right, Font = new Font("Segoe UI", 9, FontStyle.Bold) };
+            // Wskaźnik statusu: kropka + etykieta
+            _phoneStatusIndicator = new Panel
+            {
+                Size = new Size(14, 14),
+                Location = new Point(this.panelTop.Width - 240, 17),
+                BackColor = Color.Gray,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
+            };
+            _phoneStatusIndicator.Paint += (s, e) =>
+            {
+                // Rysuj okrągłą kropkę
+                using (var brush = new SolidBrush(_phoneStatusIndicator.BackColor))
+                {
+                    e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    e.Graphics.FillEllipse(brush, 0, 0, 13, 13);
+                }
+            };
 
-            txtPhoneIp = new TextBox { Text = "10.5.0.XXX", Location = new Point(this.panelTop.Width - 430, 12), Width = 110, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            _phoneStatusLabel = new Label
+            {
+                Text = "Telefon: Łączenie...",
+                AutoSize = true,
+                Location = new Point(this.panelTop.Width - 220, 15),
+                ForeColor = Color.DimGray,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
 
-            btnConnectPhone = new Button { Text = "Połącz", Location = new Point(this.panelTop.Width - 300, 10), Width = 90, Height = 28, BackColor = Color.SteelBlue, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Anchor = AnchorStyles.Top | AnchorStyles.Right, Cursor = Cursors.Hand };
-            btnConnectPhone.Click += (s, e) => StartPhoneMonitoring(txtPhoneIp.Text, false);
+            _phoneTooltip.SetToolTip(_phoneStatusLabel, "Automatyczne połączenie z telefonem na podstawie konta użytkownika");
+            _phoneTooltip.SetToolTip(_phoneStatusIndicator, "Status połączenia z telefonem");
 
-            btnQrPair = new Button { Text = "QR", Location = new Point(this.panelTop.Width - 200, 10), Width = 90, Height = 28, BackColor = Color.MediumSeaGreen, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Anchor = AnchorStyles.Top | AnchorStyles.Right, Cursor = Cursors.Hand };
-            btnQrPair.Click += async (s, e) => await StartQrPairingAsync();
-
-            this.panelTop.Controls.Add(lblIp);
-            this.panelTop.Controls.Add(txtPhoneIp);
-            this.panelTop.Controls.Add(btnConnectPhone);
-            this.panelTop.Controls.Add(btnQrPair);
+            this.panelTop.Controls.Add(_phoneStatusIndicator);
+            this.panelTop.Controls.Add(_phoneStatusLabel);
         }
+
 
         private async Task AutoconnectPhoneAsync()
         {
             try
             {
-                // Pobierz IP zapisane dla tego konkretnego loginu użytkownika
-                string sql = "SELECT OstatnieIP FROM UstawieniaUzytkownika WHERE Uzytkownik = @user";
-                object savedIp = await _databaseService.ExecuteScalarAsync(sql, new MySqlParameter("@user", _fullName));
+                // Pobierz adres API z konfiguracji
+                string apiBaseUrl = ResolveApiBaseUrl();
 
-                if (savedIp != null && savedIp != DBNull.Value)
+                // Utwórz klienta API z loginem bieżącego użytkownika
+                _phoneApiClient = new PhoneApiClient(apiBaseUrl, SessionManager.CurrentUserLogin ?? _fullName);
+
+                // Sprawdź status telefonu
+                bool isOnline = await _phoneApiClient.CheckPhoneOnlineAsync();
+
+                UpdatePhoneStatusUI(isOnline);
+
+                // Uruchom timer do pollowania zdarzeń
+                if (_timerPhone == null)
                 {
-                    string ip = savedIp.ToString();
-                    txtPhoneIp.Text = ip;
-                    // Cicha próba połączenia bez komunikatów o błędach
-                    await Task.Run(() => StartPhoneMonitoring(ip, quiet: true));
+                    _timerPhone = new Timer { Interval = 3000 }; // 3 sekundy
+                    _timerPhone.Tick += TimerPhone_Tick;
                 }
+                _timerPhone.Start();
             }
-            catch { /* Ignoruj błędy przy autostarcie */ }
-        }
-
-        private async void StartPhoneMonitoring(string ip, bool quiet)
-        {
-            if (string.IsNullOrWhiteSpace(ip) || ip.Contains("XXX")) return;
-
-            _phoneClient = new PhoneClient(ip);
-
-            var pairStatus = await _phoneClient.CheckPairStatusAsync();
-            if (pairStatus == null)
+            catch (Exception ex)
             {
-                if (!quiet)
-                {
-                    btnConnectPhone.BackColor = Color.Red;
-                    btnConnectPhone.Text = "Błąd";
-                    MessageBox.Show("Nie można połączyć się z telefonem. Sprawdź IP i sieć Wi-Fi.", "Brak połączenia z telefonem", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
+                System.Diagnostics.Debug.WriteLine($"Błąd autoconnect telefonu: {ex.Message}");
+                UpdatePhoneStatusUI(false);
+            }
+        }
+        private void UpdatePhoneStatusUI(bool isOnline)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke((MethodInvoker)delegate { UpdatePhoneStatusUI(isOnline); });
                 return;
             }
 
-            string pairingCode = null;
-            if (!pairStatus.paired)
+            if (isOnline)
             {
-                if (quiet)
-                {
-                    return;
-                }
-
-                string code = Interaction.InputBox(
-                    "Wpisz kod parowania z aplikacji ENA na telefonie.\nKod jest widoczny na ekranie głównym telefonu.",
-                    "Parowanie telefonu",
-                    "");
-
-                if (string.IsNullOrWhiteSpace(code))
-                {
-                    MessageBox.Show("Parowanie anulowane. Wpisz kod parowania, aby połączyć aplikacje.", "Parowanie", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    return;
-                }
-
-                bool paired = await _phoneClient.PairAsync(code.Trim());
-                if (!paired)
-                {
-                    btnConnectPhone.BackColor = Color.Red;
-                    btnConnectPhone.Text = "Błąd";
-                    MessageBox.Show("Nieprawidłowy kod parowania. Sprawdź kod na telefonie i spróbuj ponownie.", "Błąd parowania", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                pairingCode = code.Trim();
+                _phoneStatusIndicator.BackColor = Color.LimeGreen;
+                _phoneStatusLabel.Text = "Telefon: Połączony";
+                _phoneStatusLabel.ForeColor = Color.ForestGreen;
             }
-            else if (string.IsNullOrWhiteSpace(pairStatus.user) || string.IsNullOrWhiteSpace(pairStatus.apiBaseUrl))
+            else
             {
-                if (quiet)
-                {
-                    return;
-                }
-
-                string code = Interaction.InputBox(
-                    "Telefon jest sparowany, ale brakuje konfiguracji API.\nPodaj kod parowania z telefonu, aby zsynchronizować ustawienia.",
-                    "Synchronizacja konfiguracji",
-                    "");
-
-                if (string.IsNullOrWhiteSpace(code))
-                {
-                    MessageBox.Show("Synchronizacja anulowana. Bez konfiguracji API moduły zwrotów na telefonie nie zadziałają.", "Synchronizacja", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    return;
-                }
-
-                pairingCode = code.Trim();
+                _phoneStatusIndicator.BackColor = Color.Red;
+                _phoneStatusLabel.Text = "Telefon: Niepołączony";
+                _phoneStatusLabel.ForeColor = Color.Gray;
             }
 
-            if (!string.IsNullOrWhiteSpace(pairingCode))
-            {
-                string apiBaseUrl = ResolveApiBaseUrl();
-                bool configured = await _phoneClient.ConfigureAsync(pairingCode, apiBaseUrl, _fullName);
-                if (!configured)
-                {
-                    MessageBox.Show("Nie udało się przesłać konfiguracji API do telefonu. Sprawdź dostępność API i spróbuj ponownie.", "Błąd konfiguracji", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-            }
+            _phoneStatusIndicator.Invalidate(); // Przerysuj kropkę
 
-            // Test połączenia (Endpoint /stan)
-            var status = await _phoneClient.CheckCallStatus();
-
-            this.Invoke((MethodInvoker)async delegate
-            {
-                if (status != null)
-                {
-                    // Sukces - zapisz IP w bazie pod loginem użytkownika
-                    string sqlSave = "REPLACE INTO UstawieniaUzytkownika (Uzytkownik, OstatnieIP) VALUES (@user, @ip)";
-                    await _databaseService.ExecuteNonQueryAsync(sqlSave,
-                        new MySqlParameter("@user", _fullName),
-                        new MySqlParameter("@ip", ip));
-
-                    btnConnectPhone.BackColor = Color.ForestGreen;
-                    btnConnectPhone.Text = "Połączono";
-
-                    if (_timerPhone == null)
-                    {
-                        _timerPhone = new Timer { Interval = 2000 };
-                        _timerPhone.Tick += TimerPhone_Tick;
-                    }
-                    _timerPhone.Start();
-                }
-                else if (!quiet)
-                {
-                    btnConnectPhone.BackColor = Color.Red;
-                    btnConnectPhone.Text = "Błąd";
-                    MessageBox.Show("INSTRUKCJA POŁĄCZENIA:\n\n" +
-                        "1. Otwórz aplikację 'Ena Server' na swoim telefonie.\n" +
-                        "2. Sprawdź czy telefon i komputer są w tej samej sieci firmowej.\n" +
-                        "3. Wpisz IP wyświetlone na ekranie telefonu do pola w programie.\n" +
-                        "4. Kliknij 'Połącz' ponownie.", "Brak połączenia z telefonem", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            });
+            string tooltip = isOnline
+                ? $"Telefon online (ostatnio: {_phoneApiClient?.LastSeen:HH:mm:ss})"
+                : "Telefon offline - uruchom aplikację ENA na telefonie i zaloguj się na to samo konto";
+            _phoneTooltip.SetToolTip(_phoneStatusLabel, tooltip);
+            _phoneTooltip.SetToolTip(_phoneStatusIndicator, tooltip);
         }
+
+
+       
 
         private static string ResolveApiBaseUrl()
         {
@@ -361,128 +310,109 @@ namespace Reklamacje_Dane
             }
         }
 
-        private async Task StartQrPairingAsync()
-        {
-            string localIp = GetLocalIpv4Address();
-            if (string.IsNullOrWhiteSpace(localIp))
-            {
-                MessageBox.Show("Nie udało się ustalić IP komputera.", "Parowanie QR", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            const int port = 5505;
-
-            using (var server = new QrPairingServer(localIp, port))
-            {
-                var payload = new QrPairingPayload
-                {
-                    PcIp = localIp,
-                    PcPort = port,
-                    Token = server.Token,
-                    User = SessionManager.CurrentUserLogin ?? string.Empty,
-                    ApiBaseUrl = ResolveApiBaseUrl()
-                };
-
-                try
-                {
-                    server.Start();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Nie udało się uruchomić QR: {ex.Message}", "Parowanie QR", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                using (var qrForm = new FormQrPairing(payload, server))
-                {
-                    var result = qrForm.ShowDialog(this);
-                    if (result != DialogResult.OK || qrForm.PairingRequest == null)
-                        return;
-
-                    txtPhoneIp.Text = qrForm.PairingRequest.PhoneIp;
-                    _phoneClient = new PhoneClient(qrForm.PairingRequest.PhoneIp);
-
-                    bool paired = await _phoneClient.PairAsync(qrForm.PairingRequest.PairingCode);
-                    if (!paired)
-                    {
-                        MessageBox.Show("Nie udało się sparować telefonu po QR. Sprawdź kod i spróbuj ponownie.", "Parowanie QR", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-
-                    string apiBaseUrl = ResolveApiBaseUrl();
-                    string userName = SessionManager.CurrentUserLogin ?? string.Empty;
-                    await _phoneClient.ConfigureAsync(qrForm.PairingRequest.PairingCode, apiBaseUrl, userName);
-
-                    StartPhoneMonitoring(qrForm.PairingRequest.PhoneIp, quiet: true);
-                }
-            }
-        }
+     
 
 
         private async void TimerPhone_Tick(object sender, EventArgs e)
         {
-            if (_phoneClient == null) return;
+            if (_phoneApiClient == null) return;
 
-            // 1. Check call status
-            var callStatus = await _phoneClient.CheckCallStatus();
-
-            if (callStatus != null && callStatus.dzwoni)
+            try
             {
-                // Logic to handle debounce and user closing the popup
-                // If it's a new number or enough time has passed (e.g., 5 seconds) since the last signal for this number
-                if (callStatus.numer != _lastCallerNumber || (DateTime.Now - _lastCallTime).TotalSeconds > 5)
+                // 1. Sprawdź status telefonu (co tick)
+                bool isOnline = await _phoneApiClient.CheckPhoneOnlineAsync();
+                UpdatePhoneStatusUI(isOnline);
+
+                if (!isOnline) return;
+
+                // 2. Pobierz zdarzenia z API
+                var events = await _phoneApiClient.GetEventsAsync();
+
+                foreach (var evt in events)
                 {
-                    // Reset flags for a new call
-                    _lastCallerNumber = callStatus.numer;
-                    _userClosedCallPopup = false;
-                }
-
-                _lastCallTime = DateTime.Now;
-
-                // Only show popup if it's not already open AND the user hasn't actively closed it for this call
-                if (!_isCallPopupOpen && !_userClosedCallPopup)
-                {
-                    _isCallPopupOpen = true;
-                    string numer = _databaseService.NormalizujNumer(callStatus.numer);
-                    var klient = await _databaseService.ZnajdzKlientaPoNumerzeAsync(numer);
-                    DataTable dtZgloszenia = await _databaseService.PobierzZgloszeniaWgTelefonuAsync(numer);
-
-                    FormPolaczenie popup = new FormPolaczenie(numer, klient, dtZgloszenia, _databaseService, _phoneClient);
-
-                    popup.FormClosed += (s, args) =>
+                    switch (evt.EventType)
                     {
-                        _isCallPopupOpen = false;
-                        // Mark that the user closed the popup, so don't reopen for THIS call
-                        _userClosedCallPopup = true;
-                    };
+                        case "CALL_RINGING":
+                            await HandleIncomingCall(evt);
+                            break;
 
-                    popup.Show();
+                        case "CALL_IDLE":
+                            HandleCallIdle();
+                            break;
+
+                        case "SMS_RECEIVED":
+                            await HandleIncomingSms(evt);
+                            break;
+                    }
                 }
             }
-            else
+            catch (Exception ex)
             {
-                // No call ringing, reset state
-                _isCallPopupOpen = false;
-                _lastCallerNumber = "";
+                System.Diagnostics.Debug.WriteLine($"Błąd timer telefonu: {ex.Message}");
+            }
+        }
+
+        private async Task HandleIncomingCall(PhoneEventItem evt)
+        {
+            string numer = evt.PhoneNumber ?? "";
+            if (string.IsNullOrWhiteSpace(numer) || numer == "unknown")
+            {
+                // Numer nieznany - nadal wyświetl popup
+                numer = "Nieznany numer";
+            }
+
+            // Debounce - ten sam numer w ciągu 5 sekund
+            if (numer == _lastCallerNumber && (DateTime.Now - _lastCallTime).TotalSeconds < 5)
+                return;
+
+            // Reset flag dla nowego połączenia
+            if (numer != _lastCallerNumber)
                 _userClosedCallPopup = false;
-            }
 
-            // 2. Sprawdzanie nowych SMS-ów
-            var smsy = await _phoneClient.CheckNewSms();
-            if (smsy != null && smsy.Count > 0)
+            _lastCallerNumber = numer;
+            _lastCallTime = DateTime.Now;
+
+            if (_isCallPopupOpen || _userClosedCallPopup) return;
+
+            _isCallPopupOpen = true;
+
+            string normalizedNumer = _databaseService.NormalizujNumer(numer);
+            var klient = await _databaseService.ZnajdzKlientaPoNumerzeAsync(normalizedNumer);
+            DataTable dtZgloszenia = await _databaseService.PobierzZgloszeniaWgTelefonuAsync(normalizedNumer);
+
+            // FormPolaczenie musi działać z nowym PhoneApiClient
+            // (patrz zmiana w FormPolaczenie poniżej)
+            FormPolaczenie popup = new FormPolaczenie(normalizedNumer, klient, dtZgloszenia, _databaseService, _phoneApiClient);
+
+            popup.FormClosed += (s, args) =>
             {
-                foreach (var sms in smsy)
-                {
-                    // Zapisz do bazy jako otrzymany
-                    await _databaseService.ZapiszNowySmsAsync(sms.number, sms.content, "Odebrane");
+                _isCallPopupOpen = false;
+                _userClosedCallPopup = true;
+            };
 
-                    // Pokaż okno FormSmsPopup (Nowa wersja z szablonami i podglądem)
-                    var smsPopup = new FormSmsPopup(sms.number, sms.content, _databaseService, _phoneClient);
-                    smsPopup.Show();
+            popup.Show();
+        }
 
-                    notifyIcon1.ShowBalloonTip(3000, "Nowy SMS", $"Od: {sms.number}", ToolTipIcon.Info);
-                }
-            }
+        private void HandleCallIdle()
+        {
+            _isCallPopupOpen = false;
+            _lastCallerNumber = "";
+            _userClosedCallPopup = false;
+        }
+
+        private async Task HandleIncomingSms(PhoneEventItem evt)
+        {
+            string numer = evt.PhoneNumber ?? "";
+            string tresc = evt.Content ?? "";
+
+            // Zapisz do bazy
+            await _databaseService.ZapiszNowySmsAsync(numer, tresc, "Odebrane");
+
+            // Pokaż popup
+            var smsPopup = new FormSmsPopup(numer, tresc, _databaseService, _phoneApiClient);
+            smsPopup.Show();
+
+            notifyIcon1.ShowBalloonTip(3000, "Nowy SMS", $"Od: {numer}", ToolTipIcon.Info);
         }
 
         // =================================================================================
@@ -614,13 +544,10 @@ namespace Reklamacje_Dane
 
         private void TriggerPhoneDisconnect()
         {
-            if (_phoneClient == null)
-            {
-                return;
-            }
-            // Nie rozparowuj telefonu automatycznie przy zamknięciu aplikacji.
-            // Połączenie zostanie uznane za nieaktywne po wygaśnięciu "last seen".
-            _phoneClient = null;
+            // Nie trzeba rozparowywać - wystarczy że timer się zatrzyma
+            // Telefon dalej będzie wysyłał heartbeaty, ale WinForms ich nie odczyta
+            _phoneApiClient = null;
         }
+
     }
 }

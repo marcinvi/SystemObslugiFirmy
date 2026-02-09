@@ -383,25 +383,35 @@
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false"/>
 
-                <LinearLayout
+                <EditText
+                    android:id="@+id/editWarehouseAction"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:orientation="horizontal">
+                    android:hint="Wpis do dziennika" />
 
-                    <EditText
-                        android:id="@+id/editWarehouseAction"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:hint="Wpis do dziennika" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
 
                     <Button
                         android:id="@+id/btnWarehouseAddAction"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Dodaj wpis" />
+
+                    <Button
+                        android:id="@+id/btnAddReturnPhoto"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginStart="8dp"
-                        android:text="Dodaj" />
+                        android:text="📷 Dodaj zdjęcie"
+                        android:backgroundTint="#2196F3"
+                        android:textColor="#FFFFFF" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -421,18 +431,20 @@
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/btnAddReturnPhoto"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Dodaj zdjęcie" />
-
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/listReturnPhotos"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
                     android:nestedScrollingEnabled="false" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Brak zdjęć"
+                    android:textColor="#999999"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <Button

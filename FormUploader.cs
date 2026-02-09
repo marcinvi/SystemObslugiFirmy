@@ -17,7 +17,7 @@ namespace Reklamacje_Dane
 
         // KONSTRUKTOR NAPRAWIAJĄCY BŁĄD CS1729
         // Przyjmuje opcjonalny PhoneClient, ale korzysta z Singletona
-        public FormUploader(string nrZgloszenia, PhoneClient pc = null)
+        public FormUploader(string nrZgloszenia, PhoneApiClient pc = null)
         {
             InitializeComponent();
             this.TopMost = true; // Zawsze na wierzchu
@@ -39,7 +39,7 @@ namespace Reklamacje_Dane
         {
             if (PhoneClient.Instance == null)
             {
-                MessageBox.Show("Brak połączenia z telefonem!");
+                MessageBox.Show("Brak bezpośredniego połączenia z telefonem!\nUżyj parowania (QR/IP), aby umożliwić pobieranie zdjęć.");
                 return;
             }
 

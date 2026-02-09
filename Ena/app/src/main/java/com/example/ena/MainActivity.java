@@ -1,18 +1,23 @@
 package com.example.ena;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+ import android.content.pm.PackageManager;
+ import androidx.core.app.ActivityCompat;
+ import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
+import android.Manifest;
 import com.example.ena.api.ApiClient;
 import com.example.ena.ui.LoginActivity;
 import com.example.ena.ui.MessagesActivity;
@@ -21,6 +26,7 @@ import com.example.ena.ui.ReturnsListActivity;
 import com.example.ena.ui.SettingsActivity;
 import com.example.ena.ui.SummaryActivity;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -31,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView txtError;
     private ImageButton btnLogout;
     private ApiClient apiClient;
-
+    private static final int PERMISSION_REQUEST_CODE = 100;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
         apiClient = new ApiClient(this);
         startBackgroundService();
-
+        requestPhonePermissions();
         // 3. Ustawienie nagłówka
         String userDisplay = UserSession.getDisplayName(this);
         if (userDisplay == null || userDisplay.isEmpty()) userDisplay = UserSession.getLogin(this);
@@ -72,7 +78,58 @@ public class MainActivity extends AppCompatActivity {
         // 6. Pobranie modułów
         fetchModules();
     }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            for (int i = 0; i < permissions.length; i++) {
+                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                    Log.w("MainActivity", "Brak uprawnienia: " + permissions[i]);
+                }
+            }
+        }
+    }
+    private void requestPhonePermissions() {
+        List<String> permissionsNeeded = new ArrayList<>();
 
+        // READ_CALL_LOG - wymagane od Android 10+ do odczytu numeru dzwoniącego
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG)
+                != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.READ_CALL_LOG);
+        }
+
+        // READ_PHONE_STATE
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
+                != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.READ_PHONE_STATE);
+        }
+
+        // CALL_PHONE
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE)
+                != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.CALL_PHONE);
+        }
+
+        // SEND_SMS
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS)
+                != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.SEND_SMS);
+        }
+
+        // POST_NOTIFICATIONS (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+
+        if (!permissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this,
+                    permissionsNeeded.toArray(new String[0]),
+                    PERMISSION_REQUEST_CODE);
+        }
+    }
     private void fetchModules() {
         loadingModules.setVisibility(View.VISIBLE);
         txtError.setVisibility(View.GONE);

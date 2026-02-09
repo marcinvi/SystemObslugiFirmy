@@ -1,25 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- res/layout/item_return_photo_enhanced.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/txtPhotoName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Zdjęcie"
-        android:textColor="#333333"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+    <!-- Kontener na thumbnail z progress -->
+    <FrameLayout
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginEnd="12dp"
+        android:background="@drawable/photo_thumbnail_background">
 
-    <TextView
-        android:id="@+id/txtPhotoMeta"
-        android:layout_width="match_parent"
+        <!-- Thumbnail zdjęcia -->
+        <ImageView
+            android:id="@+id/imgThumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            android:contentDescription="Thumbnail zdjęcia" />
+
+        <!-- Progress podczas ładowania -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:visibility="visible" />
+    </FrameLayout>
+
+    <!-- Informacje o pliku -->
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Brak danych"
-        android:textColor="#757575"
-        android:textSize="12sp" />
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/txtPhotoName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="nazwa_pliku.jpg"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:ellipsize="end"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/txtPhotoMeta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="2024-01-15 • Jan Kowalski • 2.5 MB"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:ellipsize="end"
+            android:maxLines="2" />
+    </LinearLayout>
+
+    <!-- Ikona otwarcia -->
+    <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginStart="8dp"
+        android:src="@android:drawable/ic_menu_view"
+        app:tint="@color/icon_tint"
+        android:contentDescription="Otwórz" />
 </LinearLayout>

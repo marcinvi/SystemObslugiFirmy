@@ -1,68 +1,47 @@
-<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.CALL_PHONE" />
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <uses-permission android:name="android.permission.READ_SMS" />
-    <uses-permission android:name="android.permission.SEND_SMS" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="Ena Mobile"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.Ena"
-        android:usesCleartextTraffic="true">
-
-        <activity
-            android:name=".ui.LoginActivity"
-            android:exported="true">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.CALL_PHONE"/>
+    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
+    <uses-permission android:name="android.permission.READ_SMS"/>
+    <uses-permission android:name="android.permission.SEND_SMS"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!--  NOWE: Wymagane od Android 10+ do odczytu numeru dzwoniącego  -->
+    <uses-permission android:name="android.permission.READ_CALL_LOG"/>
+    <application android:allowBackup="true" android:icon="@mipmap/ic_launcher" android:label="Ena Mobile" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:theme="@style/Theme.Ena" android:usesCleartextTraffic="true">
+        <activity android:name=".ui.LoginActivity" android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity
-            android:name=".MainActivity"
-            android:exported="true" />
-        <activity android:name=".ui.ReturnsListActivity" android:exported="false" />
-        <activity android:name=".ui.ReturnDetailActivity" android:exported="false" />
-        <activity android:name=".ui.SalesReturnDetailActivity" android:exported="false" />
-        <activity android:name=".ui.RefundPaymentActivity" android:exported="false" />
-        <activity android:name=".ui.ManualReturnActivity" android:exported="false" />
-        <activity android:name=".ui.SummaryActivity" android:exported="false" />
-        <activity android:name=".ui.MessagesActivity" android:exported="false" />
-        <activity android:name=".ui.SettingsActivity" android:exported="false" />
-
-        <service
-            android:name=".BackgroundService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-
-        <receiver
-            android:name=".SmsReceiver"
-            android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true"/>
+        <activity android:name=".ui.ReturnsListActivity" android:exported="false"/>
+        <activity android:name=".ui.ReturnDetailActivity" android:exported="false"/>
+        <activity android:name=".ui.SalesReturnDetailActivity" android:exported="false"/>
+        <activity android:name=".ui.RefundPaymentActivity" android:exported="false"/>
+        <activity android:name=".ui.ManualReturnActivity" android:exported="false"/>
+        <activity android:name=".ui.SummaryActivity" android:exported="false"/>
+        <activity android:name=".ui.MessagesActivity" android:exported="false"/>
+        <activity android:name=".ui.SettingsActivity" android:exported="false"/>
+        <service android:name=".BackgroundService" android:exported="false" android:foregroundServiceType="dataSync"/>
+        <receiver android:name=".SmsReceiver" android:exported="true">
             <intent-filter>
-                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+                <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
             </intent-filter>
         </receiver>
-
-        <receiver
-            android:name=".CallReceiver"
-            android:exported="true">
+        <receiver android:name=".CallReceiver" android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.PHONE_STATE" />
+                <action android:name="android.intent.action.PHONE_STATE"/>
             </intent-filter>
         </receiver>
-
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/>
+        </provider>
     </application>
 </manifest>

@@ -681,4 +681,48 @@ public class ReturnsController : ControllerBase
 
         return "System";
     }
+    // ==========================================
+    // NOWY ENDPOINT - ReturnsController.cs
+    // ==========================================
+
+    // Dodaj na końcu klasy ReturnsController
+
+    /// <summary>
+    /// Endpoint do uploadu wielu zdjęć jednocześnie
+    /// </summary>
+    [HttpPost("{id:int}/photos/batch")]
+    public async Task<ActionResult<ApiResponse<List<ReturnPhotoDto>>>> UploadReturnPhotos(int id, [FromForm] List<IFormFile> files)
+    {
+        if (files == null || files.Count == 0)
+        {
+            return BadRequest(ApiResponse<List<ReturnPhotoDto>>.ErrorResponse("Brak plików do wysłania."));
+        }
+
+        if (files.Count > 10)
+        {
+            return BadRequest(ApiResponse<List<ReturnPhotoDto>>.ErrorResponse("Maksymalnie 10 plików jednocześnie."));
+        }
+
+        var userId = GetUserIdFromClaims();
+        var userDisplayName = GetUserDisplayName();
+        if (!userId.HasValue)
+        {
+            var login = Request.Headers["X-User"].FirstOrDefault() ?? User.Identity?.Name;
+            userId = await _returnsService.GetUserIdByLoginAsync(login ?? string.Empty);
+            if (userId.HasValue)
+            {
+                userDisplayName = await _returnsService.GetUserDisplayNameByIdAsync(userId.Value);
+            }
+        }
+
+        var results = await _returnsService.UploadReturnPhotosAsync(id, files, userId, userDisplayName);
+
+        if (results.Count == 0)
+        {
+            return NotFound(ApiResponse<List<ReturnPhotoDto>>.ErrorResponse("Nie udało się dodać żadnego pliku."));
+        }
+
+        return Ok(ApiResponse<List<ReturnPhotoDto>>.SuccessResponse(results));
+    }
+
 }

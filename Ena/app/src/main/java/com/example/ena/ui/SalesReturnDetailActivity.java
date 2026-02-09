@@ -1,5 +1,7 @@
 package com.example.ena.ui;
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -12,8 +14,11 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -29,8 +34,11 @@ import com.example.ena.api.ReturnDecisionRequest;
 import com.example.ena.api.ReturnDetailsDto;
 import com.example.ena.api.RejectCustomerReturnRequest;
 import com.example.ena.api.ReturnRejectionDto;
+import com.example.ena.api.ReturnPhotoDto;
 import com.example.ena.api.StatusDto;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,13 +60,21 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
     private Button btnReject;
     private Button btnComplaint;
     private Button btnAddJournalEntry;
+    private Button btnAddReturnPhoto;
     private ProgressBar progressBar;
     private Integer selectedDecisionId;
 
     private ReturnActionAdapter actionAdapter;
+    private ReturnPhotoAdapter photoAdapter;
+    private RecyclerView listReturnPhotos;
     private final List<DecisionItem> decyzje = new ArrayList<>();
     private ReturnDetailsDto details;
     private int returnId;
+    
+    private ActivityResultLauncher<String> photoPicker;
+    private ActivityResultLauncher<String> multiPhotoPicker;
+    private ActivityResultLauncher<Uri> takePicture;
+    private Uri tempPhotoUri;
     private static final String DECISION_KEY_SHELF = "NA_POLKE";
     private static final String DECISION_KEY_RESHIPPING = "PONOWNA_WYSYLKA";
     private static final String DECISION_KEY_COMPLAINTS = "REKLAMACJE";
@@ -76,6 +92,28 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_sales_return_detail);
 
         returnId = getIntent().getIntExtra(EXTRA_RETURN_ID, 0);
+        
+        // Pojedyncze zdjęcie
+        photoPicker = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                this::handlePhotoPicked
+        );
+        
+        // Wiele zdjęć
+        multiPhotoPicker = registerForActivityResult(
+                new ActivityResultContracts.GetMultipleContents(),
+                this::handleMultiplePhotosPicked
+        );
+        
+        // Aparat
+        takePicture = registerForActivityResult(
+                new ActivityResultContracts.TakePicture(),
+                success -> {
+                    if (success && tempPhotoUri != null) {
+                        handlePhotoPicked(tempPhotoUri);
+                    }
+                }
+        );
         txtTitle = findViewById(R.id.txtTitle);
         txtCurrentStatus = findViewById(R.id.txtCurrentStatus);
         txtProductName = findViewById(R.id.txtProductName);
@@ -92,12 +130,20 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         btnReject = findViewById(R.id.btnReject);
         btnComplaint = findViewById(R.id.btnComplaint);
         btnAddJournalEntry = findViewById(R.id.btnAddJournalEntry);
+        btnAddReturnPhoto = findViewById(R.id.btnAddReturnPhoto);
         progressBar = findViewById(R.id.progressBar);
+        listReturnPhotos = findViewById(R.id.listReturnPhotos);
 
         RecyclerView listActions = findViewById(R.id.listActions);
         listActions.setLayoutManager(new LinearLayoutManager(this));
         actionAdapter = new ReturnActionAdapter();
         listActions.setAdapter(actionAdapter);
+        
+        if (listReturnPhotos != null) {
+            listReturnPhotos.setLayoutManager(new LinearLayoutManager(this));
+            photoAdapter = new ReturnPhotoAdapter(this);
+            listReturnPhotos.setAdapter(photoAdapter);
+        }
 
         btnBack.setOnClickListener(v -> finish());
         btnRefund.setOnClickListener(v -> openRefundPayment());
@@ -106,10 +152,14 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
         if (btnAddJournalEntry != null) {
             btnAddJournalEntry.setOnClickListener(v -> submitJournalEntry());
         }
+        if (btnAddReturnPhoto != null) {
+            btnAddReturnPhoto.setOnClickListener(v -> showPhotoOptionsDialog());
+        }
 
         loadDecyzje();
         loadDetails();
         loadActions();
+        loadPhotos();
     }
 
     private void loadDetails() {
@@ -751,5 +801,133 @@ public class SalesReturnDetailActivity extends AppCompatActivity {
             this.dbName = dbName;
             this.key = key == null ? "" : key;
         }
+    }
+    
+    // ===== OBSŁUGA ZDJĘĆ =====
+    
+    private void showPhotoOptionsDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Dodaj zdjęcia")
+                .setItems(new String[]{"📷 Zrób zdjęcie", "🖼️ Wybierz zdjęcie", "🖼️ Wybierz wiele (max 10)"}, (dialog, which) -> {
+                    if (which == 0) {
+                        // Aparat
+                        tempPhotoUri = createImageUri();
+                        if (tempPhotoUri != null) {
+                            takePicture.launch(tempPhotoUri);
+                        } else {
+                            Toast.makeText(this, "Nie udało się utworzyć pliku zdjęcia", Toast.LENGTH_SHORT).show();
+                        }
+                    } else if (which == 1) {
+                        // Pojedyncze zdjęcie z galerii
+                        photoPicker.launch("image/*");
+                    } else {
+                        // Wiele zdjęć z galerii
+                        multiPhotoPicker.launch("image/*");
+                    }
+                })
+                .show();
+    }
+    
+    private Uri createImageUri() {
+        File imageFile = new File(getExternalFilesDir(null), "temp_photo_" + System.currentTimeMillis() + ".jpg");
+        try {
+            if (imageFile.getParentFile() != null && !imageFile.getParentFile().exists()) {
+                imageFile.getParentFile().mkdirs();
+            }
+            if (imageFile.createNewFile()) {
+                return FileProvider.getUriForFile(
+                        this,
+                        getApplicationContext().getPackageName() + ".fileprovider",
+                        imageFile
+                );
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+    private void handlePhotoPicked(Uri uri) {
+        if (uri == null) {
+            return;
+        }
+        ApiClient client = new ApiClient(this);
+        client.uploadReturnPhoto(returnId, uri, new ApiClient.ApiCallback<ReturnPhotoDto>() {
+            @Override
+            public void onSuccess(ReturnPhotoDto data) {
+                runOnUiThread(() -> {
+                    Toast.makeText(SalesReturnDetailActivity.this, "Dodano zdjęcie.", Toast.LENGTH_SHORT).show();
+                    loadPhotos();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> Toast.makeText(SalesReturnDetailActivity.this, "Błąd uploadu: " + message, Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+    
+    private void handleMultiplePhotosPicked(List<Uri> uris) {
+        if (uris == null || uris.isEmpty()) {
+            return;
+        }
+
+        if (uris.size() > 10) {
+            Toast.makeText(this, "Maksymalnie 10 zdjęć jednocześnie", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Wysyłanie " + uris.size() + " zdjęć...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        ApiClient client = new ApiClient(this);
+        client.uploadReturnPhotos(returnId, uris, new ApiClient.ApiCallback<List<ReturnPhotoDto>>() {
+            @Override
+            public void onSuccess(List<ReturnPhotoDto> data) {
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(SalesReturnDetailActivity.this,
+                            "Dodano " + data.size() + " zdjęć",
+                            Toast.LENGTH_SHORT).show();
+                    loadPhotos();
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> {
+                    progressDialog.dismiss();
+                    Toast.makeText(SalesReturnDetailActivity.this,
+                            "Błąd uploadu: " + message,
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+    
+    private void loadPhotos() {
+        ApiClient client = new ApiClient(this);
+        client.fetchReturnPhotos(returnId, new ApiClient.ApiCallback<List<ReturnPhotoDto>>() {
+            @Override
+            public void onSuccess(List<ReturnPhotoDto> data) {
+                runOnUiThread(() -> {
+                    if (photoAdapter != null) {
+                        photoAdapter.setItems(data);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() ->
+                        Toast.makeText(SalesReturnDetailActivity.this,
+                                "Błąd zdjęć: " + message,
+                                Toast.LENGTH_LONG).show()
+                );
+            }
+        });
     }
 }

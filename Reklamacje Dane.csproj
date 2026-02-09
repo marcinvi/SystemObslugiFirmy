@@ -884,6 +884,7 @@
     <Compile Include="NewMessageAttachment.Partial.cs" />
     <Compile Include="PasswordHelper.cs" />
     <Compile Include="PdfFormHelperSharp5.cs" />
+    <Compile Include="PhoneApiClient.cs" />
     <Compile Include="PhoneClient.cs" />
     <Compile Include="ProductInfoControl.cs">
       <SubType>UserControl</SubType>

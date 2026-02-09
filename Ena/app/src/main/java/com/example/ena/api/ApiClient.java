@@ -11,12 +11,13 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.net.SocketTimeoutException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import androidx.annotation.NonNull;
 
 public class ApiClient {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
@@ -118,6 +120,10 @@ public class ApiClient {
         if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
         if (!path.startsWith("/")) path = "/" + path;
         return base + path;
+    }
+
+    private String getFullUrl(String path) {
+        return buildUrl(path);
     }
 
     private Request.Builder buildRequest(String url) {
@@ -366,13 +372,27 @@ public class ApiClient {
 
     public void fetchReturnByCode(String code, ApiCallback<ReturnDetailsDto> callback) {
         Type type = new TypeToken<ApiResponse<ReturnDetailsDto>>(){}.getType();
-        String encoded = code == null ? "" : URLEncoder.encode(code, StandardCharsets.UTF_8);
+        String encoded = "";
+        if (code != null) {
+            try {
+                encoded = URLEncoder.encode(code, "UTF-8");
+            } catch (Exception e) {
+                encoded = code;
+            }
+        }
         get("api/returns/lookup?code=" + encoded, type, callback);
     }
 
     public void fetchReturnStatuses(String typeValue, ApiCallback<List<StatusDto>> callback) {
         Type type = new TypeToken<ApiResponse<List<StatusDto>>>(){}.getType();
-        String encoded = typeValue == null ? "" : URLEncoder.encode(typeValue, StandardCharsets.UTF_8);
+        String encoded = "";
+        if (typeValue != null) {
+            try {
+                encoded = URLEncoder.encode(typeValue, "UTF-8");
+            } catch (Exception e) {
+                encoded = typeValue;
+            }
+        }
         get("api/returns/statuses?type=" + encoded, type, callback);
     }
 
@@ -485,7 +505,14 @@ public class ApiClient {
 
     public void fetchStatuses(String typeValue, ApiCallback<List<StatusDto>> callback) {
         Type type = new TypeToken<ApiResponse<List<StatusDto>>>(){}.getType();
-        String encoded = typeValue == null ? "" : URLEncoder.encode(typeValue, StandardCharsets.UTF_8);
+        String encoded = "";
+        if (typeValue != null) {
+            try {
+                encoded = URLEncoder.encode(typeValue, "UTF-8");
+            } catch (Exception e) {
+                encoded = typeValue;
+            }
+        }
         get("api/returns/statuses?type=" + encoded, type, callback);
     }
 
@@ -522,6 +549,115 @@ public class ApiClient {
             }
             buffer.flush();
             return buffer.toByteArray();
+        }
+    }
+    // ==========================================
+// NOWE METODY - ApiClient.java
+// ==========================================
+
+    // 1. Upload wielu zdjęć jednocześnie
+    public void uploadReturnPhotos(int id, List<Uri> uris, ApiCallback<List<ReturnPhotoDto>> callback) {
+        if (uris == null || uris.isEmpty()) {
+            callback.onError("Brak zdjęć.");
+            return;
+        }
+
+        if (uris.size() > 10) {
+            callback.onError("Maksymalnie 10 zdjęć jednocześnie.");
+            return;
+        }
+
+        MultipartBody.Builder builder = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM);
+
+        for (int i = 0; i < uris.size(); i++) {
+            Uri uri = uris.get(i);
+            String fileName = resolveFileName(uri);
+            String mime = context.getContentResolver().getType(uri);
+            MediaType mediaType = MediaType.parse(mime != null ? mime : "image/jpeg");
+
+            byte[] data;
+            try {
+                data = readBytes(uri);
+            } catch (IOException e) {
+                callback.onError("Nie udało się odczytać zdjęcia: " + fileName);
+                return;
+            }
+
+            RequestBody fileBody = RequestBody.create(data, mediaType);
+            builder.addFormDataPart("files", fileName, fileBody);
+        }
+
+        MultipartBody requestBody = builder.build();
+        Type type = new TypeToken<ApiResponse<List<ReturnPhotoDto>>>(){}.getType();
+        sendMultipartWithResponse("api/returns/" + id + "/photos/batch", requestBody, type, callback);
+    }
+
+    // 2. Pobierz zdjęcie z cache lub serwera
+    public void fetchReturnPhoto(int photoId, File cacheDir, PhotoCallback callback) {
+        // Sprawdź cache lokalny
+        File cachedFile = new File(cacheDir, "photo_" + photoId + ".jpg");
+        if (cachedFile.exists() && cachedFile.lastModified() > System.currentTimeMillis() - 24 * 60 * 60 * 1000) {
+            // Cache jest świeży (< 24h)
+            callback.onCachedPhoto(cachedFile);
+            return;
+        }
+
+        // Pobierz z serwera
+        String url = "api/returns/photos/" + photoId;
+        String fullUrl = getFullUrl(url);
+        if (fullUrl == null) {
+            callback.onError("Brak adresu API.");
+            return;
+        }
+        Request request = buildRequest(fullUrl).get().build();
+
+        selectClient(fullUrl).newCall(request).enqueue(new okhttp3.Callback() {
+            @Override
+            public void onFailure(@NonNull okhttp3.Call call, @NonNull IOException e) {
+                callback.onError("Błąd pobierania: " + e.getMessage());
+            }
+
+            @Override
+            public void onResponse(@NonNull okhttp3.Call call, @NonNull okhttp3.Response response) throws IOException {
+                if (response.isSuccessful() && response.body() != null) {
+                    try (InputStream inputStream = response.body().byteStream();
+                         FileOutputStream outputStream = new FileOutputStream(cachedFile)) {
+
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+                        while ((bytesRead = inputStream.read(buffer)) != -1) {
+                            outputStream.write(buffer, 0, bytesRead);
+                        }
+
+                        callback.onSuccess(cachedFile);
+                    } catch (IOException e) {
+                        callback.onError("Błąd zapisu cache: " + e.getMessage());
+                    }
+                } else {
+                    callback.onError("Błąd serwera: " + response.code());
+                }
+            }
+        });
+    }
+
+    // 3. Interfejs callback dla zdjęć
+    public interface PhotoCallback {
+        void onSuccess(File file);
+        void onCachedPhoto(File file);
+        void onError(String message);
+    }
+
+    // 4. Wyczyść cache zdjęć
+    public void clearPhotoCache(File cacheDir) {
+        File[] files = cacheDir.listFiles((dir, name) -> name.startsWith("photo_"));
+        if (files != null) {
+            for (File file : files) {
+                if (file.lastModified() < System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000) {
+                    // Usuń pliki starsze niż 7 dni
+                    file.delete();
+                }
+            }
         }
     }
 }

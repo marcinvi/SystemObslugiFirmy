@@ -207,7 +207,36 @@ public class ReturnsService
         }
         return response;
     }
+    private async Task<string> ResolveReturnPhotosPathWithSubfolder(MySqlConnection connection, int returnId)
+    {
+        // Pobierz numer zwrotu (ReferenceNumber)
+        const string query = "SELECT ReferenceNumber FROM AllegroCustomerReturns WHERE Id = @id LIMIT 1";
+        await using var cmd = new MySqlCommand(query, connection);
+        cmd.Parameters.AddWithValue("@id", returnId);
 
+        var referenceNumber = (await cmd.ExecuteScalarAsync())?.ToString();
+        if (string.IsNullOrWhiteSpace(referenceNumber))
+        {
+            referenceNumber = $"ZWROT_{returnId}";
+        }
+
+        // Usuń niedozwolone znaki z nazwy folderu
+        referenceNumber = string.Join("_", referenceNumber.Split(Path.GetInvalidFileNameChars()));
+
+        // Bazowa ścieżka
+        var basePath = ResolveReturnPhotosPath();
+
+        // Dodaj podfolder z numerem zwrotu
+        var returnFolder = Path.Combine(basePath, referenceNumber);
+
+        // Utwórz folder jeśli nie istnieje
+        if (!Directory.Exists(returnFolder))
+        {
+            Directory.CreateDirectory(returnFolder);
+        }
+
+        return returnFolder;
+    }
     private async Task ProcessSingleReturnSafeAsync(
         AllegroApiClient.CustomerReturnDto ret,
         AllegroApiClient.OrderDetailsDto? orderDetails,
@@ -964,10 +993,10 @@ public class ReturnsService
             throw new InvalidOperationException("Plik jest za duży (max 10MB).");
         }
 
-        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif" };
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "application/pdf" };
         if (!allowedTypes.Contains(file.ContentType))
         {
-            throw new InvalidOperationException("Nieobsługiwany typ pliku.");
+            throw new InvalidOperationException("Nieobsługiwany typ pliku. Dozwolone: JPG, PNG, GIF, PDF");
         }
 
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
@@ -978,26 +1007,25 @@ public class ReturnsService
             return null;
         }
 
-        var uploadPath = ResolveReturnPhotosPath();
-        if (!Directory.Exists(uploadPath))
-        {
-            Directory.CreateDirectory(uploadPath);
-        }
+        // ✅ ZMIANA: Użyj nowej metody do utworzenia podfolderu
+        var uploadPath = await ResolveReturnPhotosPathWithSubfolder(connection, returnId);
 
         var extension = Path.GetExtension(file.FileName);
-        var fileName = $"{Guid.NewGuid()}{extension}";
+        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var fileName = $"{timestamp}_{Guid.NewGuid()}{extension}";
         var filePath = Path.Combine(uploadPath, fileName);
 
-        await using (var stream = new FileStream(filePath, FileMode.Create))
+        // ✅ OPTYMALIZACJA: Zapisz plik bezpośrednio bez buforowania
+        await using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 81920, useAsync: true))
         {
             await file.CopyToAsync(stream);
         }
 
         const string insertQuery = @"
-            INSERT INTO ZwrotPliki
-                (ZwrotId, NazwaPliku, SciezkaPliku, TypPliku, RozmiarPliku, DataDodania, DodanyPrzez, DodanyPrzezNazwa)
-            VALUES
-                (@zwrotId, @nazwa, @sciezka, @typ, @rozmiar, @data, @dodanyPrzez, @dodanyPrzezNazwa)";
+        INSERT INTO ZwrotPliki
+            (ZwrotId, NazwaPliku, SciezkaPliku, TypPliku, RozmiarPliku, DataDodania, DodanyPrzez, DodanyPrzezNazwa)
+        VALUES
+            (@zwrotId, @nazwa, @sciezka, @typ, @rozmiar, @data, @dodanyPrzez, @dodanyPrzezNazwa)";
 
         await using var command = new MySqlCommand(insertQuery, connection);
         command.Parameters.AddWithValue("@zwrotId", returnId);
@@ -1029,6 +1057,28 @@ public class ReturnsService
             AddedByName = userDisplayName,
             Url = $"/api/returns/photos/{photoId}"
         };
+    }
+    public async Task<List<ReturnPhotoDto>> UploadReturnPhotosAsync(int returnId, List<IFormFile> files, int? userId, string userDisplayName)
+    {
+        var results = new List<ReturnPhotoDto>();
+
+        foreach (var file in files)
+        {
+            try
+            {
+                var result = await UploadReturnPhotoAsync(returnId, file, userId, userDisplayName);
+                if (result != null)
+                {
+                    results.Add(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Błąd uploadu pliku {FileName}", file.FileName);
+            }
+        }
+
+        return results;
     }
 
     public async Task<bool> DeleteReturnPhotoAsync(int photoId, string userDisplayName)
