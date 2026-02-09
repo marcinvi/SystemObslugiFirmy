@@ -1,6 +1,9 @@
 package com.example.ena;
 
 import android.Manifest;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +13,8 @@ import android.os.Build;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 /**
@@ -32,6 +37,8 @@ public class CallReceiver extends BroadcastReceiver {
     private static final String TAG = "EnaCallReceiver";
     private static final String PREFS_NAME = "ena_prefs";
     private static final String PREF_SHOW_SMS_LINKS = "show_sms_links";
+    private static final String CHANNEL_ID_LINKS = "ENA_SMS_LINKS";
+    private static final int NOTIFICATION_ID_LINK = 9001;
 
     // Debounce
     private static String lastState = "";
@@ -195,19 +202,11 @@ public class CallReceiver extends BroadcastReceiver {
 
         BackgroundService.sendPhoneEvent(context, "CALL_IDLE", finalNumber, null);
 
-        // === Pokaż dialog z linkami reklamacyjnymi ===
+        // === Pokaż powiadomienie z linkami reklamacyjnymi ===
         if (wasIncomingCall && wasAnswered && isValidNumber(finalNumber)) {
-            // Sprawdź czy użytkownik włączył tę opcję w ustawieniach
             if (isSmsLinksEnabled(context)) {
-                Log.i(TAG, "Uruchamiam SendLinkActivity dla: " + finalNumber);
-                try {
-                    Intent linkIntent = new Intent(context, SendLinkActivity.class);
-                    linkIntent.putExtra("phone_number", finalNumber);
-                    linkIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    context.startActivity(linkIntent);
-                } catch (Exception e) {
-                    Log.e(TAG, "Błąd uruchomienia SendLinkActivity: " + e.getMessage());
-                }
+                Log.i(TAG, "Pokazuję powiadomienie o linkach dla: " + finalNumber);
+                showSmsLinkNotification(context, finalNumber);
             } else {
                 Log.d(TAG, "Pominięto dialog linków - opcja wyłączona w ustawieniach");
             }
@@ -226,6 +225,81 @@ public class CallReceiver extends BroadcastReceiver {
         wasIncomingCall = false;
         wasAnswered = false;
         incomingNumber = null;
+    }
+
+    // ========================================================================
+    // Powiadomienie o linkach SMS
+    // ========================================================================
+
+    /**
+     * Pokazuje powiadomienie z przyciskiem "Wyślij link" po zakończonej rozmowie.
+     * Na Android 10+ nie można uruchomić Activity bezpośrednio z BroadcastReceivera
+     * (ograniczenia background activity start). Powiadomienie działa zawsze.
+     * Użytkownik klika powiadomienie → otwiera SendLinkActivity.
+     */
+    private void showSmsLinkNotification(Context context, String phoneNumber) {
+        try {
+            // Utwórz kanał powiadomień (Android 8+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(
+                        CHANNEL_ID_LINKS,
+                        "Linki reklamacyjne",
+                        NotificationManager.IMPORTANCE_HIGH);
+                channel.setDescription("Powiadomienia o wysyłce linków SMS po rozmowie");
+                NotificationManager nm = (NotificationManager)
+                        context.getSystemService(Context.NOTIFICATION_SERVICE);
+                if (nm != null) nm.createNotificationChannel(channel);
+            }
+
+            // Intent uruchamiający SendLinkActivity po kliknięciu
+            Intent linkIntent = new Intent(context, SendLinkActivity.class);
+            linkIntent.putExtra("phone_number", phoneNumber);
+            linkIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                flags |= PendingIntent.FLAG_IMMUTABLE;
+            }
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                    context, NOTIFICATION_ID_LINK, linkIntent, flags);
+
+            // Zbuduj powiadomienie
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID_LINKS)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentTitle("Wyślij link do: " + phoneNumber)
+                    .setContentText("Kliknij aby wybrać link reklamacyjny do wysłania SMS")
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                    .setAutoCancel(true)
+                    .setContentIntent(pendingIntent)
+                    // Full-screen intent - na zablokowanym ekranie pokaże się pełnoekranowo
+                    .setFullScreenIntent(pendingIntent, true)
+                    .setDefaults(NotificationCompat.DEFAULT_SOUND | NotificationCompat.DEFAULT_VIBRATE)
+                    // Auto-usuń po 60 sekundach
+                    .setTimeoutAfter(60_000);
+
+            // Pokaż powiadomienie
+            NotificationManagerCompat notifManager = NotificationManagerCompat.from(context);
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                    notifManager.areNotificationsEnabled()) {
+                notifManager.notify(NOTIFICATION_ID_LINK, builder.build());
+                Log.d(TAG, "Powiadomienie o linkach wyświetlone dla: " + phoneNumber);
+            } else {
+                Log.w(TAG, "Powiadomienia wyłączone - nie mogę pokazać linku");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Błąd pokazywania powiadomienia: " + e.getMessage());
+
+            // Fallback: spróbuj uruchomić Activity bezpośrednio (może działa na starszych Android)
+            try {
+                Intent linkIntent = new Intent(context, SendLinkActivity.class);
+                linkIntent.putExtra("phone_number", phoneNumber);
+                linkIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(linkIntent);
+            } catch (Exception e2) {
+                Log.e(TAG, "Fallback też nie działa: " + e2.getMessage());
+            }
+        }
     }
 
     // ========================================================================

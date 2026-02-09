@@ -84,6 +84,7 @@ public class IncomingCallTracker {
         TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         if (tm == null) return;
 
+        // Wyrejestruj TelephonyCallback (API 31+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && telephonyCallback != null) {
             try {
                 tm.unregisterTelephonyCallback((TelephonyCallback) telephonyCallback);
@@ -92,7 +93,10 @@ public class IncomingCallTracker {
                 Log.w(TAG, "Błąd wyrejestrowania TelephonyCallback: " + e.getMessage());
             }
             telephonyCallback = null;
-        } else if (legacyListener != null) {
+        }
+
+        // Wyrejestruj legacy PhoneStateListener (zarejestrowany ZAWSZE - także na API 31+)
+        if (legacyListener != null) {
             try {
                 tm.listen(legacyListener, PhoneStateListener.LISTEN_NONE);
                 Log.d(TAG, "PhoneStateListener wyrejestrowany");
@@ -131,8 +135,14 @@ public class IncomingCallTracker {
             Log.d(TAG, "TelephonyCallback zarejestrowany (API 31+)");
         } catch (SecurityException e) {
             Log.e(TAG, "SecurityException rejestracji TelephonyCallback: " + e.getMessage());
-            registerLegacyListener(tm);
         }
+
+        // KRYTYCZNE: Na API 31+ TelephonyCallback.CallStateListener NIE daje numeru!
+        // Rejestrujemy RÓWNIEŻ legacy PhoneStateListener który nadal działa
+        // i nadal dostarcza numer na wielu urządzeniach (Samsung, Xiaomi, Pixel).
+        // Deprecated != usunięty - działa nawet na Android 14.
+        registerLegacyListener(tm);
+        Log.d(TAG, "Legacy PhoneStateListener RÓWNIEŻ zarejestrowany (fallback na numer)");
     }
 
     @RequiresApi(api = Build.VERSION_CODES.S)

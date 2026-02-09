@@ -169,23 +169,42 @@ namespace Reklamacje_Dane
                 await con.OpenAsync();
 
                 var accounts = await GetAuthorizedAccountsAsync(con);
+                int accountIndex = 0;
+                int totalAccounts = accounts.Count;
+
+                progress?.Report($"Znaleziono {totalAccounts} kont Allegro");
+
                 foreach (var account in accounts)
                 {
+                    accountIndex++;
                     try
                     {
-                        var apiClient = await DatabaseHelper.GetApiClientForAccountAsync(account.Id, con);
-                        if (apiClient == null) continue;
+                        progress?.Report($"Konto {accountIndex} z {totalAccounts} (ID: {account.Id}) - łączenie...");
 
-                        var accountResult = await SynchronizeReturnsForAccountAsync(apiClient, account.Id, con);
+                        var apiClient = await DatabaseHelper.GetApiClientForAccountAsync(account.Id, con);
+                        if (apiClient == null)
+                        {
+                            progress?.Report($"Konto {accountIndex} z {totalAccounts} (ID: {account.Id}) - brak API client, pomijam");
+                            continue;
+                        }
+
+                        progress?.Report($"Konto {accountIndex} z {totalAccounts} (ID: {account.Id}) - pobieranie zwrotów...");
+
+                        var accountResult = await SynchronizeReturnsForAccountAsync(apiClient, account.Id, con, progress, accountIndex, totalAccounts);
                         result.TotalProcessed += accountResult.TotalProcessed;
                         result.NewReturns += accountResult.NewReturns;
                         result.UpdatedReturns += accountResult.UpdatedReturns;
+
+                        progress?.Report($"Konto {accountIndex} z {totalAccounts} (ID: {account.Id}) - OK (nowych: {accountResult.NewReturns}, zaktualizowanych: {accountResult.UpdatedReturns})");
                     }
                     catch (Exception ex)
                     {
                         result.ErrorMessages.Add($"Konto {account.Id}: {ex.Message}");
+                        progress?.Report($"Konto {accountIndex} z {totalAccounts} (ID: {account.Id}) - BŁĄD: {ex.Message}");
                     }
                 }
+
+                progress?.Report($"Zakończono: {result.TotalProcessed} zwrotów, {result.NewReturns} nowych, {result.UpdatedReturns} zaktualizowanych");
             }
 
             return result;
@@ -260,7 +279,10 @@ namespace Reklamacje_Dane
         private async Task<ReturnsSyncResult> SynchronizeReturnsForAccountAsync(
             AllegroApiClient apiClient,
             int accountId,
-            MySqlConnection con)
+            MySqlConnection con,
+            IProgress<string> progress = null,
+            int accountIndex = 0,
+            int totalAccounts = 0)
         {
             var result = new ReturnsSyncResult();
             var logId = await LogSyncStartAsync(accountId, "RETURNS", con);
@@ -270,10 +292,24 @@ namespace Reklamacje_Dane
                 var allReturns = await GetAllReturnsFromApiAsync(apiClient);
                 result.TotalProcessed = allReturns.Count;
 
+                string accountLabel = totalAccounts > 0
+                    ? $"[Konto {accountIndex}/{totalAccounts}]"
+                    : $"[Konto {accountId}]";
+
+                progress?.Report($"{accountLabel} Pobrano {allReturns.Count} zwrotów z API");
+
+                int returnIndex = 0;
                 foreach (var returnData in allReturns)
                 {
+                    returnIndex++;
                     try
                     {
+                        // Raportuj co 5 zwrotów (lub zawsze jeśli < 20)
+                        if (allReturns.Count < 20 || returnIndex % 5 == 0 || returnIndex == allReturns.Count)
+                        {
+                            progress?.Report($"{accountLabel} Zwrot {returnIndex} z {allReturns.Count}: {returnData.Id}");
+                        }
+
                         OrderDetails orderDetails = null;
                         if (!string.IsNullOrEmpty(returnData.OrderId))
                         {
@@ -299,6 +335,7 @@ namespace Reklamacje_Dane
                     catch (Exception exReturn)
                     {
                         result.ErrorMessages.Add($"Zwrot {returnData.Id}: {exReturn.Message}");
+                        progress?.Report($"{accountLabel} BŁĄD zwrot {returnData.Id}: {exReturn.Message}");
                         System.Diagnostics.Debug.WriteLine($"Błąd przetwarzania zwrotu {returnData.Id}: {exReturn.Message}");
                     }
                 }

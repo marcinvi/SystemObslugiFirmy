@@ -313,23 +313,34 @@ namespace Reklamacje_Dane
             {
                 btnSync.Enabled = false;
                 btnSync.Text = "Synchronizacja...";
+                btnRefresh.Enabled = false;
                 Cursor = Cursors.WaitCursor;
 
                 var syncService = new AllegroSyncServiceExtended();
                 var progress = new Progress<string>(msg => 
-                    System.Diagnostics.Debug.WriteLine(msg)
-                );
+                {
+                    System.Diagnostics.Debug.WriteLine(msg);
+                    // Pokaż postęp na żywo w lblStats
+                    if (lblStats.InvokeRequired)
+                        lblStats.Invoke(new Action(() => lblStats.Text = msg));
+                    else
+                        lblStats.Text = msg;
+                });
 
                 var result = await syncService.SynchronizeReturnsAsync(progress);
+
+                string errMsg = result.ErrorMessages != null && result.ErrorMessages.Count > 0
+                    ? $"\n\nBłędy ({result.ErrorMessages.Count}):\n" + string.Join("\n", result.ErrorMessages)
+                    : "";
 
                 MessageBox.Show(
                     $"Synchronizacja zakończona!\n\n" +
                     $"Przetworzonych: {result.TotalProcessed}\n" +
                     $"Nowych: {result.NewReturns}\n" +
-                    $"Zaktualizowanych: {result.UpdatedReturns}",
+                    $"Zaktualizowanych: {result.UpdatedReturns}" + errMsg,
                     "Synchronizacja",
                     MessageBoxButtons.OK,
-                    MessageBoxIcon.Information
+                    result.ErrorMessages?.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information
                 );
 
                 await LoadReturnsAsync();
@@ -347,6 +358,7 @@ namespace Reklamacje_Dane
             {
                 btnSync.Enabled = true;
                 btnSync.Text = "Synchronizuj";
+                btnRefresh.Enabled = true;
                 Cursor = Cursors.Default;
             }
         }
