@@ -48,8 +48,10 @@ import okhttp3.Response;
 public class SendLinkActivity extends AppCompatActivity {
 
     private static final String TAG = "EnaSendLink";
+    private static final String EXTRA_TRACE_ID = "trace_id";
 
     private String phoneNumber;
+    private long traceId = -1L;
     private final Gson gson = new Gson();
     private TextView statusText;
     private ProgressBar progressBar;
@@ -130,10 +132,11 @@ public class SendLinkActivity extends AppCompatActivity {
         closeButton.setOnClickListener(v -> finish());
 
         phoneNumber = getIntent().getStringExtra("phone_number");
-        Log.i(TAG, "Numer z intent: " + phoneNumber);
+        traceId = getIntent().getLongExtra(EXTRA_TRACE_ID, -1L);
+        Log.i(TAG, "[Trace " + traceId + "] Numer z intent: " + phoneNumber);
 
         if (phoneNumber == null || phoneNumber.isEmpty() || "unknown".equalsIgnoreCase(phoneNumber)) {
-            Log.w(TAG, "Brak numeru telefonu - zamykam");
+            Log.w(TAG, "[Trace " + traceId + "] Brak numeru telefonu - zamykam");
             finish();
             return;
         }
@@ -163,7 +166,7 @@ public class SendLinkActivity extends AppCompatActivity {
             try {
                 String url = baseUrl.replaceAll("/$", "") + "/api/phone/links";
                 String userLogin = BackgroundService.getUserLogin(SendLinkActivity.this);
-                Log.d(TAG, "API URL: " + url + " | User: " + userLogin);
+                Log.d(TAG, "[Trace " + traceId + "] API URL: " + url + " | User: " + userLogin);
 
                 Request.Builder reqBuilder = new Request.Builder()
                         .url(url)
@@ -175,19 +178,19 @@ public class SendLinkActivity extends AppCompatActivity {
 
                 try (Response response = selectClient(url).newCall(request).execute()) {
                     int code = response.code();
-                    Log.d(TAG, "API response code: " + code);
+                    Log.d(TAG, "[Trace " + traceId + "] API response code: " + code);
 
                     if (response.isSuccessful() && response.body() != null) {
                         String body = response.body().string();
-                        Log.d(TAG, "API response body (100 chars): " + body.substring(0, Math.min(body.length(), 100)));
+                        Log.d(TAG, "[Trace " + traceId + "] API response body (100 chars): " + body.substring(0, Math.min(body.length(), 100)));
 
                         ApiLinksResponse parsed = gson.fromJson(body, ApiLinksResponse.class);
 
                         if (parsed != null && parsed.success && parsed.data != null && !parsed.data.isEmpty()) {
-                            Log.i(TAG, "✅ Pobrano " + parsed.data.size() + " linków z API");
+                            Log.i(TAG, "[Trace " + traceId + "] ✅ Pobrano " + parsed.data.size() + " linków z API");
                             runOnUiThread(() -> showLinksDialog(parsed.data));
                         } else {
-                            Log.w(TAG, "❌ Brak aktywnych linków w bazie! success=" + 
+                            Log.w(TAG, "[Trace " + traceId + "] ❌ Brak aktywnych linków w bazie! success=" + 
                                     (parsed != null ? parsed.success : "null") +
                                     " data=" + (parsed != null && parsed.data != null ? parsed.data.size() : "null"));
                             runOnUiThread(() -> {
@@ -195,14 +198,14 @@ public class SendLinkActivity extends AppCompatActivity {
                             });
                         }
                     } else {
-                        Log.e(TAG, "❌ Błąd pobierania linków: HTTP " + code);
+                        Log.e(TAG, "[Trace " + traceId + "] ❌ Błąd pobierania linków: HTTP " + code);
                         runOnUiThread(() -> {
                             showError("Błąd API (HTTP " + code + ").\nSprawdź czy tabela phone_sms_links istnieje.");
                         });
                     }
                 }
             } catch (Exception e) {
-                Log.e(TAG, "❌ Błąd połączenia z API: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                Log.e(TAG, "[Trace " + traceId + "] ❌ Błąd połączenia z API: " + e.getClass().getSimpleName() + ": " + e.getMessage());
                 runOnUiThread(() -> {
                     showError("Błąd połączenia: " + e.getMessage());
                 });
@@ -264,12 +267,12 @@ public class SendLinkActivity extends AppCompatActivity {
             smsManager.sendMultipartTextMessage(phoneNumber, null, parts, null, null);
 
             Toast.makeText(this, "Wysłano link: " + link.name, Toast.LENGTH_SHORT).show();
-            Log.i(TAG, "SMS wysłany do " + phoneNumber + ": " + link.name);
+            Log.i(TAG, "[Trace " + traceId + "] SMS wysłany do " + phoneNumber + ": " + link.name);
 
             logLinkSent(link.id, "SENT");
         } catch (Exception e) {
             Toast.makeText(this, "Błąd wysyłki SMS: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            Log.e(TAG, "Błąd wysyłki SMS: " + e.getMessage());
+            Log.e(TAG, "[Trace " + traceId + "] Błąd wysyłki SMS: " + e.getMessage());
             logLinkSent(link.id, "FAILED");
         }
 
@@ -301,9 +304,9 @@ public class SendLinkActivity extends AppCompatActivity {
                         .build();
 
                 selectClient(url).newCall(request).execute().close();
-                Log.d(TAG, "Link log zapisany: linkId=" + linkId + " status=" + status);
+                Log.d(TAG, "[Trace " + traceId + "] Link log zapisany: linkId=" + linkId + " status=" + status);
             } catch (Exception e) {
-                Log.w(TAG, "Błąd zapisu logu linku: " + e.getMessage());
+                Log.w(TAG, "[Trace " + traceId + "] Błąd zapisu logu linku: " + e.getMessage());
             }
         }).start();
     }

@@ -109,11 +109,16 @@ public class BackgroundService extends Service {
         // do startowania Activity na Android 10-11
         if (intent != null && "com.example.ena.SHOW_SMS_LINKS".equals(intent.getAction())) {
             String phoneNumber = intent.getStringExtra("phone_number");
+            long traceId = intent.getLongExtra("trace_id", -1L);
             if (phoneNumber != null && !phoneNumber.isEmpty()) {
-                Log.i(TAG, "=== BackgroundService: Uruchamiam SendLinkActivity dla: " + phoneNumber + " ===");
+                Log.i(TAG, "=== BackgroundService: Uruchamiam SendLinkActivity dla: " + phoneNumber
+                        + " trace=" + traceId + " ===");
                 try {
                     Intent linkIntent = new Intent(this, SendLinkActivity.class);
                     linkIntent.putExtra("phone_number", phoneNumber);
+                    if (traceId != -1L) {
+                        linkIntent.putExtra("trace_id", traceId);
+                    }
                     linkIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     startActivity(linkIntent);
                     Log.d(TAG, "SendLinkActivity uruchomione z foreground service");
