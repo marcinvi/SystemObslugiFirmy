@@ -488,6 +488,8 @@ public class ApiClient {
         sendJsonWithResponse("api/returns/sync", payload, "POST", type, callback);
     }
 
+    // === NOWE: Async sync z progressem ===
+
     public void startSyncAsync(ReturnSyncRequest payload, ApiCallback<ReturnSyncJobResponse> callback) {
         Type type = new TypeToken<ApiResponse<ReturnSyncJobResponse>>(){}.getType();
         sendJsonWithResponse("api/returns/sync/start", payload, "POST", type, callback);

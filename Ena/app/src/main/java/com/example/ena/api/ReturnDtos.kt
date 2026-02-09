@@ -94,6 +94,37 @@ data class ReturnSyncResponse(
     val errors: List<String>,
 )
 
+// === NOWE: Async sync z progressem ===
+
+data class ReturnSyncJobResponse(
+    val jobId: String,
+    val startedAt: String?,
+    val status: String?,
+)
+
+data class ReturnSyncProgress(
+    val jobId: String,
+    val status: String,
+    val userDisplayName: String?,
+    val startedAt: String?,
+    val finishedAt: String?,
+    val totalAccounts: Int,
+    val currentAccountIndex: Int,
+    val currentAccountName: String?,
+    val currentAccountId: Int?,
+    val totalReturnsInAccount: Int,
+    val currentReturnIndex: Int,
+    val currentReturnReference: String?,
+    val errors: List<String>,
+    val summary: ReturnSyncSummary?,
+)
+
+data class ReturnSyncSummary(
+    val accountsProcessed: Int,
+    val returnsFetched: Int,
+    val returnsProcessed: Int,
+)
+
 data class ReturnManualCreateRequest(
     val numerListu: String,
     val produkt: String?,

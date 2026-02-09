@@ -202,13 +202,21 @@ public class CallReceiver extends BroadcastReceiver {
 
         BackgroundService.sendPhoneEvent(context, "CALL_IDLE", finalNumber, null);
 
-        // === Pokaż powiadomienie z linkami reklamacyjnymi ===
+        // === Pokaż okno z linkami reklamacyjnymi ===
+        Log.i(TAG, "=== SPRAWDZAM WARUNKI LINKÓW: incoming=" + wasIncomingCall +
+                " answered=" + wasAnswered +
+                " number=" + finalNumber +
+                " valid=" + isValidNumber(finalNumber) + " ===");
+
         if (wasIncomingCall && wasAnswered && isValidNumber(finalNumber)) {
-            if (isSmsLinksEnabled(context)) {
-                Log.i(TAG, "Pokazuję powiadomienie o linkach dla: " + finalNumber);
+            boolean smsEnabled = isSmsLinksEnabled(context);
+            Log.i(TAG, "Ustawienie show_sms_links = " + smsEnabled);
+            if (smsEnabled) {
+                Log.i(TAG, "✅ URUCHAMIAM dialog linków dla: " + finalNumber);
                 showSmsLinkNotification(context, finalNumber);
             } else {
-                Log.d(TAG, "Pominięto dialog linków - opcja wyłączona w ustawieniach");
+                Log.w(TAG, "❌ Pominięto dialog linków - opcja WYŁĄCZONA w ustawieniach!");
+                Log.w(TAG, "Włącz w: Ustawienia > Opcje połączeń > Pokazuj opcję wysyłania linków");
             }
         } else {
             if (!wasIncomingCall) {
@@ -216,7 +224,7 @@ public class CallReceiver extends BroadcastReceiver {
             } else if (!wasAnswered) {
                 Log.d(TAG, "Pominięto dialog - połączenie nieodebrane");
             } else {
-                Log.d(TAG, "Pominięto dialog - numer nieznany");
+                Log.d(TAG, "Pominięto dialog - numer nieznany/pusty: '" + finalNumber + "'");
             }
         }
 
@@ -232,43 +240,59 @@ public class CallReceiver extends BroadcastReceiver {
     // ========================================================================
 
     /**
-     * Pokazuje powiadomienie z przyciskiem "Wyślij link" po zakończonej rozmowie.
-     * Na Android 10+ nie można uruchomić Activity bezpośrednio z BroadcastReceivera
-     * (ograniczenia background activity start). Powiadomienie działa zawsze.
-     * Użytkownik klika powiadomienie → otwiera SendLinkActivity.
+     * Uruchamia okno z linkami po zakończonej rozmowie.
+     * 
+     * 3 metody uruchomienia (po kolei):
+     * 1. Przez BackgroundService (foreground service ma więcej uprawnień)
+     * 2. Bezpośredni startActivity (Android < 10)
+     * 3. Powiadomienie z FullScreenIntent (backup - zawsze działa)
      */
     private void showSmsLinkNotification(Context context, String phoneNumber) {
-        // === METODA 1: Bezpośrednie uruchomienie Activity ===
-        // Działa na Android < 10, a na nowszych gdy ekran jest włączony po rozmowie.
-        // Na Android 10+ może nie zadziałać (background activity start restriction)
-        // ale nie rzuca wyjątku - po prostu nic się nie stanie.
+        Log.i(TAG, "=== URUCHAMIAM DIALOG LINKÓW dla: " + phoneNumber + " ===");
+
+        // === METODA 1: Przez BackgroundService (foreground service) ===
+        // Foreground service ma uprawnienie do startowania Activity na Android 10-11
+        // Na Android 12+ nadal może nie zadziałać, ale warto próbować
+        try {
+            Intent serviceIntent = new Intent(context, BackgroundService.class);
+            serviceIntent.setAction("com.example.ena.SHOW_SMS_LINKS");
+            serviceIntent.putExtra("phone_number", phoneNumber);
+            context.startService(serviceIntent);
+            Log.d(TAG, "[Metoda 1] Wysłano intent do BackgroundService");
+        } catch (Exception e) {
+            Log.w(TAG, "[Metoda 1] Nie udało się wysłać do BackgroundService: " + e.getMessage());
+        }
+
+        // === METODA 2: Bezpośredni startActivity ===
+        // Działa na Android < 10, i czasem na nowszych gdy ekran jest włączony
         try {
             Intent directIntent = new Intent(context, SendLinkActivity.class);
             directIntent.putExtra("phone_number", phoneNumber);
             directIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             context.startActivity(directIntent);
-            Log.d(TAG, "[Metoda 1] Próba uruchomienia SendLinkActivity bezpośrednio dla: " + phoneNumber);
+            Log.d(TAG, "[Metoda 2] Bezpośrednie uruchomienie SendLinkActivity dla: " + phoneNumber);
         } catch (Exception e) {
-            Log.w(TAG, "[Metoda 1] Bezpośrednie uruchomienie nie powiodło się: " + e.getMessage());
+            Log.w(TAG, "[Metoda 2] Bezpośrednie uruchomienie nie powiodło się: " + e.getMessage());
         }
 
-        // === METODA 2: Powiadomienie z PendingIntent (backup) ===
-        // Zawsze pokazuj powiadomienie jako backup - użytkownik może kliknąć.
-        // Na Android 10+ to jedyna pewna metoda.
+        // === METODA 3: Powiadomienie z FullScreenIntent (backup) ===
+        // Zawsze tworzy powiadomienie - FullScreenIntent auto-otwiera Activity
+        // gdy telefon jest odblokowany (po rozmowie zwykle jest)
         try {
-            // Utwórz kanał powiadomień (Android 8+)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 NotificationChannel channel = new NotificationChannel(
                         CHANNEL_ID_LINKS,
                         "Linki reklamacyjne",
                         NotificationManager.IMPORTANCE_HIGH);
-                channel.setDescription("Powiadomienia o wysyłce linków SMS po rozmowie");
+                channel.setDescription("Okno wysyłki linków SMS po rozmowie");
+                channel.enableLights(true);
+                channel.enableVibration(true);
+                channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
                 NotificationManager nm = (NotificationManager)
                         context.getSystemService(Context.NOTIFICATION_SERVICE);
                 if (nm != null) nm.createNotificationChannel(channel);
             }
 
-            // Intent uruchamiający SendLinkActivity po kliknięciu powiadomienia
             Intent linkIntent = new Intent(context, SendLinkActivity.class);
             linkIntent.putExtra("phone_number", phoneNumber);
             linkIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -280,29 +304,29 @@ public class CallReceiver extends BroadcastReceiver {
             PendingIntent pendingIntent = PendingIntent.getActivity(
                     context, NOTIFICATION_ID_LINK, linkIntent, flags);
 
-            // Zbuduj powiadomienie
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID_LINKS)
                     .setSmallIcon(R.mipmap.ic_launcher)
-                    .setContentTitle("📩 Wyślij link do: " + phoneNumber)
+                    .setContentTitle("\uD83D\uDCE9 Wyślij link do: " + phoneNumber)
                     .setContentText("Kliknij aby wybrać link reklamacyjny")
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                    .setCategory(NotificationCompat.CATEGORY_CALL)
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
                     .setFullScreenIntent(pendingIntent, true)
                     .setDefaults(NotificationCompat.DEFAULT_SOUND | NotificationCompat.DEFAULT_VIBRATE)
-                    .setTimeoutAfter(120_000);
+                    .setTimeoutAfter(120_000)
+                    .setOngoing(false)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
-            // Pokaż powiadomienie - spróbuj nawet jeśli areNotificationsEnabled() zwraca false
             try {
                 NotificationManagerCompat notifManager = NotificationManagerCompat.from(context);
                 notifManager.notify(NOTIFICATION_ID_LINK, builder.build());
-                Log.d(TAG, "[Metoda 2] Powiadomienie o linkach wyświetlone dla: " + phoneNumber);
+                Log.d(TAG, "[Metoda 3] Powiadomienie o linkach wyświetlone dla: " + phoneNumber);
             } catch (SecurityException se) {
-                Log.w(TAG, "[Metoda 2] Brak uprawnienia POST_NOTIFICATIONS: " + se.getMessage());
+                Log.w(TAG, "[Metoda 3] Brak uprawnienia POST_NOTIFICATIONS: " + se.getMessage());
             }
         } catch (Exception e) {
-            Log.e(TAG, "[Metoda 2] Błąd tworzenia powiadomienia: " + e.getMessage());
+            Log.e(TAG, "[Metoda 3] Błąd tworzenia powiadomienia: " + e.getMessage());
         }
     }
 
