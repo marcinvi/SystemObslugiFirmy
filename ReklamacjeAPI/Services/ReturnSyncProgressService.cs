@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json.Serialization;
 
 namespace ReklamacjeAPI.Services;
 
@@ -88,6 +89,7 @@ public class ReturnSyncSummary
     public int ReturnsProcessed { get; set; }
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ReturnSyncStatus
 {
     Pending,

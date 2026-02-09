@@ -51,6 +51,7 @@ public class CallReceiver extends BroadcastReceiver {
     // Śledzenie stanu rozmowy
     private static boolean wasIncomingCall = false;
     private static boolean wasAnswered = false;
+    private static boolean wasOutgoingCall = false;
     private static String incomingNumber = null;
 
     @Override
@@ -90,6 +91,7 @@ public class CallReceiver extends BroadcastReceiver {
 
         wasIncomingCall = true;
         wasAnswered = false;
+        wasOutgoingCall = false;
 
         // === POZIOM 1: EXTRA_INCOMING_NUMBER z Intent ===
         String intentNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER);
@@ -140,6 +142,7 @@ public class CallReceiver extends BroadcastReceiver {
                     incomingNumber = delayedNumber;
                     GlobalState.incomingNumber = delayedNumber;
                     BackgroundService.sendPhoneEvent(context, "CALL_RINGING", delayedNumber, null);
+                    saveCallState(context, wasIncomingCall, wasAnswered, wasOutgoingCall, delayedNumber);
                 }
 
                 @Override
@@ -152,6 +155,7 @@ public class CallReceiver extends BroadcastReceiver {
                             incomingNumber = lateNumber;
                             GlobalState.incomingNumber = lateNumber;
                             BackgroundService.sendPhoneEvent(context, "CALL_RINGING", lateNumber, null);
+                            saveCallState(context, wasIncomingCall, wasAnswered, wasOutgoingCall, lateNumber);
                         }
 
                         @Override
@@ -174,7 +178,9 @@ public class CallReceiver extends BroadcastReceiver {
             Log.d(TAG, "Rozmowa odebrana (OFFHOOK po RINGING)");
             saveCallState(context, wasIncomingCall, wasAnswered, incomingNumber != null ? incomingNumber : "unknown");
         } else {
+            wasOutgoingCall = true;
             Log.d(TAG, "Połączenie wychodzące (OFFHOOK bez RINGING)");
+            saveCallState(context, wasIncomingCall, wasAnswered, wasOutgoingCall, incomingNumber != null ? incomingNumber : "unknown");
         }
     }
 
@@ -229,7 +235,8 @@ public class CallReceiver extends BroadcastReceiver {
                 " number=" + finalNumber +
                 " valid=" + isValidNumber(finalNumber) + " ===");
 
-        if (wasIncomingCall && wasAnswered && isValidNumber(finalNumber)) {
+        boolean shouldShowLinks = (wasIncomingCall && wasAnswered) || wasOutgoingCall;
+        if (shouldShowLinks && isValidNumber(finalNumber)) {
             boolean smsEnabled = isSmsLinksEnabled(context);
             Log.i(TAG, "Ustawienie show_sms_links = " + smsEnabled);
             if (smsEnabled) {
@@ -253,6 +260,7 @@ public class CallReceiver extends BroadcastReceiver {
         tracker.reset();
         wasIncomingCall = false;
         wasAnswered = false;
+        wasOutgoingCall = false;
         incomingNumber = null;
         clearCallState(context);
     }

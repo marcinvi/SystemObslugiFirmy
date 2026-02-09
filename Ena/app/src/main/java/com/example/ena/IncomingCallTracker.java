@@ -273,6 +273,49 @@ public class IncomingCallTracker {
         return null;
     }
 
+    public String queryCallLogForLastOutgoing(Context context) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALL_LOG)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.w(TAG, "Brak READ_CALL_LOG - nie można odpytać CallLog (outgoing)");
+            return null;
+        }
+
+        Cursor cursor = null;
+        try {
+            long thirtySecsAgo = System.currentTimeMillis() - 30_000;
+
+            cursor = context.getContentResolver().query(
+                    CallLog.Calls.CONTENT_URI,
+                    new String[]{
+                            CallLog.Calls.NUMBER,
+                            CallLog.Calls.TYPE,
+                            CallLog.Calls.DATE,
+                            CallLog.Calls.CACHED_NAME
+                    },
+                    CallLog.Calls.DATE + " > ? AND " + CallLog.Calls.TYPE + " = ?",
+                    new String[]{
+                            String.valueOf(thirtySecsAgo),
+                            String.valueOf(CallLog.Calls.OUTGOING_TYPE)
+                    },
+                    CallLog.Calls.DATE + " DESC LIMIT 1"
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                String number = cursor.getString(cursor.getColumnIndexOrThrow(CallLog.Calls.NUMBER));
+                if (number != null && !number.isEmpty()) {
+                    Log.d(TAG, "Znaleziono w CallLog (OUTGOING): " + number);
+                    return number;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Błąd odczytu CallLog (OUTGOING): " + e.getMessage());
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+
+        return null;
+    }
+
     // ==========================================================================
     // Callback
     // ==========================================================================

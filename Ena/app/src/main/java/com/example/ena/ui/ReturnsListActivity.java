@@ -488,7 +488,7 @@ public class ReturnsListActivity extends AppCompatActivity {
                 }
 
                 runOnUiThread(() -> {
-                    String status = data.getStatus();
+                    String status = normalizeSyncStatus(data.getStatus());
 
                     if ("Running".equalsIgnoreCase(status)) {
                         // Buduj tekst postępu
@@ -562,7 +562,8 @@ public class ReturnsListActivity extends AppCompatActivity {
                         loadReturns();
 
                     } else {
-                        // Pending lub inny - czekaj
+                        // Pending lub inny - pokaż status i czekaj
+                        showLoadingOverlay("Synchronizacja uruchomiona...");
                         syncPollHandler.postDelayed(() -> pollSyncStatus(client), 1500);
                     }
                 });
@@ -832,5 +833,27 @@ public class ReturnsListActivity extends AppCompatActivity {
         if (loadingOverlay != null) {
             loadingOverlay.setVisibility(View.GONE);
         }
+    }
+
+    private String normalizeSyncStatus(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return "Pending";
+        }
+        String trimmed = status.trim();
+        if (trimmed.matches("\\d+")) {
+            switch (trimmed) {
+                case "0":
+                    return "Pending";
+                case "1":
+                    return "Running";
+                case "2":
+                    return "Completed";
+                case "3":
+                    return "Failed";
+                default:
+                    return "Pending";
+            }
+        }
+        return trimmed;
     }
 }
