@@ -1,5 +1,6 @@
 package com.example.ena;
-
+import android.graphics.BitmapFactory;
+import android.Manifest; // <--- DODANO
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -7,32 +8,28 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
+import android.content.pm.PackageManager; // <--- DODANO
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.provider.MediaStore;
 import android.telephony.SmsManager;
 import android.text.format.Formatter;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat; // <--- DODANO
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.example.ena.api.ApiConfig;
 import com.example.ena.api.ApiClient;
 import com.example.ena.api.NotificationDto;
 import com.example.ena.UserSession;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -105,8 +102,6 @@ public class BackgroundService extends Service {
         startForegroundNotification();
 
         // === OBSŁUGA AKCJI: Uruchomienie SendLinkActivity ===
-        // Wywoływane z CallReceiver - foreground service ma uprawnienie
-        // do startowania Activity na Android 10-11
         if (intent != null && "com.example.ena.SHOW_SMS_LINKS".equals(intent.getAction())) {
             String phoneNumber = intent.getStringExtra("phone_number");
             long traceId = intent.getLongExtra("trace_id", -1L);
@@ -130,7 +125,6 @@ public class BackgroundService extends Service {
         }
 
         // NOWE: Zarejestruj IncomingCallTracker (PhoneStateListener)
-        // Musi być na wątku z Looper - główny wątek jest OK
         try {
             IncomingCallTracker.getInstance().registerListener(this);
             Log.d(TAG, "IncomingCallTracker zarejestrowany");
@@ -143,7 +137,7 @@ public class BackgroundService extends Service {
         startCommandPolling();
         startNotificationsPolling();
 
-        // Uruchom serwer HTTP (dla kompatybilności wstecznej)
+        // Uruchom serwer HTTP
         try {
             if (server == null) {
                 server = new MyWebServer();
@@ -158,13 +152,8 @@ public class BackgroundService extends Service {
     }
 
     // =====================================================================
-    // NOWE: Wysyłanie zdarzeń do API (wywoływane z CallReceiver/SmsReceiver)
+    // NOWE: Wysyłanie zdarzeń do API
     // =====================================================================
-
-    /**
-     * Wysyła zdarzenie (CALL_RINGING, CALL_IDLE, SMS_RECEIVED) do API.
-     * Wywoływane statycznie z CallReceiver i SmsReceiver.
-     */
     public static void sendPhoneEvent(Context context, String eventType, String phoneNumber, String content) {
         String userLogin = getUserLogin(context);
         if (userLogin == null || userLogin.isEmpty()) {
@@ -175,16 +164,13 @@ public class BackgroundService extends Service {
         String baseUrl = ApiConfig.getBaseUrl(context);
         if (baseUrl == null || baseUrl.isEmpty()) {
             Log.w(TAG, "Nie można wysłać zdarzenia - brak adresu API");
-            // Fallback: wyślij też starym sposobem (HttpSender)
             HttpSender.sendEvent(context, eventType.equals("CALL_RINGING") ? "CALL" : eventType, phoneNumber, content);
             return;
         }
 
-        // Wyślij w osobnym wątku
         new Thread(() -> {
             try {
                 String url = baseUrl.replaceAll("/$", "") + "/api/phone/event";
-
                 String json = new Gson().toJson(new PhoneEventPayload(userLogin, eventType, phoneNumber, content));
                 RequestBody body = RequestBody.create(json, JSON_MEDIA);
 
@@ -199,13 +185,11 @@ public class BackgroundService extends Service {
                         Log.d(TAG, "Zdarzenie wysłane do API: " + eventType + " nr=" + phoneNumber);
                     } else {
                         Log.e(TAG, "API błąd: " + response.code());
-                        // Fallback do starego sposobu
                         HttpSender.sendEvent(context, eventType, phoneNumber, content);
                     }
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Błąd wysyłania do API: " + e.getMessage());
-                // Fallback do starego sposobu
                 HttpSender.sendEvent(context, eventType, phoneNumber, content);
             }
         }).start();
@@ -214,7 +198,6 @@ public class BackgroundService extends Service {
     // =====================================================================
     // HEARTBEAT
     // =====================================================================
-
     private void sendHeartbeat() {
         String userLogin = getUserLogin(this);
         String baseUrl = ApiConfig.getBaseUrl(this);
@@ -247,9 +230,8 @@ public class BackgroundService extends Service {
     }
 
     // =====================================================================
-    // POLLING KOMEND (DIAL, SEND_SMS)
+    // POLLING KOMEND
     // =====================================================================
-
     private void pollAndExecuteCommands() {
         String userLogin = getUserLogin(this);
         String baseUrl = ApiConfig.getBaseUrl(this);
@@ -258,7 +240,6 @@ public class BackgroundService extends Service {
         new Thread(() -> {
             try {
                 String url = baseUrl.replaceAll("/$", "") + "/api/phone/commands/" + userLogin;
-
                 Request request = new Request.Builder()
                         .url(url)
                         .get()
@@ -285,20 +266,24 @@ public class BackgroundService extends Service {
 
     private void executeCommand(PhoneCommandItem cmd, String baseUrl, String userLogin) {
         String resultStatus = "SUCCESS";
-
         try {
             switch (cmd.commandType) {
                 case "DIAL":
-                    // Wykonaj połączenie telefoniczne
-                    Intent callIntent = new Intent(Intent.ACTION_CALL);
-                    callIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    callIntent.setData(Uri.parse("tel:" + cmd.phoneNumber));
-                    getApplicationContext().startActivity(callIntent);
-                    Log.d(TAG, "Wykonano DIAL: " + cmd.phoneNumber);
+                    // --- FIX: Sprawdzenie uprawnień ---
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                        Log.e(TAG, "Brak uprawnień CALL_PHONE do wykonania komendy DIAL");
+                        resultStatus = "FAILED_PERMISSION";
+                    } else {
+                        Intent callIntent = new Intent(Intent.ACTION_CALL);
+                        callIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        callIntent.setData(Uri.parse("tel:" + cmd.phoneNumber));
+                        getApplicationContext().startActivity(callIntent);
+                        Log.d(TAG, "Wykonano DIAL: " + cmd.phoneNumber);
+                    }
                     break;
 
                 case "SEND_SMS":
-                    // Wyślij SMS
+                    // Do SMS też warto mieć try-catch, choć tutaj nie jest to ACTION_CALL
                     SmsManager smsManager = SmsManager.getDefault();
                     if (cmd.content != null && !cmd.content.isEmpty()) {
                         ArrayList<String> parts = smsManager.divideMessage(cmd.content);
@@ -318,8 +303,6 @@ public class BackgroundService extends Service {
             Log.e(TAG, "Błąd wykonania komendy " + cmd.commandType + ": " + e.getMessage());
             resultStatus = "FAILED";
         }
-
-        // Potwierdź wykonanie komendy
         reportCommandResult(baseUrl, userLogin, cmd.id, resultStatus);
     }
 
@@ -327,13 +310,11 @@ public class BackgroundService extends Service {
         try {
             String url = baseUrl.replaceAll("/$", "") + "/api/phone/command/" + commandId + "/result";
             String json = "{\"status\":\"" + status + "\"}";
-
             Request request = new Request.Builder()
                     .url(url)
                     .post(RequestBody.create(json, JSON_MEDIA))
                     .addHeader("X-User", userLogin)
                     .build();
-
             apiHttpClient.newCall(request).execute().close();
         } catch (Exception e) {
             Log.w(TAG, "Błąd raportu komendy: " + e.getMessage());
@@ -343,14 +324,11 @@ public class BackgroundService extends Service {
     // =====================================================================
     // HELPERS
     // =====================================================================
-
     static String getUserLogin(Context context) {
-        // Najpierw sprawdź UserSession (zalogowany użytkownik)
         if (UserSession.isLoggedIn(context)) {
             String login = UserSession.getLogin(context);
             if (login != null && !login.isEmpty()) return login;
         }
-        // Fallback: PairingManager (stary sposób)
         String pairedUser = PairingManager.getPairedUser(context);
         if (pairedUser != null && !pairedUser.isEmpty()) return pairedUser;
         return null;
@@ -358,12 +336,12 @@ public class BackgroundService extends Service {
 
     private void startHeartbeat() {
         handler.removeCallbacks(heartbeatRunner);
-        handler.postDelayed(heartbeatRunner, 2_000); // Pierwszy heartbeat po 2s
+        handler.postDelayed(heartbeatRunner, 2_000);
     }
 
     private void startCommandPolling() {
         handler.removeCallbacks(commandPollRunner);
-        handler.postDelayed(commandPollRunner, 3_000); // Pierwszy poll po 3s
+        handler.postDelayed(commandPollRunner, 3_000);
     }
 
     private void startNotificationsPolling() {
@@ -372,7 +350,7 @@ public class BackgroundService extends Service {
     }
 
     // =====================================================================
-    // Istniejący kod: Foreground Notification, NanoHTTPD, Notifications polling
+    // FOREGROUND NOTIFICATION & NOTIFICATIONS POLLING
     // =====================================================================
 
     private void startForegroundNotification() {
@@ -395,7 +373,8 @@ public class BackgroundService extends Service {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("ENA Mobile - aktywna")
                 .setContentText("Użytkownik: " + (userLogin != null ? userLogin : "niezalogowany") + " | IP: " + ip)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_notification_ena) // <--- TUTAJ UŻYJ BIAŁEJ IKONY
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.logo_ena_truck)) // Opcjonalnie: kolorowa ikona jako duża
                 .setOngoing(true)
                 .build();
 
@@ -420,14 +399,11 @@ public class BackgroundService extends Service {
         handler.removeCallbacks(heartbeatRunner);
         handler.removeCallbacks(commandPollRunner);
         handler.removeCallbacks(notificationsPoller);
-
-        // NOWE: Wyrejestruj IncomingCallTracker
         try {
             IncomingCallTracker.getInstance().unregisterListener(this);
         } catch (Exception e) {
             Log.w(TAG, "Błąd wyrejestrowania IncomingCallTracker: " + e.getMessage());
         }
-
         if (server != null) {
             server.stop();
         }
@@ -476,7 +452,7 @@ public class BackgroundService extends Service {
         if (content == null || content.trim().isEmpty()) content = "Masz nowe powiadomienie.";
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATIONS_CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.logo_ena_truck)
                 .setContentTitle(title)
                 .setContentText(content)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(content))
@@ -498,9 +474,8 @@ public class BackgroundService extends Service {
     }
 
     // =====================================================================
-    // Serwer HTTP (NanoHTTPD) - zachowany dla kompatybilności wstecznej
+    // SERWER HTTP (NanoHTTPD)
     // =====================================================================
-
     private class MyWebServer extends NanoHTTPD {
         public MyWebServer() { super(SERVER_PORT); }
 
@@ -512,7 +487,6 @@ public class BackgroundService extends Service {
 
             if (isPaired) PairingManager.touchLastSeen(getApplicationContext());
 
-            // Zachowaj istniejącą logikę serwera HTTP dla kompatybilności...
             if (uri.equals("/pair/status")) {
                 String user = PairingManager.getPairedUser(getApplicationContext());
                 String apiBaseUrl = ApiConfig.getBaseUrl(getApplicationContext());
@@ -553,6 +527,12 @@ public class BackgroundService extends Service {
                 String numer = parms.get("number");
                 if (numer == null || numer.isEmpty())
                     return newFixedLengthResponse(NanoHTTPD.Response.Status.BAD_REQUEST, "text/plain", "Brak numeru");
+
+                // --- FIX: Sprawdzenie uprawnień dla endpointu HTTP ---
+                if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                    return newFixedLengthResponse(NanoHTTPD.Response.Status.FORBIDDEN, "text/plain", "Brak uprawnien CALL_PHONE");
+                }
+
                 try {
                     Intent callIntent = new Intent(Intent.ACTION_CALL);
                     callIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -563,15 +543,13 @@ public class BackgroundService extends Service {
                     return newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR, "text/plain", e.getMessage());
                 }
             }
-
             return newFixedLengthResponse("Ena Server działa.");
         }
     }
 
     // =====================================================================
-    // Klasy pomocnicze
+    // KLASY DANYCH
     // =====================================================================
-
     static class StatusData {
         boolean dzwoni;
         String numer;
@@ -585,7 +563,6 @@ public class BackgroundService extends Service {
         PairingStatus(boolean p, String u, String a) { this.paired = p; this.user = u; this.apiBaseUrl = a; }
     }
 
-    // Payloady JSON do API
     static class PhoneEventPayload {
         String userLogin;
         String eventType;

@@ -22,9 +22,9 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/logo_ena_truck"
         android:label="Ena Mobile"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/logo_ena_truck"
         android:supportsRtl="true"
         android:theme="@style/Theme.Ena"
         android:usesCleartextTraffic="true">
