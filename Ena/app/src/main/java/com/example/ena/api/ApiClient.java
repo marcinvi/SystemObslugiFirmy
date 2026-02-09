@@ -488,6 +488,16 @@ public class ApiClient {
         sendJsonWithResponse("api/returns/sync", payload, "POST", type, callback);
     }
 
+    public void startSyncAsync(ReturnSyncRequest payload, ApiCallback<ReturnSyncJobResponse> callback) {
+        Type type = new TypeToken<ApiResponse<ReturnSyncJobResponse>>(){}.getType();
+        sendJsonWithResponse("api/returns/sync/start", payload, "POST", type, callback);
+    }
+
+    public void getSyncStatus(String jobId, ApiCallback<ReturnSyncProgress> callback) {
+        Type type = new TypeToken<ApiResponse<ReturnSyncProgress>>(){}.getType();
+        get("api/returns/sync/status/" + jobId, type, callback);
+    }
+
     public void fetchMessages(ApiCallback<List<MessageDto>> callback) {
         Type type = new TypeToken<ApiResponse<List<MessageDto>>>(){}.getType();
         get("api/messages", type, callback);

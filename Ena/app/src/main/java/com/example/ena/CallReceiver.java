@@ -238,6 +238,23 @@ public class CallReceiver extends BroadcastReceiver {
      * Użytkownik klika powiadomienie → otwiera SendLinkActivity.
      */
     private void showSmsLinkNotification(Context context, String phoneNumber) {
+        // === METODA 1: Bezpośrednie uruchomienie Activity ===
+        // Działa na Android < 10, a na nowszych gdy ekran jest włączony po rozmowie.
+        // Na Android 10+ może nie zadziałać (background activity start restriction)
+        // ale nie rzuca wyjątku - po prostu nic się nie stanie.
+        try {
+            Intent directIntent = new Intent(context, SendLinkActivity.class);
+            directIntent.putExtra("phone_number", phoneNumber);
+            directIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            context.startActivity(directIntent);
+            Log.d(TAG, "[Metoda 1] Próba uruchomienia SendLinkActivity bezpośrednio dla: " + phoneNumber);
+        } catch (Exception e) {
+            Log.w(TAG, "[Metoda 1] Bezpośrednie uruchomienie nie powiodło się: " + e.getMessage());
+        }
+
+        // === METODA 2: Powiadomienie z PendingIntent (backup) ===
+        // Zawsze pokazuj powiadomienie jako backup - użytkownik może kliknąć.
+        // Na Android 10+ to jedyna pewna metoda.
         try {
             // Utwórz kanał powiadomień (Android 8+)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -251,7 +268,7 @@ public class CallReceiver extends BroadcastReceiver {
                 if (nm != null) nm.createNotificationChannel(channel);
             }
 
-            // Intent uruchamiający SendLinkActivity po kliknięciu
+            // Intent uruchamiający SendLinkActivity po kliknięciu powiadomienia
             Intent linkIntent = new Intent(context, SendLinkActivity.class);
             linkIntent.putExtra("phone_number", phoneNumber);
             linkIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -266,39 +283,26 @@ public class CallReceiver extends BroadcastReceiver {
             // Zbuduj powiadomienie
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID_LINKS)
                     .setSmallIcon(R.mipmap.ic_launcher)
-                    .setContentTitle("Wyślij link do: " + phoneNumber)
-                    .setContentText("Kliknij aby wybrać link reklamacyjny do wysłania SMS")
+                    .setContentTitle("📩 Wyślij link do: " + phoneNumber)
+                    .setContentText("Kliknij aby wybrać link reklamacyjny")
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
-                    // Full-screen intent - na zablokowanym ekranie pokaże się pełnoekranowo
                     .setFullScreenIntent(pendingIntent, true)
                     .setDefaults(NotificationCompat.DEFAULT_SOUND | NotificationCompat.DEFAULT_VIBRATE)
-                    // Auto-usuń po 60 sekundach
-                    .setTimeoutAfter(60_000);
+                    .setTimeoutAfter(120_000);
 
-            // Pokaż powiadomienie
-            NotificationManagerCompat notifManager = NotificationManagerCompat.from(context);
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-                    notifManager.areNotificationsEnabled()) {
+            // Pokaż powiadomienie - spróbuj nawet jeśli areNotificationsEnabled() zwraca false
+            try {
+                NotificationManagerCompat notifManager = NotificationManagerCompat.from(context);
                 notifManager.notify(NOTIFICATION_ID_LINK, builder.build());
-                Log.d(TAG, "Powiadomienie o linkach wyświetlone dla: " + phoneNumber);
-            } else {
-                Log.w(TAG, "Powiadomienia wyłączone - nie mogę pokazać linku");
+                Log.d(TAG, "[Metoda 2] Powiadomienie o linkach wyświetlone dla: " + phoneNumber);
+            } catch (SecurityException se) {
+                Log.w(TAG, "[Metoda 2] Brak uprawnienia POST_NOTIFICATIONS: " + se.getMessage());
             }
         } catch (Exception e) {
-            Log.e(TAG, "Błąd pokazywania powiadomienia: " + e.getMessage());
-
-            // Fallback: spróbuj uruchomić Activity bezpośrednio (może działa na starszych Android)
-            try {
-                Intent linkIntent = new Intent(context, SendLinkActivity.class);
-                linkIntent.putExtra("phone_number", phoneNumber);
-                linkIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(linkIntent);
-            } catch (Exception e2) {
-                Log.e(TAG, "Fallback też nie działa: " + e2.getMessage());
-            }
+            Log.e(TAG, "[Metoda 2] Błąd tworzenia powiadomienia: " + e.getMessage());
         }
     }
 

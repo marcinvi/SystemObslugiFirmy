@@ -188,6 +188,39 @@ data class StatusDto(
     val typ: String,
 )
 
+// ============================
+// Sync progress DTOs
+// ============================
+
+data class ReturnSyncJobResponse(
+    val jobId: String,
+    val startedAt: String?,
+    val status: String,
+)
+
+data class ReturnSyncSummary(
+    val accountsProcessed: Int,
+    val returnsFetched: Int,
+    val returnsProcessed: Int,
+)
+
+data class ReturnSyncProgress(
+    val jobId: String,
+    val status: String,
+    val userDisplayName: String?,
+    val startedAt: String?,
+    val finishedAt: String?,
+    val totalAccounts: Int,
+    val currentAccountIndex: Int,
+    val currentAccountName: String?,
+    val currentAccountId: Int?,
+    val totalReturnsInAccount: Int,
+    val currentReturnIndex: Int,
+    val currentReturnReference: String?,
+    val errors: List<String>?,
+    val summary: ReturnSyncSummary?,
+)
+
 data class ForwardToComplaintRequest(
     val returnId: Int,
     val powodKlienta: String?,

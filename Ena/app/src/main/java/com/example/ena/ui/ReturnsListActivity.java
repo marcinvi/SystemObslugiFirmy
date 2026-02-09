@@ -27,8 +27,11 @@ import com.example.ena.R;
 import com.example.ena.api.ApiClient;
 import com.example.ena.api.PaginatedResponse;
 import com.example.ena.api.ReturnListItemDto;
+import com.example.ena.api.ReturnSyncJobResponse;
+import com.example.ena.api.ReturnSyncProgress;
 import com.example.ena.api.ReturnSyncRequest;
 import com.example.ena.api.ReturnSyncResponse;
+import com.example.ena.api.ReturnSyncSummary;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanIntentResult;
 import com.journeyapps.barcodescanner.ScanOptions;
@@ -429,36 +432,159 @@ public class ReturnsListActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    private String currentSyncJobId = null;
+    private final Handler syncPollHandler = new Handler(Looper.getMainLooper());
+
     private void syncReturns() {
-        showLoadingOverlay("Trwa synchronizacja z Allegro...");
+        showLoadingOverlay("Uruchamiam synchronizację z Allegro...");
 
         if (progressBar != null) progressBar.setVisibility(View.GONE);
-
         if (btnSync != null) btnSync.setEnabled(false);
 
         ApiClient client = new ApiClient(this);
         ReturnSyncRequest request = new ReturnSyncRequest(null, null);
 
+        // Uruchom asynchroniczną synchronizację z postępem
+        client.startSyncAsync(request, new ApiClient.ApiCallback<ReturnSyncJobResponse>() {
+            @Override
+            public void onSuccess(ReturnSyncJobResponse data) {
+                if (data != null && data.getJobId() != null && !data.getJobId().isEmpty()) {
+                    currentSyncJobId = data.getJobId();
+                    runOnUiThread(() -> showLoadingOverlay("Synchronizacja uruchomiona..."));
+                    // Zacznij pollowanie statusu co 1.5 sekundy
+                    syncPollHandler.postDelayed(() -> pollSyncStatus(client), 1500);
+                } else {
+                    // Fallback do synchronicznej synchronizacji
+                    runOnUiThread(() -> showLoadingOverlay("Synchronizacja (tryb klasyczny)..."));
+                    syncReturnsFallback(client);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                // Fallback: jeśli endpoint sync/start nie istnieje, użyj starego
+                runOnUiThread(() -> showLoadingOverlay("Synchronizacja..."));
+                syncReturnsFallback(client);
+            }
+        });
+    }
+
+    private void pollSyncStatus(ApiClient client) {
+        if (currentSyncJobId == null) return;
+
+        client.getSyncStatus(currentSyncJobId, new ApiClient.ApiCallback<ReturnSyncProgress>() {
+            @Override
+            public void onSuccess(ReturnSyncProgress data) {
+                if (data == null) {
+                    syncPollHandler.postDelayed(() -> pollSyncStatus(client), 1500);
+                    return;
+                }
+
+                runOnUiThread(() -> {
+                    String status = data.getStatus();
+
+                    if ("Running".equalsIgnoreCase(status)) {
+                        // Buduj tekst postępu
+                        StringBuilder msg = new StringBuilder();
+                        int totalAcc = data.getTotalAccounts();
+                        int currAcc = data.getCurrentAccountIndex();
+                        String accName = data.getCurrentAccountName();
+
+                        if (totalAcc > 0 && accName != null && !accName.isEmpty()) {
+                            msg.append("Konto ").append(currAcc).append("/").append(totalAcc)
+                               .append(": ").append(accName).append("\n");
+                        } else if (totalAcc > 0) {
+                            msg.append("Konto ").append(currAcc).append("/").append(totalAcc).append("\n");
+                        } else {
+                            msg.append("Pobieram listę kont...\n");
+                        }
+
+                        int totalRet = data.getTotalReturnsInAccount();
+                        int currRet = data.getCurrentReturnIndex();
+                        String retRef = data.getCurrentReturnReference();
+
+                        if (totalRet > 0) {
+                            msg.append("Zwrot ").append(currRet).append("/").append(totalRet);
+                            if (retRef != null && !retRef.isEmpty()) {
+                                msg.append(" (").append(retRef).append(")");
+                            }
+                        } else if (totalAcc > 0) {
+                            msg.append("Pobieram zwroty...");
+                        }
+
+                        showLoadingOverlay(msg.toString().trim());
+
+                        // Kontynuuj pollowanie
+                        syncPollHandler.postDelayed(() -> pollSyncStatus(client), 1200);
+
+                    } else if ("Completed".equalsIgnoreCase(status)) {
+                        // Zakończona!
+                        currentSyncJobId = null;
+                        hideLoadingOverlay();
+                        if (btnSync != null) btnSync.setEnabled(true);
+
+                        ReturnSyncSummary summary = data.getSummary();
+                        String message;
+                        if (summary != null) {
+                            message = "Pobrano: " + summary.getReturnsFetched() +
+                                    ", Przetworzono: " + summary.getReturnsProcessed() +
+                                    " (Konta: " + summary.getAccountsProcessed() + ").";
+                        } else {
+                            message = "Synchronizacja zakończona.";
+                        }
+
+                        List<String> errors = data.getErrors();
+                        if (errors != null && !errors.isEmpty()) {
+                            String errorDetails = TextUtils.join("\n", errors);
+                            Toast.makeText(ReturnsListActivity.this, message + "\nBłędy:\n" + errorDetails, Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(ReturnsListActivity.this, message, Toast.LENGTH_LONG).show();
+                        }
+                        loadReturns();
+
+                    } else if ("Failed".equalsIgnoreCase(status)) {
+                        currentSyncJobId = null;
+                        hideLoadingOverlay();
+                        if (btnSync != null) btnSync.setEnabled(true);
+
+                        List<String> errors = data.getErrors();
+                        String errMsg = (errors != null && !errors.isEmpty())
+                                ? TextUtils.join("\n", errors)
+                                : "Nieznany błąd";
+                        Toast.makeText(ReturnsListActivity.this, "Błąd synchronizacji:\n" + errMsg, Toast.LENGTH_LONG).show();
+                        loadReturns();
+
+                    } else {
+                        // Pending lub inny - czekaj
+                        syncPollHandler.postDelayed(() -> pollSyncStatus(client), 1500);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                // Błąd pollowania - spróbuj jeszcze raz
+                syncPollHandler.postDelayed(() -> pollSyncStatus(client), 2000);
+            }
+        });
+    }
+
+    /** Fallback do starej synchronicznej synchronizacji (gdy sync/start nie dostępny) */
+    private void syncReturnsFallback(ApiClient client) {
+        ReturnSyncRequest request = new ReturnSyncRequest(null, null);
         client.syncReturns(request, new ApiClient.ApiCallback<ReturnSyncResponse>() {
             @Override
             public void onSuccess(ReturnSyncResponse data) {
                 runOnUiThread(() -> {
                     hideLoadingOverlay();
                     if (btnSync != null) btnSync.setEnabled(true);
-
                     String message = "Synchronizacja zakończona.";
                     if (data != null) {
                         message = "Pobrano: " + data.getReturnsFetched() +
                                 ", Przetworzono: " + data.getReturnsProcessed() +
                                 " (Konta: " + data.getAccountsProcessed() + ").";
-
-                        if (data.getErrors() != null && !data.getErrors().isEmpty()) {
-                            String errorDetails = TextUtils.join("\n", data.getErrors());
-                            Toast.makeText(ReturnsListActivity.this, "Błędy:\n" + errorDetails, Toast.LENGTH_LONG).show();
-                        } else {
-                            Toast.makeText(ReturnsListActivity.this, message, Toast.LENGTH_LONG).show();
-                        }
                     }
+                    Toast.makeText(ReturnsListActivity.this, message, Toast.LENGTH_LONG).show();
                     loadReturns();
                 });
             }
@@ -468,7 +594,7 @@ public class ReturnsListActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     hideLoadingOverlay();
                     if (btnSync != null) btnSync.setEnabled(true);
-                    Toast.makeText(ReturnsListActivity.this, "Krytyczny błąd API: " + message, Toast.LENGTH_LONG).show();
+                    Toast.makeText(ReturnsListActivity.this, "Błąd: " + message, Toast.LENGTH_LONG).show();
                 });
             }
         });

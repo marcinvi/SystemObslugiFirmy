@@ -59,6 +59,13 @@ public class SendLinkActivity extends AppCompatActivity {
             return;
         }
 
+        // Usuń powiadomienie o linkach (jeśli otwarto z notyfikacji)
+        try {
+            android.app.NotificationManager nm = (android.app.NotificationManager)
+                    getSystemService(NOTIFICATION_SERVICE);
+            if (nm != null) nm.cancel(9001); // NOTIFICATION_ID_LINK z CallReceiver
+        } catch (Exception ignored) {}
+
         Log.d(TAG, "Otwarto dialog linków dla numeru: " + phoneNumber);
         fetchLinksAndShowDialog();
     }
