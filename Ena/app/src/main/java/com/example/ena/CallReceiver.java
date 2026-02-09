@@ -356,6 +356,10 @@ public class CallReceiver extends BroadcastReceiver {
                     .setTimeoutAfter(120_000)
                     .setOngoing(false)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+            builder.addAction(new NotificationCompat.Action(
+                    R.mipmap.ic_launcher,
+                    "Wyślij link",
+                    pendingIntent));
 
             try {
                 NotificationManagerCompat notifManager = NotificationManagerCompat.from(context);
