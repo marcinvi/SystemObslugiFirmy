@@ -37,6 +37,9 @@ public class CallReceiver extends BroadcastReceiver {
     private static final String TAG = "EnaCallReceiver";
     private static final String PREFS_NAME = "ena_prefs";
     private static final String PREF_SHOW_SMS_LINKS = "show_sms_links";
+    private static final String PREF_CALL_WAS_INCOMING = "call_was_incoming";
+    private static final String PREF_CALL_WAS_ANSWERED = "call_was_answered";
+    private static final String PREF_CALL_INCOMING_NUMBER = "call_incoming_number";
     private static final String CHANNEL_ID_LINKS = "ENA_SMS_LINKS";
     private static final int NOTIFICATION_ID_LINK = 9001;
 
@@ -71,7 +74,7 @@ public class CallReceiver extends BroadcastReceiver {
         if (TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
             handleRinging(context, intent);
         } else if (TelephonyManager.EXTRA_STATE_OFFHOOK.equals(state)) {
-            handleOffhook();
+            handleOffhook(context);
         } else if (TelephonyManager.EXTRA_STATE_IDLE.equals(state)) {
             handleIdle(context);
         }
@@ -118,6 +121,7 @@ public class CallReceiver extends BroadcastReceiver {
         }
 
         incomingNumber = (number != null) ? number : "unknown";
+        saveCallState(context, wasIncomingCall, wasAnswered, incomingNumber);
 
         GlobalState.isRinging = true;
         GlobalState.incomingNumber = incomingNumber;
@@ -164,10 +168,11 @@ public class CallReceiver extends BroadcastReceiver {
     // OFFHOOK (rozmowa odebrana)
     // ========================================================================
 
-    private void handleOffhook() {
+    private void handleOffhook(Context context) {
         if (wasIncomingCall) {
             wasAnswered = true;
             Log.d(TAG, "Rozmowa odebrana (OFFHOOK po RINGING)");
+            saveCallState(context, wasIncomingCall, wasAnswered, incomingNumber != null ? incomingNumber : "unknown");
         } else {
             Log.d(TAG, "Połączenie wychodzące (OFFHOOK bez RINGING)");
         }
@@ -192,7 +197,23 @@ public class CallReceiver extends BroadcastReceiver {
             }
         }
 
-        String finalNumber = (number != null) ? number : (incomingNumber != null ? incomingNumber : "");
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        boolean persistedIncoming = prefs.getBoolean(PREF_CALL_WAS_INCOMING, false);
+        boolean persistedAnswered = prefs.getBoolean(PREF_CALL_WAS_ANSWERED, false);
+        String persistedNumber = prefs.getString(PREF_CALL_INCOMING_NUMBER, null);
+
+        if (!wasIncomingCall && persistedIncoming) {
+            wasIncomingCall = true;
+        }
+        if (!wasAnswered && persistedAnswered) {
+            wasAnswered = true;
+        }
+        if (incomingNumber == null || incomingNumber.isEmpty() || "unknown".equalsIgnoreCase(incomingNumber)) {
+            incomingNumber = persistedNumber;
+        }
+
+        String finalNumber = (number != null) ? number
+                : (incomingNumber != null ? incomingNumber : (persistedNumber != null ? persistedNumber : ""));
 
         Log.i(TAG, "=== KONIEC: " + finalNumber +
                 " (incoming=" + wasIncomingCall + " answered=" + wasAnswered + ") ===");
@@ -233,6 +254,7 @@ public class CallReceiver extends BroadcastReceiver {
         wasIncomingCall = false;
         wasAnswered = false;
         incomingNumber = null;
+        clearCallState(context);
     }
 
     // ========================================================================
@@ -257,7 +279,11 @@ public class CallReceiver extends BroadcastReceiver {
             Intent serviceIntent = new Intent(context, BackgroundService.class);
             serviceIntent.setAction("com.example.ena.SHOW_SMS_LINKS");
             serviceIntent.putExtra("phone_number", phoneNumber);
-            context.startService(serviceIntent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(context, serviceIntent);
+            } else {
+                context.startService(serviceIntent);
+            }
             Log.d(TAG, "[Metoda 1] Wysłano intent do BackgroundService");
         } catch (Exception e) {
             Log.w(TAG, "[Metoda 1] Nie udało się wysłać do BackgroundService: " + e.getMessage());
@@ -363,5 +389,23 @@ public class CallReceiver extends BroadcastReceiver {
 
         Log.d(TAG, String.format("Uprawnienia: PHONE_STATE=%s, CALL_LOG=%s, CALL_PHONE=%s, SEND_SMS=%s | API %d",
                 phoneState, callLog, callPhone, sendSms, Build.VERSION.SDK_INT));
+    }
+
+    private void saveCallState(Context context, boolean wasIncoming, boolean wasAnswered, String number) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+                .putBoolean(PREF_CALL_WAS_INCOMING, wasIncoming)
+                .putBoolean(PREF_CALL_WAS_ANSWERED, wasAnswered)
+                .putString(PREF_CALL_INCOMING_NUMBER, number)
+                .apply();
+    }
+
+    private void clearCallState(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit()
+                .remove(PREF_CALL_WAS_INCOMING)
+                .remove(PREF_CALL_WAS_ANSWERED)
+                .remove(PREF_CALL_INCOMING_NUMBER)
+                .apply();
     }
 }
