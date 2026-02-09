@@ -174,6 +174,13 @@ public class ReturnsListActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        syncPollHandler.removeCallbacksAndMessages(null);
+        currentSyncJobId = null;
+    }
+
+    @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         if (pendingManualCode != null) {
