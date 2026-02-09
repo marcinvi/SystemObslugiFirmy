@@ -5,6 +5,10 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.telephony.SmsManager;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -47,6 +51,10 @@ public class SendLinkActivity extends AppCompatActivity {
 
     private String phoneNumber;
     private final Gson gson = new Gson();
+    private TextView statusText;
+    private ProgressBar progressBar;
+    private Button retryButton;
+    private Button closeButton;
 
     // Standardowy klient
     private static final OkHttpClient httpClient = new OkHttpClient.Builder()
@@ -107,6 +115,20 @@ public class SendLinkActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Log.i(TAG, "=== SendLinkActivity UTWORZONA ===");
 
+        setContentView(R.layout.activity_send_link);
+        statusText = findViewById(R.id.txtStatus);
+        progressBar = findViewById(R.id.progressLoading);
+        retryButton = findViewById(R.id.btnRetry);
+        closeButton = findViewById(R.id.btnClose);
+
+        retryButton.setOnClickListener(v -> {
+            retryButton.setVisibility(View.GONE);
+            progressBar.setVisibility(View.VISIBLE);
+            statusText.setText("Pobieranie linków z API...");
+            fetchLinksAndShowDialog();
+        });
+        closeButton.setOnClickListener(v -> finish());
+
         phoneNumber = getIntent().getStringExtra("phone_number");
         Log.i(TAG, "Numer z intent: " + phoneNumber);
 
@@ -123,6 +145,8 @@ public class SendLinkActivity extends AppCompatActivity {
             if (nm != null) nm.cancel(9001); // NOTIFICATION_ID_LINK z CallReceiver
         } catch (Exception ignored) {}
 
+        statusText.setText("Pobieranie linków z API...");
+        progressBar.setVisibility(View.VISIBLE);
         Log.i(TAG, "✅ Pobieram linki z API dla numeru: " + phoneNumber);
         fetchLinksAndShowDialog();
     }
@@ -131,7 +155,7 @@ public class SendLinkActivity extends AppCompatActivity {
         String baseUrl = ApiConfig.getBaseUrl(this);
         if (baseUrl == null || baseUrl.isEmpty()) {
             Log.w(TAG, "Brak adresu API");
-            finish();
+            runOnUiThread(() -> showError("Brak adresu API.\nUstaw IP i port w ustawieniach."));
             return;
         }
 
@@ -167,34 +191,27 @@ public class SendLinkActivity extends AppCompatActivity {
                                     (parsed != null ? parsed.success : "null") +
                                     " data=" + (parsed != null && parsed.data != null ? parsed.data.size() : "null"));
                             runOnUiThread(() -> {
-                                Toast.makeText(SendLinkActivity.this, 
-                                        "Brak aktywnych linków w bazie.\nSprawdz tabelę phone_sms_links.", 
-                                        Toast.LENGTH_LONG).show();
-                                finish();
+                                showError("Brak aktywnych linków w bazie.\nSprawdź tabelę phone_sms_links.");
                             });
                         }
                     } else {
                         Log.e(TAG, "❌ Błąd pobierania linków: HTTP " + code);
                         runOnUiThread(() -> {
-                            Toast.makeText(SendLinkActivity.this, 
-                                    "Błąd API (HTTP " + code + ").\nSprawdz czy tabela phone_sms_links istnieje.", 
-                                    Toast.LENGTH_LONG).show();
-                            finish();
+                            showError("Błąd API (HTTP " + code + ").\nSprawdź czy tabela phone_sms_links istnieje.");
                         });
                     }
                 }
             } catch (Exception e) {
                 Log.e(TAG, "❌ Błąd połączenia z API: " + e.getClass().getSimpleName() + ": " + e.getMessage());
                 runOnUiThread(() -> {
-                    Toast.makeText(SendLinkActivity.this, 
-                            "Błąd połączenia: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    finish();
+                    showError("Błąd połączenia: " + e.getMessage());
                 });
             }
         }).start();
     }
 
     private void showLinksDialog(List<SmsLink> links) {
+        progressBar.setVisibility(View.GONE);
         String[] linkNames = new String[links.size()];
         for (int i = 0; i < links.size(); i++) {
             linkNames[i] = links.get(i).name;
@@ -216,6 +233,13 @@ public class SendLinkActivity extends AppCompatActivity {
                 })
                 .setCancelable(true)
                 .show();
+    }
+
+    private void showError(String message) {
+        progressBar.setVisibility(View.GONE);
+        statusText.setText(message);
+        retryButton.setVisibility(View.VISIBLE);
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
 
     private void sendSmsWithLink(SmsLink link) {
