@@ -1,7 +1,9 @@
 package com.example.ena.ui;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -17,10 +19,14 @@ import com.google.android.material.textfield.TextInputEditText;
 
 public class SettingsActivity extends AppCompatActivity {
 
+    private static final String PREFS_NAME = "ena_prefs";
+    private static final String PREF_SHOW_SMS_LINKS = "show_sms_links";
+
     private TextInputEditText inputIp, inputPort;
     private TextView txtPairingInfo;
     private Button btnSaveServer, btnResetPairing;
     private ImageButton btnBack;
+    private CheckBox chkShowSmsLinks;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,22 +44,31 @@ public class SettingsActivity extends AppCompatActivity {
         btnSaveServer = findViewById(R.id.btnSaveServer);
         btnResetPairing = findViewById(R.id.btnResetPairing);
         btnBack = findViewById(R.id.btnBack);
+        chkShowSmsLinks = findViewById(R.id.chkShowSmsLinks);
 
         btnBack.setOnClickListener(v -> finish());
         btnSaveServer.setOnClickListener(v -> saveServerSettings());
         btnResetPairing.setOnClickListener(v -> confirmResetPairing());
+
+        // Checkbox obsługa
+        chkShowSmsLinks.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            prefs.edit().putBoolean(PREF_SHOW_SMS_LINKS, isChecked).apply();
+
+            if (isChecked) {
+                Toast.makeText(this, "Po zakończeniu rozmowy pojawi się opcja wysyłki linku SMS",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void loadCurrentSettings() {
         String fullUrl = ApiConfig.getBaseUrl(this);
-        // Próbujemy wyciągnąć IP i Port z URL dla wygody użytkownika
-        // Oczekujemy formatu: http://192.168.1.X:PORT
-        if (fullUrl != null) {
+        if (fullUrl != null && !fullUrl.isEmpty()) {
             String clean = fullUrl.replace("http://", "").replace("https://", "");
             String[] parts = clean.split(":");
             if (parts.length > 0) inputIp.setText(parts[0]);
             if (parts.length > 1) {
-                // Usuwamy ew. ścieżki po porcie
                 String port = parts[1].split("/")[0];
                 inputPort.setText(port);
             }
@@ -65,6 +80,11 @@ public class SettingsActivity extends AppCompatActivity {
         } else {
             txtPairingInfo.setText("Urządzenie niesparowane.");
         }
+
+        // Załaduj ustawienie checkboxa (domyślnie wyłączony)
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean smsLinksEnabled = prefs.getBoolean(PREF_SHOW_SMS_LINKS, false);
+        chkShowSmsLinks.setChecked(smsLinksEnabled);
     }
 
     private void saveServerSettings() {
@@ -78,7 +98,6 @@ public class SettingsActivity extends AppCompatActivity {
 
         String newUrl = "http://" + ip + ":" + port;
         ApiConfig.setBaseUrl(this, newUrl);
-        // Jeśli masz klasę Config do zapisu, użyj jej też:
         Config.saveServerUrl(this, newUrl);
 
         Toast.makeText(this, "Zapisano! Zrestartuj aplikację.", Toast.LENGTH_LONG).show();

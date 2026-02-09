@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using MySqlConnector;
 using ReklamacjeAPI.DTOs;
 using System.Text.Json.Serialization;
@@ -27,9 +27,6 @@ public class PhoneController : ControllerBase
     // ANDROID → API: Telefon wysyła zdarzenia (dzwonienie, SMS)
     // ====================================================================
 
-    /// <summary>
-    /// Android wysyła zdarzenie (CALL_RINGING, CALL_IDLE, SMS_RECEIVED)
-    /// </summary>
     [HttpPost("event")]
     public async Task<ActionResult<ApiResponse<object>>> PostEvent([FromBody] PhoneEventRequest request)
     {
@@ -40,7 +37,6 @@ public class PhoneController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.EventType))
             return BadRequest(ApiResponse<object>.ErrorResponse("Brak typu zdarzenia."));
 
-        // Dla CALL_RINGING/CALL_IDLE - oznacz poprzednie nieodczytane zdarzenia CALL jako consumed
         if (request.EventType == "CALL_RINGING" || request.EventType == "CALL_IDLE")
         {
             await using var connClean = new MySqlConnection(_connectionString);
@@ -53,7 +49,6 @@ public class PhoneController : ControllerBase
             await cleanCmd.ExecuteNonQueryAsync();
         }
 
-        // Wstaw nowe zdarzenie - osobne połączenie
         await using var conn = new MySqlConnection(_connectionString);
         await conn.OpenAsync();
         await using var cmd = new MySqlCommand(
@@ -77,9 +72,6 @@ public class PhoneController : ControllerBase
     // WINFORMS → API: Komputer pobiera zdarzenia z telefonu
     // ====================================================================
 
-    /// <summary>
-    /// WinForms pobiera nieodczytane zdarzenia dla danego użytkownika
-    /// </summary>
     [HttpGet("events/{login}")]
     public async Task<ActionResult<ApiResponse<List<PhoneEventDto>>>> GetEvents(string login)
     {
@@ -88,7 +80,6 @@ public class PhoneController : ControllerBase
 
         var events = new List<PhoneEventDto>();
 
-        // 1) SELECT - odczytaj zdarzenia (osobne połączenie + reader zamknięty przed UPDATE)
         {
             await using var conn = new MySqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -114,11 +105,8 @@ public class PhoneController : ControllerBase
                     CreatedAt = reader.GetDateTime("CreatedAt")
                 });
             }
-            // reader zamknięty automatycznie po wyjściu z await using
         }
-        // conn zamknięte po wyjściu z bloku {}
 
-        // 2) UPDATE - oznacz jako consumed (OSOBNE połączenie!)
         if (events.Count > 0)
         {
             await using var conn2 = new MySqlConnection(_connectionString);
@@ -134,12 +122,9 @@ public class PhoneController : ControllerBase
     }
 
     // ====================================================================
-    // WINFORMS → API: Komputer wysyła komendy do telefonu (DIAL, SEND_SMS)
+    // WINFORMS → API: Komputer wysyła komendy do telefonu
     // ====================================================================
 
-    /// <summary>
-    /// WinForms wysyła komendę do telefonu (zadzwoń/wyślij SMS)
-    /// </summary>
     [HttpPost("command")]
     public async Task<ActionResult<ApiResponse<object>>> PostCommand([FromBody] PhoneCommandRequest request)
     {
@@ -173,9 +158,6 @@ public class PhoneController : ControllerBase
     // ANDROID → API: Telefon pobiera komendy do wykonania
     // ====================================================================
 
-    /// <summary>
-    /// Android pobiera niewykonane komendy dla danego użytkownika
-    /// </summary>
     [HttpGet("commands/{login}")]
     public async Task<ActionResult<ApiResponse<List<PhoneCommandDto>>>> GetCommands(string login)
     {
@@ -184,7 +166,6 @@ public class PhoneController : ControllerBase
 
         var commands = new List<PhoneCommandDto>();
 
-        // 1) SELECT - odczytaj komendy (osobne połączenie)
         {
             await using var conn = new MySqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -209,11 +190,8 @@ public class PhoneController : ControllerBase
                     CreatedAt = reader.GetDateTime("CreatedAt")
                 });
             }
-            // reader zamknięty po wyjściu z await using
         }
-        // conn zamknięte po wyjściu z bloku {}
 
-        // 2) UPDATE - oznacz jako consumed (OSOBNE połączenie!)
         if (commands.Count > 0)
         {
             await using var conn2 = new MySqlConnection(_connectionString);
@@ -228,9 +206,6 @@ public class PhoneController : ControllerBase
         return Ok(ApiResponse<List<PhoneCommandDto>>.SuccessResponse(commands));
     }
 
-    /// <summary>
-    /// Android potwierdza wykonanie komendy
-    /// </summary>
     [HttpPost("command/{id}/result")]
     public async Task<ActionResult<ApiResponse<object>>> PostCommandResult(int id, [FromBody] CommandResultRequest request)
     {
@@ -247,7 +222,7 @@ public class PhoneController : ControllerBase
     }
 
     // ====================================================================
-    // HEARTBEAT: Telefon sygnalizuje że jest online
+    // HEARTBEAT
     // ====================================================================
 
     [HttpPost("heartbeat")]
@@ -273,10 +248,6 @@ public class PhoneController : ControllerBase
         return Ok(ApiResponse<object>.SuccessResponse(null, "OK"));
     }
 
-    /// <summary>
-    /// WinForms sprawdza czy telefon użytkownika jest online
-    /// (ostatni heartbeat < 90 sekund temu = online)
-    /// </summary>
     [HttpGet("status/{login}")]
     public async Task<ActionResult<ApiResponse<PhoneStatusDto>>> GetStatus(string login)
     {
@@ -286,7 +257,6 @@ public class PhoneController : ControllerBase
         await using var conn = new MySqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        // Sprawdź status bezpośrednio w SQL - unikamy problemów ze strefą czasową
         await using var cmd = new MySqlCommand(
             @"SELECT LastHeartbeat, PhoneModel, AppVersion,
                      TIMESTAMPDIFF(SECOND, LastHeartbeat, NOW()) AS SecondsSinceHeartbeat
@@ -300,11 +270,10 @@ public class PhoneController : ControllerBase
         {
             var lastHb = reader.GetDateTime("LastHeartbeat");
             var secondsSince = reader.GetInt64("SecondsSinceHeartbeat");
-            var isOnline = secondsSince < 90;
 
             status = new PhoneStatusDto
             {
-                IsOnline = isOnline,
+                IsOnline = secondsSince < 90,
                 LastSeen = lastHb,
                 PhoneModel = reader.IsDBNull(reader.GetOrdinal("PhoneModel")) ? "" : reader.GetString("PhoneModel"),
                 AppVersion = reader.IsDBNull(reader.GetOrdinal("AppVersion")) ? "" : reader.GetString("AppVersion")
@@ -312,14 +281,75 @@ public class PhoneController : ControllerBase
         }
         else
         {
-            status = new PhoneStatusDto
-            {
-                IsOnline = false,
-                LastSeen = null
-            };
+            status = new PhoneStatusDto { IsOnline = false, LastSeen = null };
         }
 
         return Ok(ApiResponse<PhoneStatusDto>.SuccessResponse(status));
+    }
+
+    // ====================================================================
+    // LINKI SMS (reklamacyjne) - pobierane przez Android po zakończeniu rozmowy
+    // ====================================================================
+
+    /// <summary>
+    /// Android pobiera listę aktywnych linków do wysłania SMS
+    /// </summary>
+    [HttpGet("links")]
+    public async Task<ActionResult<ApiResponse<List<SmsLinkDto>>>> GetLinks()
+    {
+        var links = new List<SmsLinkDto>();
+
+        await using var conn = new MySqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new MySqlCommand(
+            @"SELECT Id, Name, Url, SmsTemplate
+              FROM phone_sms_links
+              WHERE IsActive = 1
+              ORDER BY SortOrder ASC, Name ASC", conn);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            links.Add(new SmsLinkDto
+            {
+                Id = reader.GetInt32("Id"),
+                Name = reader.GetString("Name"),
+                Url = reader.GetString("Url"),
+                SmsTemplate = reader.IsDBNull(reader.GetOrdinal("SmsTemplate")) ? null : reader.GetString("SmsTemplate")
+            });
+        }
+
+        return Ok(ApiResponse<List<SmsLinkDto>>.SuccessResponse(links));
+    }
+
+    /// <summary>
+    /// Android loguje wysłanie linku SMS do klienta
+    /// </summary>
+    [HttpPost("links/log")]
+    public async Task<ActionResult<ApiResponse<object>>> PostLinkLog([FromBody] SmsLinkLogRequest request)
+    {
+        string userLogin = ResolveUserLogin(request.UserLogin);
+        if (string.IsNullOrWhiteSpace(userLogin))
+            return BadRequest(ApiResponse<object>.ErrorResponse("Brak loginu."));
+
+        await using var conn = new MySqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        await using var cmd = new MySqlCommand(
+            @"INSERT INTO phone_sms_links_log (UserLogin, LinkId, PhoneNumber, Status)
+              VALUES (@user, @linkId, @number, @status)", conn);
+        cmd.Parameters.AddWithValue("@user", userLogin);
+        cmd.Parameters.AddWithValue("@linkId", request.LinkId);
+        cmd.Parameters.AddWithValue("@number", request.PhoneNumber ?? "");
+        cmd.Parameters.AddWithValue("@status", request.Status ?? "SENT");
+
+        await cmd.ExecuteNonQueryAsync();
+
+        _logger.LogInformation("SMS link sent: LinkId={LinkId} to {Number} by {User}",
+            request.LinkId, request.PhoneNumber, userLogin);
+
+        return Ok(ApiResponse<object>.SuccessResponse(null, "OK"));
     }
 
     // ====================================================================
@@ -330,11 +360,9 @@ public class PhoneController : ControllerBase
     {
         if (!string.IsNullOrWhiteSpace(login)) return login.Trim();
 
-        // Fallback: z nagłówka X-User
         var header = Request.Headers["X-User"].FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(header)) return header.Trim();
 
-        // Fallback: z tokena JWT
         var claim = User.Identity?.Name;
         if (!string.IsNullOrWhiteSpace(claim)) return claim;
 
@@ -422,4 +450,29 @@ public class PhoneStatusDto
     public DateTime? LastSeen { get; set; }
     public string PhoneModel { get; set; } = "";
     public string AppVersion { get; set; } = "";
+}
+
+// --- NOWE: Linki SMS ---
+
+public class SmsLinkDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public string Url { get; set; } = "";
+    public string? SmsTemplate { get; set; }
+}
+
+public class SmsLinkLogRequest
+{
+    [JsonPropertyName("userLogin")]
+    public string? UserLogin { get; set; }
+
+    [JsonPropertyName("linkId")]
+    public int LinkId { get; set; }
+
+    [JsonPropertyName("phoneNumber")]
+    public string? PhoneNumber { get; set; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; set; }
 }

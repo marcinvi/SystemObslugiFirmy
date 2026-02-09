@@ -1,6 +1,9 @@
 package com.example.ena;
 
+import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -10,14 +13,13 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
- import android.content.pm.PackageManager;
- import androidx.core.app.ActivityCompat;
- import androidx.core.content.ContextCompat;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import android.Manifest;
+
 import com.example.ena.api.ApiClient;
 import com.example.ena.ui.LoginActivity;
 import com.example.ena.ui.MessagesActivity;
@@ -38,11 +40,11 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton btnLogout;
     private ApiClient apiClient;
     private static final int PERMISSION_REQUEST_CODE = 100;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 1. Sprawdzenie sesji
         if (!UserSession.isLoggedIn(this)) {
             startLogin();
             return;
@@ -50,7 +52,6 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        // 2. Inicjalizacja widoków
         txtUserName = findViewById(R.id.txtUserName);
         recyclerModules = findViewById(R.id.recyclerModules);
         loadingModules = findViewById(R.id.loadingModules);
@@ -60,63 +61,54 @@ public class MainActivity extends AppCompatActivity {
         apiClient = new ApiClient(this);
         startBackgroundService();
         requestPhonePermissions();
-        // 3. Ustawienie nagłówka
+
         String userDisplay = UserSession.getDisplayName(this);
         if (userDisplay == null || userDisplay.isEmpty()) userDisplay = UserSession.getLogin(this);
         txtUserName.setText(userDisplay);
 
-        // 4. Konfiguracja siatki (2 kolumny - nowoczesny wygląd)
         recyclerModules.setLayoutManager(new GridLayoutManager(this, 2));
 
-        // 5. Obsługa wylogowania
+        // Kliknięcie w nazwę użytkownika → Ustawienia
+        txtUserName.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+        });
+
         btnLogout.setOnClickListener(v -> {
             UserSession.clear(this);
             stopBackgroundService();
             startLogin();
         });
 
-        // 6. Pobranie modułów
         fetchModules();
     }
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            for (int i = 0; i < permissions.length; i++) {
-                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
-                    Log.w("MainActivity", "Brak uprawnienia: " + permissions[i]);
-                }
-            }
-        }
-    }
+
+    // ========================================================================
+    // Uprawnienia
+    // ========================================================================
+
     private void requestPhonePermissions() {
         List<String> permissionsNeeded = new ArrayList<>();
 
-        // READ_CALL_LOG - wymagane od Android 10+ do odczytu numeru dzwoniącego
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG)
                 != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.READ_CALL_LOG);
         }
-
-        // READ_PHONE_STATE
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
                 != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.READ_PHONE_STATE);
         }
-
-        // CALL_PHONE
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE)
                 != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.CALL_PHONE);
         }
-
-        // SEND_SMS
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS)
                 != PackageManager.PERMISSION_GRANTED) {
             permissionsNeeded.add(Manifest.permission.SEND_SMS);
         }
-
-        // POST_NOTIFICATIONS (Android 13+)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
+                != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.RECEIVE_SMS);
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -124,12 +116,81 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        if (!permissionsNeeded.isEmpty()) {
+        if (permissionsNeeded.isEmpty()) {
+            Log.d("MainActivity", "Wszystkie uprawnienia telefoniczne przyznane");
+            return;
+        }
+
+        boolean needCallLogRationale = permissionsNeeded.contains(Manifest.permission.READ_CALL_LOG)
+                && ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_CALL_LOG);
+
+        if (needCallLogRationale) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Uprawnienie do historii połączeń")
+                    .setMessage("Aby aplikacja mogła wyświetlać numer dzwoniącego na komputerze, " +
+                            "potrzebuje dostępu do historii połączeń.\n\n" +
+                            "Bez tego uprawnienia połączenia przychodzące będą pokazywane " +
+                            "jako \"nieznany numer\".\n\n" +
+                            "Czy chcesz przyznać to uprawnienie?")
+                    .setPositiveButton("Tak, przyznaj", (dialog, which) -> {
+                        ActivityCompat.requestPermissions(this,
+                                permissionsNeeded.toArray(new String[0]),
+                                PERMISSION_REQUEST_CODE);
+                    })
+                    .setNegativeButton("Nie teraz", (dialog, which) -> {
+                        permissionsNeeded.remove(Manifest.permission.READ_CALL_LOG);
+                        if (!permissionsNeeded.isEmpty()) {
+                            ActivityCompat.requestPermissions(this,
+                                    permissionsNeeded.toArray(new String[0]),
+                                    PERMISSION_REQUEST_CODE);
+                        }
+                    })
+                    .setCancelable(false)
+                    .show();
+        } else {
             ActivityCompat.requestPermissions(this,
                     permissionsNeeded.toArray(new String[0]),
                     PERMISSION_REQUEST_CODE);
         }
     }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != PERMISSION_REQUEST_CODE) return;
+
+        boolean callLogDenied = false;
+
+        for (int i = 0; i < permissions.length; i++) {
+            boolean granted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
+            Log.d("MainActivity", "Uprawnienie " + permissions[i] + ": " + (granted ? "PRZYZNANE" : "ODMÓWIONE"));
+
+            if (!granted && Manifest.permission.READ_CALL_LOG.equals(permissions[i])) {
+                callLogDenied = true;
+            }
+        }
+
+        if (callLogDenied) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Ograniczona funkcjonalność")
+                    .setMessage("Bez dostępu do historii połączeń, " +
+                            "numer dzwoniącego będzie wyświetlany jako \"nieznany\" na komputerze.\n\n" +
+                            "Możesz przyznać to uprawnienie później w ustawieniach aplikacji.")
+                    .setPositiveButton("OK", null)
+                    .show();
+        }
+
+        try {
+            IncomingCallTracker.getInstance().registerListener(this);
+        } catch (Exception e) {
+            Log.w("MainActivity", "Błąd rejestracji trackera po zmianie uprawnień: " + e.getMessage());
+        }
+    }
+
+    // ========================================================================
+    // Moduły
+    // ========================================================================
+
     private void fetchModules() {
         loadingModules.setVisibility(View.VISIBLE);
         txtError.setVisibility(View.GONE);
@@ -164,27 +225,17 @@ public class MainActivity extends AppCompatActivity {
         ModulesAdapter adapter = new ModulesAdapter(modules, moduleName -> {
             String key = moduleName.toLowerCase();
 
-            // --- ROUTING MODUŁÓW ---
-
             if (key.contains("magazyn")) {
-                // Moduł Magazyniera: Skanowanie i przyjmowanie
                 openReturns("warehouse");
-            }
-            else if (key.contains("handlowiec") || key.contains("sprzedaż")) {
-                // Moduł Handlowca: Decyzje
+            } else if (key.contains("handlowiec") || key.contains("sprzedaż")) {
                 openReturns("sales");
-            }
-            else if (key.contains("zwroty") || key.contains("podsumowanie")) {
-                // Moduł Ogólny: Tabela/Przegląd
+            } else if (key.contains("zwroty") || key.contains("podsumowanie")) {
                 startActivity(new Intent(MainActivity.this, SummaryActivity.class));
-            }
-            else if (key.contains("wiadomości") || key.contains("wiadomosci")) {
+            } else if (key.contains("wiadomości") || key.contains("wiadomosci")) {
                 startActivity(new Intent(MainActivity.this, MessagesActivity.class));
-            }
-            else if (key.contains("ustawienia")) {
+            } else if (key.contains("ustawienia")) {
                 startActivity(new Intent(MainActivity.this, SettingsActivity.class));
-            }
-            else {
+            } else {
                 Toast.makeText(MainActivity.this, "Moduł w przygotowaniu: " + moduleName, Toast.LENGTH_SHORT).show();
             }
         });
@@ -194,9 +245,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void openReturns(String mode) {
         Intent intent = new Intent(this, ReturnsListActivity.class);
-        intent.putExtra("mode", mode); // Przekazujemy tryb do ReturnsListActivity
+        intent.putExtra("mode", mode);
         startActivity(intent);
     }
+
+    // ========================================================================
+    // Lifecycle
+    // ========================================================================
 
     private void startLogin() {
         Intent intent = new Intent(this, LoginActivity.class);

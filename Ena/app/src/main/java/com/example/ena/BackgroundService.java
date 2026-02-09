@@ -104,6 +104,15 @@ public class BackgroundService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForegroundNotification();
 
+        // NOWE: Zarejestruj IncomingCallTracker (PhoneStateListener)
+        // Musi być na wątku z Looper - główny wątek jest OK
+        try {
+            IncomingCallTracker.getInstance().registerListener(this);
+            Log.d(TAG, "IncomingCallTracker zarejestrowany");
+        } catch (Exception e) {
+            Log.e(TAG, "Błąd rejestracji IncomingCallTracker: " + e.getMessage());
+        }
+
         // Uruchom heartbeat i polling komend
         startHeartbeat();
         startCommandPolling();
@@ -310,7 +319,7 @@ public class BackgroundService extends Service {
     // HELPERS
     // =====================================================================
 
-    private static String getUserLogin(Context context) {
+    static String getUserLogin(Context context) {
         // Najpierw sprawdź UserSession (zalogowany użytkownik)
         if (UserSession.isLoggedIn(context)) {
             String login = UserSession.getLogin(context);
@@ -339,7 +348,6 @@ public class BackgroundService extends Service {
 
     // =====================================================================
     // Istniejący kod: Foreground Notification, NanoHTTPD, Notifications polling
-    // (zachowaj bez zmian - serwer HTTP nadal działa dla kompatybilności)
     // =====================================================================
 
     private void startForegroundNotification() {
@@ -387,6 +395,14 @@ public class BackgroundService extends Service {
         handler.removeCallbacks(heartbeatRunner);
         handler.removeCallbacks(commandPollRunner);
         handler.removeCallbacks(notificationsPoller);
+
+        // NOWE: Wyrejestruj IncomingCallTracker
+        try {
+            IncomingCallTracker.getInstance().unregisterListener(this);
+        } catch (Exception e) {
+            Log.w(TAG, "Błąd wyrejestrowania IncomingCallTracker: " + e.getMessage());
+        }
+
         if (server != null) {
             server.stop();
         }

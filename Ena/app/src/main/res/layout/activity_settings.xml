@@ -42,6 +42,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- Konfiguracja Serwera -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -101,10 +102,55 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- NOWE: Opcje połączeń telefonicznych -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:text="Opcje połączeń"
+                        android:textColor="#388E3C"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                    <CheckBox
+                        android:id="@+id/chkShowSmsLinks"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Pokazuj opcję wysyłania linków reklamacyjnych"
+                        android:textColor="#333333"
+                        android:textSize="15sp"
+                        android:paddingStart="8dp"
+                        android:minHeight="48dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="40dp"
+                        android:layout_marginTop="4dp"
+                        android:text="Po zakończeniu odebranej rozmowy pojawi się opcja wysłania linku SMS do klienta"
+                        android:textColor="#888888"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Parowanie Urządzenia -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="2dp"
                 app:cardBackgroundColor="@color/white">
