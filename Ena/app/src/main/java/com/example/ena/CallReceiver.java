@@ -40,7 +40,6 @@ public class CallReceiver extends BroadcastReceiver {
     private static final String PREF_CALL_WAS_INCOMING = "call_was_incoming";
     private static final String PREF_CALL_WAS_ANSWERED = "call_was_answered";
     private static final String PREF_CALL_INCOMING_NUMBER = "call_incoming_number";
-    private static final String PREF_CALL_WAS_OUTGOING = "call_was_outgoing";
     private static final String CHANNEL_ID_LINKS = "ENA_SMS_LINKS";
     private static final int NOTIFICATION_ID_LINK = 9001;
 
@@ -124,7 +123,7 @@ public class CallReceiver extends BroadcastReceiver {
         }
 
         incomingNumber = (number != null) ? number : "unknown";
-        saveCallState(context, wasIncomingCall, wasAnswered, wasOutgoingCall, incomingNumber);
+        saveCallState(context, wasIncomingCall, wasAnswered, incomingNumber);
 
         GlobalState.isRinging = true;
         GlobalState.incomingNumber = incomingNumber;
@@ -177,7 +176,7 @@ public class CallReceiver extends BroadcastReceiver {
         if (wasIncomingCall) {
             wasAnswered = true;
             Log.d(TAG, "Rozmowa odebrana (OFFHOOK po RINGING)");
-            saveCallState(context, wasIncomingCall, wasAnswered, wasOutgoingCall, incomingNumber != null ? incomingNumber : "unknown");
+            saveCallState(context, wasIncomingCall, wasAnswered, incomingNumber != null ? incomingNumber : "unknown");
         } else {
             wasOutgoingCall = true;
             Log.d(TAG, "Połączenie wychodzące (OFFHOOK bez RINGING)");
@@ -207,7 +206,6 @@ public class CallReceiver extends BroadcastReceiver {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         boolean persistedIncoming = prefs.getBoolean(PREF_CALL_WAS_INCOMING, false);
         boolean persistedAnswered = prefs.getBoolean(PREF_CALL_WAS_ANSWERED, false);
-        boolean persistedOutgoing = prefs.getBoolean(PREF_CALL_WAS_OUTGOING, false);
         String persistedNumber = prefs.getString(PREF_CALL_INCOMING_NUMBER, null);
 
         if (!wasIncomingCall && persistedIncoming) {
@@ -216,22 +214,12 @@ public class CallReceiver extends BroadcastReceiver {
         if (!wasAnswered && persistedAnswered) {
             wasAnswered = true;
         }
-        if (!wasOutgoingCall && persistedOutgoing) {
-            wasOutgoingCall = true;
-        }
         if (incomingNumber == null || incomingNumber.isEmpty() || "unknown".equalsIgnoreCase(incomingNumber)) {
             incomingNumber = persistedNumber;
         }
 
         String finalNumber = (number != null) ? number
                 : (incomingNumber != null ? incomingNumber : (persistedNumber != null ? persistedNumber : ""));
-
-        if (!isValidNumber(finalNumber) && wasOutgoingCall) {
-            String outgoingNumber = tracker.queryCallLogForLastOutgoing(context);
-            if (isValidNumber(outgoingNumber)) {
-                finalNumber = outgoingNumber;
-            }
-        }
 
         Log.i(TAG, "=== KONIEC: " + finalNumber +
                 " (incoming=" + wasIncomingCall + " answered=" + wasAnswered + ") ===");
@@ -411,12 +399,11 @@ public class CallReceiver extends BroadcastReceiver {
                 phoneState, callLog, callPhone, sendSms, Build.VERSION.SDK_INT));
     }
 
-    private void saveCallState(Context context, boolean wasIncoming, boolean wasAnswered, boolean wasOutgoing, String number) {
+    private void saveCallState(Context context, boolean wasIncoming, boolean wasAnswered, String number) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         prefs.edit()
                 .putBoolean(PREF_CALL_WAS_INCOMING, wasIncoming)
                 .putBoolean(PREF_CALL_WAS_ANSWERED, wasAnswered)
-                .putBoolean(PREF_CALL_WAS_OUTGOING, wasOutgoing)
                 .putString(PREF_CALL_INCOMING_NUMBER, number)
                 .apply();
     }
@@ -426,7 +413,6 @@ public class CallReceiver extends BroadcastReceiver {
         prefs.edit()
                 .remove(PREF_CALL_WAS_INCOMING)
                 .remove(PREF_CALL_WAS_ANSWERED)
-                .remove(PREF_CALL_WAS_OUTGOING)
                 .remove(PREF_CALL_INCOMING_NUMBER)
                 .apply();
     }
