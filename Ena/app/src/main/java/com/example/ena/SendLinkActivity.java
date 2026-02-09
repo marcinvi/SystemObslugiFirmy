@@ -150,14 +150,14 @@ public class SendLinkActivity extends AppCompatActivity {
 
         statusText.setText("Pobieranie linków z API...");
         progressBar.setVisibility(View.VISIBLE);
-        Log.i(TAG, "[Trace " + traceId + "] ✅ Pobieram linki z API dla numeru: " + phoneNumber);
+        Log.i(TAG, "✅ Pobieram linki z API dla numeru: " + phoneNumber);
         fetchLinksAndShowDialog();
     }
 
     private void fetchLinksAndShowDialog() {
         String baseUrl = ApiConfig.getBaseUrl(this);
         if (baseUrl == null || baseUrl.isEmpty()) {
-            Log.w(TAG, "[Trace " + traceId + "] Brak adresu API");
+            Log.w(TAG, "Brak adresu API");
             runOnUiThread(() -> showError("Brak adresu API.\nUstaw IP i port w ustawieniach."));
             return;
         }
@@ -239,7 +239,6 @@ public class SendLinkActivity extends AppCompatActivity {
     }
 
     private void showError(String message) {
-        Log.w(TAG, "[Trace " + traceId + "] UI error: " + message);
         progressBar.setVisibility(View.GONE);
         statusText.setText(message);
         retryButton.setVisibility(View.VISIBLE);
