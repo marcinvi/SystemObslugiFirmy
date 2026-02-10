@@ -1,10 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ReklamacjeAPI.Data;
+using MySqlConnector;
 using ReklamacjeAPI.DTOs;
-using ReklamacjeAPI.Models;
-// using ReklamacjeAPI.Security; // Odkomentuj jeśli używasz EncryptionHelper zamiast BCrypt
+using ReklamacjeAPI.Services;
+using System.Linq;
 
 namespace ReklamacjeAPI.Controllers
 {
@@ -13,106 +12,223 @@ namespace ReklamacjeAPI.Controllers
     [Route("api/admin")]
     public class AdminController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public AdminController(ApplicationDbContext context)
+        public AdminController(IConfiguration configuration)
         {
-            _context = context;
+            _configuration = configuration;
         }
 
-        private bool IsAdmin()
-        {
-            // Sprawdza czy użytkownik ma rolę Admin
-            return User.IsInRole("Admin");
-        }
-
-        // 1. Pobranie listy użytkowników
         [HttpGet("users")]
         public async Task<IActionResult> GetAllUsers()
         {
-            // Opcjonalnie: odkomentuj linię niżej, aby blokować dostęp nie-adminom
-            // if (!IsAdmin()) return Forbid();
+            await using var conn = DbConnectionFactory.CreateDefaultConnection(_configuration);
+            await conn.OpenAsync();
 
-            // ZMIANA: _context.Users zamiast _context.Uzytkownicy
-            var users = await _context.Users
-                .Select(u => new AdminUserListDto
+            var userColumns = await GetTableColumns(conn, "Uzytkownicy");
+            var displayCol = PickFirstExisting(userColumns, "Nazwa Wyświetlana", "NazwaWyswietlana") ?? "Login";
+            var roleCol = PickFirstExisting(userColumns, "Rola", "Role") ?? "Rola";
+            var activeCol = PickFirstExisting(userColumns, "IsActive", "CzyAktywny", "Aktywny") ?? "CzyAktywny";
+
+            var sql = $@"
+                SELECT
+                    Id,
+                    Login,
+                    `{displayCol}` AS DisplayName,
+                    `{roleCol}` AS RoleName,
+                    `{activeCol}` AS ActiveValue
+                FROM Uzytkownicy
+                ORDER BY Login";
+
+            var users = new List<AdminUserListDto>();
+            await using var cmd = new MySqlCommand(sql, conn);
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                users.Add(new AdminUserListDto
                 {
-                    Id = u.Id,
-                    Login = u.Login,
-                    NazwaWyswietlana = u.DisplayName,
-                    Rola = u.Role,
-                    IsActive = u.IsActive
-                })
-                .OrderBy(u => u.Login)
-                .ToListAsync();
+                    Id = SafeGetInt(reader, "Id"),
+                    Login = SafeGetString(reader, "Login"),
+                    NazwaWyswietlana = SafeGetString(reader, "DisplayName"),
+                    Rola = SafeGetString(reader, "RoleName"),
+                    IsActive = SafeGetBool(reader, "ActiveValue")
+                });
+            }
 
             return Ok(ApiResponse<List<AdminUserListDto>>.SuccessResponse(users));
         }
 
-        // 2. Dodanie nowego użytkownika
         [HttpPost("users")]
         public async Task<IActionResult> CreateUser([FromBody] AdminCreateUserDto dto)
         {
-            // if (!IsAdmin()) return Forbid();
+            await using var conn = DbConnectionFactory.CreateDefaultConnection(_configuration);
+            await conn.OpenAsync();
 
-            // ZMIANA: _context.Users zamiast _context.Uzytkownicy
-            if (await _context.Users.AnyAsync(u => u.Login == dto.Login))
+            var userColumns = await GetTableColumns(conn, "Uzytkownicy");
+            var displayCol = PickFirstExisting(userColumns, "Nazwa Wyświetlana", "NazwaWyswietlana");
+            var roleCol = PickFirstExisting(userColumns, "Rola", "Role");
+            var activeCol = PickFirstExisting(userColumns, "IsActive", "CzyAktywny", "Aktywny");
+            var passwordCol = PickFirstExisting(userColumns, "Hasło", "Haslo", "HasloHash", "PasswordHash");
+
+            if (passwordCol == null)
             {
-                return BadRequest(ApiResponse<object>.ErrorResponse("Użytkownik o takim loginie już istnieje."));
+                return StatusCode(500, ApiResponse<object>.ErrorResponse("Brak kolumny hasła w tabeli Uzytkownicy."));
             }
 
-            // Haszowanie hasła (Używamy BCrypt)
-            // Upewnij się, że masz paczkę: dotnet add package BCrypt.Net-Next
-            string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-
-            var newUser = new User
+            await using (var checkCmd = new MySqlCommand("SELECT COUNT(1) FROM Uzytkownicy WHERE Login = @login", conn))
             {
-                Login = dto.Login,
-                PasswordHash = passwordHash,
-                DisplayName = dto.NazwaWyswietlana,
-                Role = dto.Rola,
-                IsActive = true
-            };
+                checkCmd.Parameters.AddWithValue("@login", dto.Login);
+                var exists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync()) > 0;
+                if (exists)
+                {
+                    return BadRequest(ApiResponse<object>.ErrorResponse("Użytkownik o takim loginie już istnieje."));
+                }
+            }
 
-            // ZMIANA: _context.Users zamiast _context.Uzytkownicy
-            _context.Users.Add(newUser);
-            await _context.SaveChangesAsync();
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            var columns = new List<string> { "Login", $"`{passwordCol}`" };
+            var values = new List<string> { "@login", "@pass" };
+
+            if (displayCol != null)
+            {
+                columns.Add($"`{displayCol}`");
+                values.Add("@display");
+            }
+            if (roleCol != null)
+            {
+                columns.Add($"`{roleCol}`");
+                values.Add("@role");
+            }
+            if (activeCol != null)
+            {
+                columns.Add($"`{activeCol}`");
+                values.Add("@active");
+            }
+
+            var insertSql = $"INSERT INTO Uzytkownicy ({string.Join(", ", columns)}) VALUES ({string.Join(", ", values)})";
+            await using var insertCmd = new MySqlCommand(insertSql, conn);
+            insertCmd.Parameters.AddWithValue("@login", dto.Login);
+            insertCmd.Parameters.AddWithValue("@pass", passwordHash);
+            insertCmd.Parameters.AddWithValue("@display", string.IsNullOrWhiteSpace(dto.NazwaWyswietlana) ? dto.Login : dto.NazwaWyswietlana);
+            insertCmd.Parameters.AddWithValue("@role", string.IsNullOrWhiteSpace(dto.Rola) ? "User" : dto.Rola);
+            insertCmd.Parameters.AddWithValue("@active", 1);
+            await insertCmd.ExecuteNonQueryAsync();
 
             return Ok(ApiResponse<object>.SuccessResponse(null, "Użytkownik dodany."));
         }
 
-        // 3. Edycja użytkownika
         [HttpPut("users/{id}")]
         public async Task<IActionResult> UpdateUser(int id, [FromBody] AdminUpdateUserDto dto)
         {
-            // if (!IsAdmin()) return Forbid();
+            await using var conn = DbConnectionFactory.CreateDefaultConnection(_configuration);
+            await conn.OpenAsync();
 
-            // ZMIANA: _context.Users zamiast _context.Uzytkownicy
-            var user = await _context.Users.FindAsync(id);
-            if (user == null) return NotFound(ApiResponse<object>.ErrorResponse("Nie znaleziono użytkownika."));
+            var userColumns = await GetTableColumns(conn, "Uzytkownicy");
+            var displayCol = PickFirstExisting(userColumns, "Nazwa Wyświetlana", "NazwaWyswietlana");
+            var roleCol = PickFirstExisting(userColumns, "Rola", "Role");
+            var activeCol = PickFirstExisting(userColumns, "IsActive", "CzyAktywny", "Aktywny");
 
-            user.DisplayName = dto.NazwaWyswietlana;
-            user.Role = dto.Rola;
-            user.IsActive = dto.IsActive;
+            var updates = new List<string>();
+            await using var cmd = new MySqlCommand();
+            cmd.Connection = conn;
+            cmd.Parameters.AddWithValue("@id", id);
 
-            await _context.SaveChangesAsync();
+            if (displayCol != null)
+            {
+                updates.Add($"`{displayCol}` = @display");
+                cmd.Parameters.AddWithValue("@display", dto.NazwaWyswietlana ?? string.Empty);
+            }
+            if (roleCol != null)
+            {
+                updates.Add($"`{roleCol}` = @role");
+                cmd.Parameters.AddWithValue("@role", dto.Rola ?? "User");
+            }
+            if (activeCol != null)
+            {
+                updates.Add($"`{activeCol}` = @active");
+                cmd.Parameters.AddWithValue("@active", dto.IsActive ? 1 : 0);
+            }
+
+            if (updates.Count == 0)
+            {
+                return StatusCode(500, ApiResponse<object>.ErrorResponse("Brak obsługiwanych kolumn do aktualizacji użytkownika."));
+            }
+
+            cmd.CommandText = $"UPDATE Uzytkownicy SET {string.Join(", ", updates)} WHERE Id = @id";
+            var rows = await cmd.ExecuteNonQueryAsync();
+            if (rows == 0)
+            {
+                return NotFound(ApiResponse<object>.ErrorResponse("Nie znaleziono użytkownika."));
+            }
+
             return Ok(ApiResponse<object>.SuccessResponse(null, "Dane zaktualizowane."));
         }
 
-        // 4. Reset hasła
         [HttpPost("users/{id}/reset-password")]
         public async Task<IActionResult> ResetPassword(int id, [FromBody] AdminResetPasswordDto dto)
         {
-            // if (!IsAdmin()) return Forbid();
+            await using var conn = DbConnectionFactory.CreateDefaultConnection(_configuration);
+            await conn.OpenAsync();
 
-            // ZMIANA: _context.Users zamiast _context.Uzytkownicy
-            var user = await _context.Users.FindAsync(id);
-            if (user == null) return NotFound(ApiResponse<object>.ErrorResponse("Nie znaleziono użytkownika."));
+            var userColumns = await GetTableColumns(conn, "Uzytkownicy");
+            var passwordCol = PickFirstExisting(userColumns, "Hasło", "Haslo", "HasloHash", "PasswordHash");
+            if (passwordCol == null)
+            {
+                return StatusCode(500, ApiResponse<object>.ErrorResponse("Brak kolumny hasła w tabeli Uzytkownicy."));
+            }
 
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            var sql = $"UPDATE Uzytkownicy SET `{passwordCol}` = @pass WHERE Id = @id";
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@pass", BCrypt.Net.BCrypt.HashPassword(dto.NewPassword));
+            cmd.Parameters.AddWithValue("@id", id);
+            var rows = await cmd.ExecuteNonQueryAsync();
 
-            await _context.SaveChangesAsync();
+            if (rows == 0)
+            {
+                return NotFound(ApiResponse<object>.ErrorResponse("Nie znaleziono użytkownika."));
+            }
+
             return Ok(ApiResponse<object>.SuccessResponse(null, "Hasło zostało zresetowane."));
+        }
+
+        private static async Task<HashSet<string>> GetTableColumns(MySqlConnection conn, string tableName)
+        {
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            const string sql = @"
+                SELECT COLUMN_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = @table";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@table", tableName);
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var name = reader["COLUMN_NAME"]?.ToString();
+                if (!string.IsNullOrWhiteSpace(name)) result.Add(name);
+            }
+
+            return result;
+        }
+
+        private static string? PickFirstExisting(HashSet<string> columns, params string[] candidates)
+            => candidates.FirstOrDefault(columns.Contains);
+
+        private static int SafeGetInt(MySqlDataReader reader, string name)
+            => int.TryParse(reader[name]?.ToString(), out var v) ? v : 0;
+
+        private static string SafeGetString(MySqlDataReader reader, string name)
+            => reader[name]?.ToString() ?? string.Empty;
+
+        private static bool SafeGetBool(MySqlDataReader reader, string name)
+        {
+            var value = reader[name];
+            if (value is bool b) return b;
+            if (value is sbyte sb) return sb != 0;
+            if (value is byte bb) return bb != 0;
+            if (value is short sh) return sh != 0;
+            if (value is int i) return i != 0;
+            return bool.TryParse(value?.ToString(), out var parsed) && parsed;
         }
     }
 }
