@@ -69,8 +69,14 @@ namespace ReklamacjeAPI.Controllers
             var hasDelegacjeTable = await TableExists(conn, "Delegacje");
             if (hasDelegacjeTable)
             {
+                var delegationColumns = await GetTableColumns(conn, "Delegacje");
+                var delegationTypeCol = PickFirstExisting(delegationColumns, "Typ", "Powod", "Rodzaj", "Type");
+                var delegationTypeSql = delegationTypeCol != null ? $"d.`{delegationTypeCol}`" : "NULL";
+
+                var replacementNameCol = PickFirstExisting(userColumns, "Nazwa Wyświetlana", "NazwaWyswietlana") ?? "Login";
+
                 var delQuery = @"
-                    SELECT d.Id, d.DataOd, d.DataDo, d.Typ, u.`Nazwa Wyświetlana` as ZastepcaNazwa
+                    SELECT d.Id, d.DataOd, d.DataDo, " + delegationTypeSql + @" AS Typ, u.`" + replacementNameCol + @"` as ZastepcaNazwa
                     FROM Delegacje d
                     LEFT JOIN Uzytkownicy u ON d.ZastepcaId = u.Id
                     WHERE d.UzytkownikId = @uid AND d.DataDo >= CURDATE() AND d.CzyAktywna = 1
@@ -181,16 +187,31 @@ namespace ReklamacjeAPI.Controllers
             await using var conn = DbConnectionFactory.CreateDefaultConnection(_configuration);
             await conn.OpenAsync();
 
-            var query = @"
-                INSERT INTO Delegacje (UzytkownikId, ZastepcaId, DataOd, DataDo, Typ, CzyAktywna)
-                VALUES (@uid, @zid, @od, @do, @typ, 1)";
+            var delegationColumns = await GetTableColumns(conn, "Delegacje");
+            var delegationTypeCol = PickFirstExisting(delegationColumns, "Typ", "Powod", "Rodzaj", "Type");
+
+            var insertColumns = new List<string> { "UzytkownikId", "ZastepcaId", "DataOd", "DataDo", "CzyAktywna" };
+            var insertValues = new List<string> { "@uid", "@zid", "@od", "@do", "1" };
+
+            if (delegationTypeCol != null)
+            {
+                insertColumns.Add($"`{delegationTypeCol}`");
+                insertValues.Add("@typ");
+            }
+
+            var query = $@"
+                INSERT INTO Delegacje ({string.Join(", ", insertColumns)})
+                VALUES ({string.Join(", ", insertValues)})";
 
             await using var cmd = new MySqlCommand(query, conn);
             cmd.Parameters.AddWithValue("@uid", userId);
             cmd.Parameters.AddWithValue("@zid", request.ZastepcaId > 0 ? request.ZastepcaId : (object)DBNull.Value);
             cmd.Parameters.AddWithValue("@od", request.DataOd);
             cmd.Parameters.AddWithValue("@do", request.DataDo);
-            cmd.Parameters.AddWithValue("@typ", request.Typ);
+            if (delegationTypeCol != null)
+            {
+                cmd.Parameters.AddWithValue("@typ", request.Typ);
+            }
 
             await cmd.ExecuteNonQueryAsync();
             return Ok(ApiResponse<object>.SuccessResponse(null));
