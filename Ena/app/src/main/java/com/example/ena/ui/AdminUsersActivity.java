@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -22,9 +23,7 @@ import com.example.ena.api.ApiClient;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class AdminUsersActivity extends AppCompatActivity {
 
@@ -36,7 +35,7 @@ public class AdminUsersActivity extends AppCompatActivity {
 
     // Lista ról dostępna w systemie
     private final String[] ROLES = {"Admin", "Magazyn", "Handlowiec", "Weryfikacja", "Reklamacje"};
-    private final Map<String, Integer> moduleNameToId = new HashMap<>();
+    private final List<AdminDtos.AdminModule> adminModules = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,11 +67,11 @@ public class AdminUsersActivity extends AppCompatActivity {
         apiClient.fetchAdminModules(new ApiClient.ApiCallback<List<AdminDtos.AdminModule>>() {
             @Override
             public void onSuccess(List<AdminDtos.AdminModule> modules) {
-                moduleNameToId.clear();
+                adminModules.clear();
                 if (modules != null) {
                     for (AdminDtos.AdminModule module : modules) {
-                        if (module != null && module.name != null) {
-                            moduleNameToId.put(module.name.toLowerCase(), module.id);
+                        if (module != null) {
+                            adminModules.add(module);
                         }
                     }
                 }
@@ -109,12 +108,10 @@ public class AdminUsersActivity extends AppCompatActivity {
         });
     }
 
-    // --- DODAWANIE UŻYTKOWNIKA ---
     private void showAddDialog() {
         showUserDialog(null);
     }
 
-    // --- EDYCJA UŻYTKOWNIKA ---
     private void showEditDialog(AdminDtos.AdminUser user) {
         showUserDialog(user);
     }
@@ -131,53 +128,46 @@ public class AdminUsersActivity extends AppCompatActivity {
         EditText edtPassword = view.findViewById(R.id.edtPassword);
         TextView txtPassInfo = view.findViewById(R.id.txtPassInfo);
         Spinner spinnerRole = view.findViewById(R.id.spinnerRole);
-        CheckBox cbModuleAdmin = view.findViewById(R.id.cbModuleAdmin);
-        CheckBox cbModuleAppSettings = view.findViewById(R.id.cbModuleAppSettings);
-        CheckBox cbModuleAllegroGuardians = view.findViewById(R.id.cbModuleAllegroGuardians);
-        CheckBox cbModuleDelegations = view.findViewById(R.id.cbModuleDelegations);
+        LinearLayout layoutModulesContainer = view.findViewById(R.id.layoutModulesContainer);
         CheckBox cbActive = view.findViewById(R.id.cbActive);
 
-        // Konfiguracja spinnera ról
         ArrayAdapter<String> roleAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, ROLES);
         spinnerRole.setAdapter(roleAdapter);
 
+        List<CheckBox> moduleCheckboxes = buildModuleCheckboxes(layoutModulesContainer, user != null ? user.moduleIds : null);
+
         if (isEdit) {
             edtLogin.setText(user.login);
-            edtLogin.setEnabled(false); // Login jest ID, nie zmieniamy go łatwo
+            edtLogin.setEnabled(false);
             edtName.setText(user.nazwaWyswietlana);
             cbActive.setChecked(user.isActive);
 
-            // Ustawienie roli w spinnerze
             for (int i = 0; i < ROLES.length; i++) {
                 if (ROLES[i].equalsIgnoreCase(user.rola)) {
                     spinnerRole.setSelection(i);
                     break;
                 }
             }
-            txtPassInfo.setVisibility(View.VISIBLE); // Informacja o resecie hasła
-            bindModules(user != null ? user.moduleIds : null, cbModuleAdmin, cbModuleAppSettings, cbModuleAllegroGuardians, cbModuleDelegations);
+            txtPassInfo.setVisibility(View.VISIBLE);
         } else {
             txtPassInfo.setVisibility(View.GONE);
             cbActive.setChecked(true);
-            bindModules(null, cbModuleAdmin, cbModuleAppSettings, cbModuleAllegroGuardians, cbModuleDelegations);
         }
 
         builder.setView(view);
-
-        builder.setPositiveButton("Zapisz", null); // Nadpiszemy to niżej, żeby walidować
+        builder.setPositiveButton("Zapisz", null);
         builder.setNegativeButton("Anuluj", (d, w) -> d.dismiss());
 
         AlertDialog dialog = builder.create();
         dialog.show();
 
-        // Nadpisujemy przycisk Positive, żeby dialog nie zamykał się przy błędzie walidacji
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String login = edtLogin.getText().toString().trim();
             String name = edtName.getText().toString().trim();
             String pass = edtPassword.getText().toString().trim();
             String role = spinnerRole.getSelectedItem().toString();
             boolean active = cbActive.isChecked();
-            List<Integer> selectedModuleIds = collectSelectedModuleIds(cbModuleAdmin, cbModuleAppSettings, cbModuleAllegroGuardians, cbModuleDelegations);
+            List<Integer> selectedModuleIds = collectSelectedModuleIds(moduleCheckboxes);
 
             if (login.isEmpty()) {
                 edtLogin.setError("Login wymagany");
@@ -190,18 +180,17 @@ public class AdminUsersActivity extends AppCompatActivity {
             }
 
             if (isEdit) {
-                // UPDATE
                 AdminDtos.UpdateUserRequest req = new AdminDtos.UpdateUserRequest(name, role, active, selectedModuleIds);
                 apiClient.updateAdminUser(user.id, req, new ApiClient.ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void data) {
-                        // Jeśli wpisano hasło w edycji -> resetujemy je
                         if (!pass.isEmpty()) {
                             apiClient.resetUserPassword(user.id, pass, new ApiClient.ApiCallback<Void>() {
                                 @Override
                                 public void onSuccess(Void data) {
                                     finishDialog(dialog, "Zaktualizowano dane i hasło");
                                 }
+
                                 @Override
                                 public void onError(String msg) {
                                     finishDialog(dialog, "Dane OK, ale błąd hasła: " + msg);
@@ -211,19 +200,20 @@ public class AdminUsersActivity extends AppCompatActivity {
                             finishDialog(dialog, "Zaktualizowano dane");
                         }
                     }
+
                     @Override
                     public void onError(String msg) {
                         runOnUiThread(() -> Toast.makeText(AdminUsersActivity.this, msg, Toast.LENGTH_SHORT).show());
                     }
                 });
             } else {
-                // CREATE
                 AdminDtos.CreateUserRequest req = new AdminDtos.CreateUserRequest(login, pass, name, role, selectedModuleIds);
                 apiClient.createAdminUser(req, new ApiClient.ApiCallback<Void>() {
                     @Override
                     public void onSuccess(Void data) {
                         finishDialog(dialog, "Utworzono użytkownika");
                     }
+
                     @Override
                     public void onError(String msg) {
                         runOnUiThread(() -> Toast.makeText(AdminUsersActivity.this, msg, Toast.LENGTH_SHORT).show());
@@ -233,54 +223,39 @@ public class AdminUsersActivity extends AppCompatActivity {
         });
     }
 
-    private void bindModules(List<Integer> moduleIds,
-                             CheckBox cbModuleAdmin,
-                             CheckBox cbModuleAppSettings,
-                             CheckBox cbModuleAllegroGuardians,
-                             CheckBox cbModuleDelegations) {
-        cbModuleAdmin.setChecked(isModuleChecked(moduleIds, "admin"));
-        cbModuleAppSettings.setChecked(isModuleChecked(moduleIds, "ustawienia aplikacji"));
-        cbModuleAllegroGuardians.setChecked(isModuleChecked(moduleIds, "opiekunowie allegro"));
-        cbModuleDelegations.setChecked(isModuleChecked(moduleIds, "delegacje"));
-    }
+    private List<CheckBox> buildModuleCheckboxes(LinearLayout container, List<Integer> selectedModuleIds) {
+        container.removeAllViews();
+        List<CheckBox> checkboxes = new ArrayList<>();
 
-    private boolean isModuleChecked(List<Integer> moduleIds, String moduleName) {
-        if (moduleIds == null) {
-            return false;
+        for (AdminDtos.AdminModule module : adminModules) {
+            if (module == null) continue;
+
+            CheckBox checkBox = new CheckBox(this);
+            checkBox.setText(module.name != null ? module.name : ("Moduł " + module.id));
+            checkBox.setTag(module.id);
+            checkBox.setChecked(selectedModuleIds != null && selectedModuleIds.contains(module.id));
+            container.addView(checkBox);
+            checkboxes.add(checkBox);
         }
 
-        Integer moduleId = moduleNameToId.get(moduleName);
-        return moduleId != null && moduleIds.contains(moduleId);
+        return checkboxes;
     }
 
-    private List<Integer> collectSelectedModuleIds(CheckBox cbModuleAdmin,
-                                                   CheckBox cbModuleAppSettings,
-                                                   CheckBox cbModuleAllegroGuardians,
-                                                   CheckBox cbModuleDelegations) {
+    private List<Integer> collectSelectedModuleIds(List<CheckBox> moduleCheckboxes) {
         List<Integer> selected = new ArrayList<>();
-        addSelectedModule(selected, cbModuleAdmin.isChecked(), "admin");
-        addSelectedModule(selected, cbModuleAppSettings.isChecked(), "ustawienia aplikacji");
-        addSelectedModule(selected, cbModuleAllegroGuardians.isChecked(), "opiekunowie allegro");
-        addSelectedModule(selected, cbModuleDelegations.isChecked(), "delegacje");
+        for (CheckBox checkBox : moduleCheckboxes) {
+            if (checkBox.isChecked() && checkBox.getTag() instanceof Integer) {
+                selected.add((Integer) checkBox.getTag());
+            }
+        }
         return selected;
-    }
-
-    private void addSelectedModule(List<Integer> selected, boolean checked, String moduleName) {
-        if (!checked) {
-            return;
-        }
-
-        Integer moduleId = moduleNameToId.get(moduleName);
-        if (moduleId != null) {
-            selected.add(moduleId);
-        }
     }
 
     private void finishDialog(AlertDialog dialog, String msg) {
         runOnUiThread(() -> {
             Toast.makeText(AdminUsersActivity.this, msg, Toast.LENGTH_SHORT).show();
             dialog.dismiss();
-            loadUsers(); // Odśwież listę
+            loadUsers();
         });
     }
 }

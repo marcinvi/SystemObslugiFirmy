@@ -91,14 +91,6 @@ namespace ReklamacjeAPI.Controllers
                     : new List<int>();
             }
 
-            var userModuleMap = await GetUserModulesAsync(conn);
-            foreach (var user in users)
-            {
-                user.ModuleIds = userModuleMap.TryGetValue(user.Id, out var moduleIds)
-                    ? moduleIds
-                    : new List<int>();
-            }
-
             return Ok(ApiResponse<List<AdminUserListDto>>.SuccessResponse(users));
         }
 
@@ -129,7 +121,7 @@ namespace ReklamacjeAPI.Controllers
                 }
             }
 
-            string passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            string passwordHash = PasswordCompatibilityHelper.HashForFormsCompatibility(dto.Password);
             var columns = new List<string> { "Login", $"`{passwordCol}`" };
             var values = new List<string> { "@login", "@pass" };
 
@@ -226,7 +218,7 @@ namespace ReklamacjeAPI.Controllers
 
             var sql = $"UPDATE Uzytkownicy SET `{passwordCol}` = @pass WHERE Id = @id";
             await using var cmd = new MySqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@pass", BCrypt.Net.BCrypt.HashPassword(dto.NewPassword));
+            cmd.Parameters.AddWithValue("@pass", PasswordCompatibilityHelper.HashForFormsCompatibility(dto.NewPassword));
             cmd.Parameters.AddWithValue("@id", id);
             var rows = await cmd.ExecuteNonQueryAsync();
 
@@ -265,21 +257,30 @@ namespace ReklamacjeAPI.Controllers
 
         private static async Task ReplaceUserModulesAsync(MySqlConnection conn, int userId, List<int>? moduleIds)
         {
-            await using var delCmd = new MySqlCommand("DELETE FROM Uprawnienia WHERE UzytkownikId = @uid", conn);
-            delCmd.Parameters.AddWithValue("@uid", userId);
-            await delCmd.ExecuteNonQueryAsync();
-
-            if (moduleIds == null || moduleIds.Count == 0)
+            await using var transaction = await conn.BeginTransactionAsync();
+            try
             {
-                return;
+                await using var delCmd = new MySqlCommand("DELETE FROM Uprawnienia WHERE UzytkownikId = @uid", conn, (MySqlTransaction)transaction);
+                delCmd.Parameters.AddWithValue("@uid", userId);
+                await delCmd.ExecuteNonQueryAsync();
+
+                if (moduleIds != null && moduleIds.Count > 0)
+                {
+                    foreach (var moduleId in moduleIds.Distinct())
+                    {
+                        await using var insCmd = new MySqlCommand("INSERT INTO Uprawnienia (UzytkownikId, ModulId) VALUES (@uid, @mid)", conn, (MySqlTransaction)transaction);
+                        insCmd.Parameters.AddWithValue("@uid", userId);
+                        insCmd.Parameters.AddWithValue("@mid", moduleId);
+                        await insCmd.ExecuteNonQueryAsync();
+                    }
+                }
+
+                await transaction.CommitAsync();
             }
-
-            foreach (var moduleId in moduleIds.Distinct())
+            catch
             {
-                await using var insCmd = new MySqlCommand("INSERT INTO Uprawnienia (UzytkownikId, ModulId) VALUES (@uid, @mid)", conn);
-                insCmd.Parameters.AddWithValue("@uid", userId);
-                insCmd.Parameters.AddWithValue("@mid", moduleId);
-                await insCmd.ExecuteNonQueryAsync();
+                await transaction.RollbackAsync();
+                throw;
             }
         }
 
