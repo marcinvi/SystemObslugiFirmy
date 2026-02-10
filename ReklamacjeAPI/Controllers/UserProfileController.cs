@@ -163,12 +163,12 @@ namespace ReklamacjeAPI.Controllers
                 currentHash = (await cmd.ExecuteScalarAsync())?.ToString() ?? string.Empty;
             }
 
-            if (string.IsNullOrWhiteSpace(currentHash) || !BCrypt.Net.BCrypt.Verify(request.OldPassword, currentHash))
+            if (string.IsNullOrWhiteSpace(currentHash) || !PasswordCompatibilityHelper.Verify(request.OldPassword, currentHash))
             {
                 return BadRequest(ApiResponse<object>.ErrorResponse("Stare hasło jest nieprawidłowe."));
             }
 
-            string newHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            string newHash = PasswordCompatibilityHelper.HashForFormsCompatibility(request.NewPassword);
             var updateQuery = $"UPDATE Uzytkownicy SET `{passwordCol}` = @h WHERE Id = @id";
             await using (var cmd = new MySqlCommand(updateQuery, conn))
             {

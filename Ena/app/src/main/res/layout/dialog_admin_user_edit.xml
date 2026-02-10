@@ -56,29 +56,11 @@
             android:text="Dostęp do modułów"
             android:textStyle="bold" />
 
-        <CheckBox
-            android:id="@+id/cbModuleAdmin"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/layoutModulesContainer"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Admin" />
-
-        <CheckBox
-            android:id="@+id/cbModuleAppSettings"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Ustawienia aplikacji" />
-
-        <CheckBox
-            android:id="@+id/cbModuleAllegroGuardians"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Opiekunowie Allegro" />
-
-        <CheckBox
-            android:id="@+id/cbModuleDelegations"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Delegacje" />
+            android:orientation="vertical" />
 
         <CheckBox
             android:id="@+id/cbActive"

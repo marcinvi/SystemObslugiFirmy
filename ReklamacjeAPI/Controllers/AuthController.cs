@@ -4,8 +4,6 @@ using ReklamacjeAPI.Data;
 using ReklamacjeAPI.DTOs;
 using ReklamacjeAPI.Models;
 using ReklamacjeAPI.Services;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace ReklamacjeAPI.Controllers;
 
@@ -41,8 +39,7 @@ public class AuthController : ControllerBase
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Login == request.Login);
 
-        // Używamy metody VerifyHashedPassword zgodnej z Windows Forms
-        if (user == null || !VerifyHashedPassword(request.Password, user.PasswordHash))
+        if (user == null || !PasswordCompatibilityHelper.Verify(request.Password, user.PasswordHash))
         {
             return Unauthorized(ApiResponse<LoginResponse>.ErrorResponse("Nieprawidłowy login lub hasło"));
         }
@@ -169,99 +166,5 @@ public class AuthController : ControllerBase
         };
 
         return Ok(ApiResponse<UserDto>.SuccessResponse(userDto, "Token jest ważny"));
-    }
-
-    // ========================================================================
-    // LOGIKA WERYFIKACJI HASŁA SKOPIOWANA Z LoginForm.cs (Dostosowana do C# w API)
-    // ========================================================================
-
-    private bool VerifyHashedPassword(string enteredPassword, string storedHashedPassword)
-    {
-        if (string.IsNullOrWhiteSpace(storedHashedPassword)) return false;
-
-        string candidate = storedHashedPassword.Trim();
-        // Usuwanie ewentualnych prefiksów oddzielonych spacją
-        int sp = candidate.LastIndexOf(' ');
-        if (sp >= 0 && sp < candidate.Length - 1) candidate = candidate.Substring(sp + 1);
-
-        try
-        {
-            // Próba dekodowania Base64 (dla PBKDF2 i SHA256 Base64)
-            byte[] hashBytes = Convert.FromBase64String(candidate);
-
-            // 1. Format PBKDF2 (RFC2898) - zazwyczaj > 32 bajty (16 soli + 20+ hasha)
-            if (hashBytes.Length >= 36)
-            {
-                byte[] salt = new byte[16];
-                Buffer.BlockCopy(hashBytes, 0, salt, 0, 16);
-                // Używamy SHA1, bo to domyślny algorytm Rfc2898DeriveBytes w starych .NET Framework
-                using (var pbkdf2 = new Rfc2898DeriveBytes(enteredPassword, salt, 10000, HashAlgorithmName.SHA1))
-                {
-                    byte[] hash = pbkdf2.GetBytes(hashBytes.Length - 16);
-                    for (int i = 0; i < hash.Length; i++)
-                    {
-                        if (hashBytes[i + 16] != hash[i]) return false;
-                    }
-                }
-                return true;
-            }
-
-            // 2. Format SHA256 w Base64 (32 bajty)
-            if (hashBytes.Length == 32)
-            {
-                using (var sha = SHA256.Create())
-                {
-                    var h = sha.ComputeHash(Encoding.UTF8.GetBytes(enteredPassword));
-                    for (int i = 0; i < 32; i++)
-                    {
-                        if (hashBytes[i] != h[i]) return false;
-                    }
-                    return true;
-                }
-            }
-        }
-        catch
-        {
-            // Ignorujemy błędy Base64, przechodzimy do sprawdzenia Hex
-        }
-
-        // 3. Format SHA256 jako Hex String (64 znaki)
-        if (candidate.Length == 64 && IsHex(candidate))
-        {
-            byte[] raw = HexToBytes(candidate);
-            using (var sha = SHA256.Create())
-            {
-                var h = sha.ComputeHash(Encoding.UTF8.GetBytes(enteredPassword));
-                for (int i = 0; i < 32; i++)
-                {
-                    if (raw[i] != h[i]) return false;
-                }
-                return true;
-            }
-        }
-
-        // 4. Format Plain Text (zwykły tekst) - ostateczność
-        return string.Equals(storedHashedPassword, enteredPassword, StringComparison.Ordinal);
-    }
-
-    private static bool IsHex(string s)
-    {
-        foreach (char c in s)
-        {
-            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
-                return false;
-        }
-        return true;
-    }
-
-    private static byte[] HexToBytes(string s)
-    {
-        int len = s.Length / 2;
-        var bytes = new byte[len];
-        for (int i = 0; i < len; i++)
-        {
-            bytes[i] = Convert.ToByte(s.Substring(i * 2, 2), 16);
-        }
-        return bytes;
     }
 }
