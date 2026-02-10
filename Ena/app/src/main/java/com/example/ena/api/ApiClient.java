@@ -723,6 +723,11 @@ public class ApiClient {
         get("api/admin/users", type, callback);
     }
 
+    public void fetchAdminModules(ApiCallback<List<AdminDtos.AdminModule>> callback) {
+        Type type = new TypeToken<ApiResponse<List<AdminDtos.AdminModule>>>(){}.getType();
+        get("api/admin/modules", type, callback);
+    }
+
     public void createAdminUser(AdminDtos.CreateUserRequest request, ApiCallback<Void> callback) {
         sendJson("api/admin/users", request, "POST", callback);
     }

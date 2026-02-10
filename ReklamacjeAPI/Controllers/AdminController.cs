@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using MySqlConnector;
+using System;
 using ReklamacjeAPI.DTOs;
 using ReklamacjeAPI.Services;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ReklamacjeAPI.Controllers
 {
@@ -17,6 +20,29 @@ namespace ReklamacjeAPI.Controllers
         public AdminController(IConfiguration configuration)
         {
             _configuration = configuration;
+        }
+
+
+        [HttpGet("modules")]
+        public async Task<IActionResult> GetModules()
+        {
+            await using var conn = DbConnectionFactory.CreateDefaultConnection(_configuration);
+            await conn.OpenAsync();
+
+            var modules = new List<AdminModuleDto>();
+            const string sql = "SELECT Id, NazwaModulu FROM Moduly ORDER BY Id";
+            await using var cmd = new MySqlCommand(sql, conn);
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                modules.Add(new AdminModuleDto
+                {
+                    Id = SafeGetInt(reader, "Id"),
+                    Name = SafeGetString(reader, "NazwaModulu")
+                });
+            }
+
+            return Ok(ApiResponse<List<AdminModuleDto>>.SuccessResponse(modules));
         }
 
         [HttpGet("users")]
@@ -41,18 +67,28 @@ namespace ReklamacjeAPI.Controllers
                 ORDER BY Login";
 
             var users = new List<AdminUserListDto>();
-            await using var cmd = new MySqlCommand(sql, conn);
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            await using (var cmd = new MySqlCommand(sql, conn))
+            await using (var reader = await cmd.ExecuteReaderAsync())
             {
-                users.Add(new AdminUserListDto
+                while (await reader.ReadAsync())
                 {
-                    Id = SafeGetInt(reader, "Id"),
-                    Login = SafeGetString(reader, "Login"),
-                    NazwaWyswietlana = SafeGetString(reader, "DisplayName"),
-                    Rola = SafeGetString(reader, "RoleName"),
-                    IsActive = SafeGetBool(reader, "ActiveValue")
-                });
+                    users.Add(new AdminUserListDto
+                    {
+                        Id = SafeGetInt(reader, "Id"),
+                        Login = SafeGetString(reader, "Login"),
+                        NazwaWyswietlana = SafeGetString(reader, "DisplayName"),
+                        Rola = SafeGetString(reader, "RoleName"),
+                        IsActive = SafeGetBool(reader, "ActiveValue")
+                    });
+                }
+            }
+
+            var userModuleMap = await GetUserModulesAsync(conn);
+            foreach (var user in users)
+            {
+                user.ModuleIds = userModuleMap.TryGetValue(user.Id, out var moduleIds)
+                    ? moduleIds
+                    : new List<int>();
             }
 
             return Ok(ApiResponse<List<AdminUserListDto>>.SuccessResponse(users));
@@ -113,6 +149,8 @@ namespace ReklamacjeAPI.Controllers
             insertCmd.Parameters.AddWithValue("@role", string.IsNullOrWhiteSpace(dto.Rola) ? "User" : dto.Rola);
             insertCmd.Parameters.AddWithValue("@active", 1);
             await insertCmd.ExecuteNonQueryAsync();
+            var newUserId = Convert.ToInt32(insertCmd.LastInsertedId);
+            await ReplaceUserModulesAsync(conn, newUserId, dto.ModuleIds);
 
             return Ok(ApiResponse<object>.SuccessResponse(null, "Użytkownik dodany."));
         }
@@ -161,6 +199,7 @@ namespace ReklamacjeAPI.Controllers
                 return NotFound(ApiResponse<object>.ErrorResponse("Nie znaleziono użytkownika."));
             }
 
+            await ReplaceUserModulesAsync(conn, id, dto.ModuleIds);
             return Ok(ApiResponse<object>.SuccessResponse(null, "Dane zaktualizowane."));
         }
 
@@ -189,6 +228,51 @@ namespace ReklamacjeAPI.Controllers
             }
 
             return Ok(ApiResponse<object>.SuccessResponse(null, "Hasło zostało zresetowane."));
+        }
+
+
+
+        private static async Task<Dictionary<int, List<int>>> GetUserModulesAsync(MySqlConnection conn)
+        {
+            var result = new Dictionary<int, List<int>>();
+            const string sql = "SELECT UzytkownikId, ModulId FROM Uprawnienia ORDER BY UzytkownikId, ModulId";
+
+            await using var cmd = new MySqlCommand(sql, conn);
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var userId = SafeGetInt(reader, "UzytkownikId");
+                var moduleId = SafeGetInt(reader, "ModulId");
+                if (!result.TryGetValue(userId, out var modules))
+                {
+                    modules = new List<int>();
+                    result[userId] = modules;
+                }
+
+                modules.Add(moduleId);
+            }
+
+            return result;
+        }
+
+        private static async Task ReplaceUserModulesAsync(MySqlConnection conn, int userId, List<int>? moduleIds)
+        {
+            await using var delCmd = new MySqlCommand("DELETE FROM Uprawnienia WHERE UzytkownikId = @uid", conn);
+            delCmd.Parameters.AddWithValue("@uid", userId);
+            await delCmd.ExecuteNonQueryAsync();
+
+            if (moduleIds == null || moduleIds.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var moduleId in moduleIds.Distinct())
+            {
+                await using var insCmd = new MySqlCommand("INSERT INTO Uprawnienia (UzytkownikId, ModulId) VALUES (@uid, @mid)", conn);
+                insCmd.Parameters.AddWithValue("@uid", userId);
+                insCmd.Parameters.AddWithValue("@mid", moduleId);
+                await insCmd.ExecuteNonQueryAsync();
+            }
         }
 
         private static async Task<HashSet<string>> GetTableColumns(MySqlConnection conn, string tableName)
