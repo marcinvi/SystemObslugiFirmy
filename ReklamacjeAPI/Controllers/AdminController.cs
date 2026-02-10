@@ -67,18 +67,28 @@ namespace ReklamacjeAPI.Controllers
                 ORDER BY Login";
 
             var users = new List<AdminUserListDto>();
-            await using var cmd = new MySqlCommand(sql, conn);
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            await using (var cmd = new MySqlCommand(sql, conn))
+            await using (var reader = await cmd.ExecuteReaderAsync())
             {
-                users.Add(new AdminUserListDto
+                while (await reader.ReadAsync())
                 {
-                    Id = SafeGetInt(reader, "Id"),
-                    Login = SafeGetString(reader, "Login"),
-                    NazwaWyswietlana = SafeGetString(reader, "DisplayName"),
-                    Rola = SafeGetString(reader, "RoleName"),
-                    IsActive = SafeGetBool(reader, "ActiveValue")
-                });
+                    users.Add(new AdminUserListDto
+                    {
+                        Id = SafeGetInt(reader, "Id"),
+                        Login = SafeGetString(reader, "Login"),
+                        NazwaWyswietlana = SafeGetString(reader, "DisplayName"),
+                        Rola = SafeGetString(reader, "RoleName"),
+                        IsActive = SafeGetBool(reader, "ActiveValue")
+                    });
+                }
+            }
+
+            var userModuleMap = await GetUserModulesAsync(conn);
+            foreach (var user in users)
+            {
+                user.ModuleIds = userModuleMap.TryGetValue(user.Id, out var moduleIds)
+                    ? moduleIds
+                    : new List<int>();
             }
 
             var userModuleMap = await GetUserModulesAsync(conn);
