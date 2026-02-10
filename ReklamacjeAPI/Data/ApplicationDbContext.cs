@@ -17,6 +17,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Dzialanie> Dzialania { get; set; }
     public DbSet<Plik> Pliki { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<Przypomnienie> Przypomnienia { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

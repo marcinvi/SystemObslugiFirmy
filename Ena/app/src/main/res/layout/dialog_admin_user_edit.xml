@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView android:text="Login" android:textStyle="bold" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        <EditText
+            android:id="@+id/edtLogin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="np. j.kowalski"
+            android:inputType="text"/>
+
+        <TextView android:text="Nazwa Wyświetlana" android:textStyle="bold" android:layout_marginTop="10dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        <EditText
+            android:id="@+id/edtName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Imię Nazwisko"
+            android:inputType="textPersonName"/>
+
+        <TextView android:text="Hasło" android:textStyle="bold" android:layout_marginTop="10dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        <EditText
+            android:id="@+id/edtPassword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Min. 4 znaki"
+            android:inputType="textPassword"/>
+        <TextView
+            android:id="@+id/txtPassInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="W edycji: wpisz tylko by zresetować"
+            android:textSize="12sp"
+            android:textColor="#888"/>
+
+        <TextView android:text="Rola" android:textStyle="bold" android:layout_marginTop="10dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        <Spinner
+            android:id="@+id/spinnerRole"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_spinner"
+            android:layout_marginTop="5dp"/>
+
+        <CheckBox
+            android:id="@+id/cbActive"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Konto aktywne"
+            android:checked="true"
+            android:layout_marginTop="15dp"/>
+
+    </LinearLayout>
+</ScrollView>

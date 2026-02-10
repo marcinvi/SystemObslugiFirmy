@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@android:drawable/ic_menu_rotate"
+            android:title="Odśwież / Pulpit" />
+    </group>
+
+    <item android:title="Nowe Zgłoszenia">
+        <menu>
+            <item
+                android:id="@+id/nav_new_allegro"
+                android:icon="@android:drawable/ic_menu_add"
+                android:title="Nowe z Allegro" />
+            <item
+                android:id="@+id/nav_new_google"
+                android:icon="@android:drawable/ic_menu_add"
+                android:title="Nowe z Google" />
+            <item
+                android:id="@+id/nav_new_return"
+                android:icon="@android:drawable/ic_menu_revert"
+                android:title="Nowe Zwroty" />
+            <item
+                android:id="@+id/nav_add_manual"
+                android:icon="@android:drawable/ic_menu_edit"
+                android:title="Dodaj Ręcznie" />
+        </menu>
+    </item>
+
+    <item android:title="Bazy Danych">
+        <menu>
+            <item
+                android:id="@+id/nav_all_cases"
+                android:icon="@android:drawable/ic_menu_agenda"
+                android:title="Wszystkie Zgłoszenia" />
+            <item
+                android:id="@+id/nav_clients"
+                android:icon="@android:drawable/ic_menu_myplaces"
+                android:title="Klienci" />
+            <item
+                android:id="@+id/nav_products"
+                android:icon="@android:drawable/ic_menu_view"
+                android:title="Produkty" />
+            <item
+                android:id="@+id/nav_producers"
+                android:icon="@android:drawable/ic_menu_sort_by_size"
+                android:title="Producenci" />
+        </menu>
+    </item>
+
+    <item android:title="Narzędzia">
+        <menu>
+            <item
+                android:id="@+id/nav_chat"
+                android:icon="@android:drawable/ic_menu_send"
+                android:title="Czat Allegro" />
+            <item
+                android:id="@+id/nav_tracking"
+                android:icon="@android:drawable/ic_menu_compass"
+                android:title="Śledzenie DPD" />
+            <item
+                android:id="@+id/nav_warehouse"
+                android:icon="@android:drawable/ic_menu_manage"
+                android:title="Magazyn Części" />
+        </menu>
+    </item>
+
+</menu>

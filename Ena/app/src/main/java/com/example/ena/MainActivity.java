@@ -27,6 +27,7 @@ import com.example.ena.ui.ModulesAdapter;
 import com.example.ena.ui.ReturnsListActivity;
 import com.example.ena.ui.SettingsActivity;
 import com.example.ena.ui.SummaryActivity;
+import com.example.ena.ui.UserProfileActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +71,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Kliknięcie w nazwę użytkownika → Ustawienia
         txtUserName.setOnClickListener(v -> {
-            startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+            // Otwieramy profil, w którym będzie opcja wysyłania linku
+            startActivity(new Intent(MainActivity.this, UserProfileActivity.class));
         });
 
         btnLogout.setOnClickListener(v -> {
@@ -234,8 +236,15 @@ public class MainActivity extends AppCompatActivity {
             } else if (key.contains("wiadomości") || key.contains("wiadomosci")) {
                 startActivity(new Intent(MainActivity.this, MessagesActivity.class));
             } else if (key.contains("ustawienia")) {
-                startActivity(new Intent(MainActivity.this, SettingsActivity.class));
-            } else {
+                startActivity(new Intent(MainActivity.this, UserProfileActivity.class));
+            }else if (key.contains("admin") || key.contains("zarządzanie")) {
+                    // Otwieramy ekran listy użytkowników
+                    startActivity(new Intent(MainActivity.this, com.example.ena.ui.AdminUsersActivity.class));
+                } else if (key.contains("reklamacje")) {
+                startActivity(new Intent(MainActivity.this, com.example.ena.ui.ComplaintsDashboardActivity.class));
+            }
+
+             else {
                 Toast.makeText(MainActivity.this, "Moduł w przygotowaniu: " + moduleName, Toast.LENGTH_SHORT).show();
             }
         });

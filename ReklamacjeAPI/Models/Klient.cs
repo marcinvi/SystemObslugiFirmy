@@ -15,6 +15,12 @@ public class Klient
     [Column("ImieNazwisko")]
     public string ImieNazwisko { get; set; } = string.Empty;
 
+    // --- DODANE POLE (Naprawia b³¹d CS1061) ---
+    [MaxLength(200)]
+    [Column("NazwaFirmy")]
+    public string? NazwaFirmy { get; set; }
+    // ------------------------------------------
+
     [MaxLength(20)]
     [Column("Telefon")]
     public string? Telefon { get; set; }

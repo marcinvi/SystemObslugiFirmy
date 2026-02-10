@@ -4,12 +4,15 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import androidx.annotation.NonNull;
+
 import com.example.ena.NetworkUtils;
 import com.example.ena.PairingManager;
 import com.example.ena.UserSession;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -21,11 +24,15 @@ import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
@@ -35,7 +42,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import androidx.annotation.NonNull;
 
 public class ApiClient {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
@@ -78,7 +84,6 @@ public class ApiClient {
             return new OkHttpClient.Builder()
                     .sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0])
                     .hostnameVerifier((hostname, session) -> true)
-                    // ZMIANA: Zwiększono timeout z 3s na 60s, aby synchronizacja się nie zrywała
                     .connectTimeout(60, TimeUnit.SECONDS)
                     .readTimeout(60, TimeUnit.SECONDS)
                     .writeTimeout(60, TimeUnit.SECONDS)
@@ -95,9 +100,11 @@ public class ApiClient {
         if (parsed != null && isLocalNetworkHost(parsed.host())) return UNSAFE_TLS_CLIENT;
         return CLIENT;
     }
+
     public void lookupReturn(String code, ApiCallback<ReturnDetailsDto> callback) {
-        fetchReturnByCode(code, callback); // Po prostu przekieruj do istniejącej metody
+        fetchReturnByCode(code, callback);
     }
+
     private boolean isLocalNetworkHost(String host) {
         if (host == null) return false;
         if (host.equals("localhost") || host.equals("127.0.0.1")) return true;
@@ -171,8 +178,8 @@ public class ApiClient {
     private <T> void executeGetWithFallback(String url, String path, Type type, ApiCallback<T> callback) {
         Request request = buildRequest(url).get().build();
         selectClient(url).newCall(request).enqueue(new Callback() {
-            @Override public void onFailure(Call call, IOException e) { retryGetWithFallback(path, type, callback, e); }
-            @Override public void onResponse(Call call, Response response) throws IOException {
+            @Override public void onFailure(@NonNull Call call, @NonNull IOException e) { retryGetWithFallback(path, type, callback, e); }
+            @Override public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 try (Response res = response) {
                     if (res.isSuccessful()) {
                         handleResponse(res, type, callback);
@@ -187,8 +194,8 @@ public class ApiClient {
     private void executeSendWithFallback(String url, String path, String method, RequestBody body, ApiCallback<Void> callback) {
         Request request = buildRequest(url).method(method, body).build();
         selectClient(url).newCall(request).enqueue(new Callback() {
-            @Override public void onFailure(Call call, IOException e) { retrySendWithFallback(path, method, body, callback, e); }
-            @Override public void onResponse(Call call, Response response) {
+            @Override public void onFailure(@NonNull Call call, @NonNull IOException e) { retrySendWithFallback(path, method, body, callback, e); }
+            @Override public void onResponse(@NonNull Call call, @NonNull Response response) {
                 try (Response res = response) {
                     if (res.isSuccessful()) {
                         callback.onSuccess(null);
@@ -203,8 +210,8 @@ public class ApiClient {
     private <T> void executeSendWithResponseWithFallback(String url, String path, String method, RequestBody body, Type type, ApiCallback<T> callback) {
         Request request = buildRequest(url).method(method, body).build();
         selectClient(url).newCall(request).enqueue(new Callback() {
-            @Override public void onFailure(Call call, IOException e) { retrySendWithResponseWithFallback(path, method, body, type, callback, e); }
-            @Override public void onResponse(Call call, Response response) throws IOException {
+            @Override public void onFailure(@NonNull Call call, @NonNull IOException e) { retrySendWithResponseWithFallback(path, method, body, type, callback, e); }
+            @Override public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 try (Response res = response) {
                     if (res.isSuccessful()) {
                         handleResponse(res, type, callback);
@@ -233,8 +240,8 @@ public class ApiClient {
         if (fallback != null && !fallback.isEmpty()) {
             String url = fallback + (path.startsWith("/") ? "" : "/") + path;
             selectClient(url).newCall(buildRequest(url).get().build()).enqueue(new Callback() {
-                @Override public void onFailure(Call call, IOException e) { tryAutoDiscovery(path, type, callback, error); }
-                @Override public void onResponse(Call call, Response response) throws IOException {
+                @Override public void onFailure(@NonNull Call call, @NonNull IOException e) { tryAutoDiscovery(path, type, callback, error); }
+                @Override public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                     try (Response res = response) {
                         if (res.isSuccessful()) {
                             ApiConfig.setBaseUrl(context, fallback);
@@ -253,8 +260,8 @@ public class ApiClient {
         if (fallback != null && !fallback.isEmpty()) {
             String url = fallback + (path.startsWith("/") ? "" : "/") + path;
             selectClient(url).newCall(buildRequest(url).method(method, body).build()).enqueue(new Callback() {
-                @Override public void onFailure(Call call, IOException e) { callback.onError(formatNetworkError(error)); }
-                @Override public void onResponse(Call call, Response response) {
+                @Override public void onFailure(@NonNull Call call, @NonNull IOException e) { callback.onError(formatNetworkError(error)); }
+                @Override public void onResponse(@NonNull Call call, @NonNull Response response) {
                     try (Response res = response) {
                         if (res.isSuccessful()) {
                             ApiConfig.setBaseUrl(context, fallback);
@@ -273,8 +280,8 @@ public class ApiClient {
         if (fallback != null && !fallback.isEmpty()) {
             String url = fallback + (path.startsWith("/") ? "" : "/") + path;
             selectClient(url).newCall(buildRequest(url).method(method, body).build()).enqueue(new Callback() {
-                @Override public void onFailure(Call call, IOException e) { callback.onError(formatNetworkError(error)); }
-                @Override public void onResponse(Call call, Response response) throws IOException {
+                @Override public void onFailure(@NonNull Call call, @NonNull IOException e) { callback.onError(formatNetworkError(error)); }
+                @Override public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                     try (Response res = response) {
                         if (res.isSuccessful()) {
                             ApiConfig.setBaseUrl(context, fallback);
@@ -305,8 +312,8 @@ public class ApiClient {
         String base = "http://" + ips.get(idx) + ":50875";
         String url = base + (path.startsWith("/") ? "" : "/") + path;
         selectClient(url).newCall(buildRequest(url).get().build()).enqueue(new Callback() {
-            @Override public void onFailure(Call call, IOException e) { tryNextCandidate(ips, idx + 1, path, type, cb, err); }
-            @Override public void onResponse(Call call, Response response) throws IOException {
+            @Override public void onFailure(@NonNull Call call, @NonNull IOException e) { tryNextCandidate(ips, idx + 1, path, type, cb, err); }
+            @Override public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 try (Response res = response) {
                     if (res.isSuccessful()) {
                         ApiConfig.setBaseUrl(context, base);
@@ -339,7 +346,6 @@ public class ApiClient {
 
     // --- METODY WYMAGANE PRZEZ TWOJE ACTIVITY ---
 
-    // NOWA METODA: Pobieranie listy użytkowników
     public void fetchUsers(ApiCallback<List<String>> callback) {
         Type type = new TypeToken<ApiResponse<List<String>>>(){}.getType();
         get("api/auth/users", type, callback);
@@ -488,8 +494,6 @@ public class ApiClient {
         sendJsonWithResponse("api/returns/sync", payload, "POST", type, callback);
     }
 
-    // === NOWE: Async sync z progressem ===
-
     public void startSyncAsync(ReturnSyncRequest payload, ApiCallback<ReturnSyncJobResponse> callback) {
         Type type = new TypeToken<ApiResponse<ReturnSyncJobResponse>>(){}.getType();
         sendJsonWithResponse("api/returns/sync/start", payload, "POST", type, callback);
@@ -532,42 +536,55 @@ public class ApiClient {
         sendJson("api/returns/manual", payload, "POST", callback);
     }
 
-    private String resolveFileName(Uri uri) {
-        String name = null;
-        Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
-        if (cursor != null) {
-            try {
-                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                if (nameIndex >= 0 && cursor.moveToFirst()) {
-                    name = cursor.getString(nameIndex);
-                }
-            } finally {
-                cursor.close();
-            }
-        }
-        return name != null && !name.trim().isEmpty() ? name : "zdjecie.jpg";
-    }
-
-    private byte[] readBytes(Uri uri) throws IOException {
-        try (InputStream inputStream = context.getContentResolver().openInputStream(uri);
-             ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
-            if (inputStream == null) {
-                throw new IOException("Brak strumienia wejściowego");
-            }
-            byte[] data = new byte[8192];
-            int nRead;
-            while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-                buffer.write(data, 0, nRead);
-            }
-            buffer.flush();
-            return buffer.toByteArray();
-        }
-    }
     // ==========================================
-// NOWE METODY - ApiClient.java
-// ==========================================
+    // NOWE METODY - PROFIL UŻYTKOWNIKA
+    // ==========================================
 
-    // 1. Upload wielu zdjęć jednocześnie
+    // 1. Pobranie danych profilu
+    public void getProfile(ApiCallback<UserProfileDto> callback) {
+        Type type = new TypeToken<ApiResponse<UserProfileDto>>(){}.getType();
+        get("api/profile", type, callback);
+    }
+
+    // 2. Aktualizacja danych kontaktowych
+    public void updateContact(String email, String phone, ApiCallback<Void> callback) {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("email", email);
+        payload.put("telefon", phone);
+        sendJson("api/profile/contact", payload, "POST", callback);
+    }
+
+    // 3. Zmiana hasła
+    public void changePassword(String oldPass, String newPass, ApiCallback<Void> callback) {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("oldPassword", oldPass);
+        payload.put("newPassword", newPass);
+        sendJson("api/profile/password", payload, "POST", callback);
+    }
+
+    // 4. Dodanie nieobecności/delegacji
+    public void addAbsence(String dateFrom, String dateTo, String type, int replacementId, ApiCallback<Void> callback) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("dataOd", dateFrom);
+        payload.put("dataDo", dateTo);
+        payload.put("typ", type);
+        // Jeśli replacementId > 0, uznajemy że wybrano zastępstwo
+        if (replacementId > 0) {
+            payload.put("zastepcaId", replacementId);
+        }
+        sendJson("api/profile/delegation", payload, "POST", callback);
+    }
+
+    // 5. Pobranie listy użytkowników do zastępstw
+    public void getReplacementUsers(ApiCallback<List<SimpleUserDto>> callback) {
+        Type type = new TypeToken<ApiResponse<List<SimpleUserDto>>>(){}.getType();
+        get("api/profile/users-list", type, callback);
+    }
+
+    // ==========================================
+    // NOWE METODY - ZDJĘCIA & CACHE
+    // ==========================================
+
     public void uploadReturnPhotos(int id, List<Uri> uris, ApiCallback<List<ReturnPhotoDto>> callback) {
         if (uris == null || uris.isEmpty()) {
             callback.onError("Brak zdjęć.");
@@ -605,17 +622,13 @@ public class ApiClient {
         sendMultipartWithResponse("api/returns/" + id + "/photos/batch", requestBody, type, callback);
     }
 
-    // 2. Pobierz zdjęcie z cache lub serwera
     public void fetchReturnPhoto(int photoId, File cacheDir, PhotoCallback callback) {
-        // Sprawdź cache lokalny
         File cachedFile = new File(cacheDir, "photo_" + photoId + ".jpg");
         if (cachedFile.exists() && cachedFile.lastModified() > System.currentTimeMillis() - 24 * 60 * 60 * 1000) {
-            // Cache jest świeży (< 24h)
             callback.onCachedPhoto(cachedFile);
             return;
         }
 
-        // Pobierz z serwera
         String url = "api/returns/photos/" + photoId;
         String fullUrl = getFullUrl(url);
         if (fullUrl == null) {
@@ -653,23 +666,84 @@ public class ApiClient {
         });
     }
 
-    // 3. Interfejs callback dla zdjęć
     public interface PhotoCallback {
         void onSuccess(File file);
         void onCachedPhoto(File file);
         void onError(String message);
     }
 
-    // 4. Wyczyść cache zdjęć
     public void clearPhotoCache(File cacheDir) {
         File[] files = cacheDir.listFiles((dir, name) -> name.startsWith("photo_"));
         if (files != null) {
             for (File file : files) {
                 if (file.lastModified() < System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000) {
-                    // Usuń pliki starsze niż 7 dni
                     file.delete();
                 }
             }
         }
+    }
+
+    private String resolveFileName(Uri uri) {
+        String name = null;
+        Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
+        if (cursor != null) {
+            try {
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (nameIndex >= 0 && cursor.moveToFirst()) {
+                    name = cursor.getString(nameIndex);
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return name != null && !name.trim().isEmpty() ? name : "zdjecie.jpg";
+    }
+
+    private byte[] readBytes(Uri uri) throws IOException {
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri);
+             ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+            if (inputStream == null) {
+                throw new IOException("Brak strumienia wejściowego");
+            }
+            byte[] data = new byte[8192];
+            int nRead;
+            while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
+            }
+            buffer.flush();
+            return buffer.toByteArray();
+        }
+    }
+    // ==========================================
+    // SEKCJA ADMINA
+    // ==========================================
+
+    public void fetchAdminUsers(ApiCallback<List<AdminDtos.AdminUser>> callback) {
+        Type type = new TypeToken<ApiResponse<List<AdminDtos.AdminUser>>>(){}.getType();
+        get("api/admin/users", type, callback);
+    }
+
+    public void createAdminUser(AdminDtos.CreateUserRequest request, ApiCallback<Void> callback) {
+        sendJson("api/admin/users", request, "POST", callback);
+    }
+
+    public void updateAdminUser(int id, AdminDtos.UpdateUserRequest request, ApiCallback<Void> callback) {
+        sendJson("api/admin/users/" + id, request, "PUT", callback);
+    }
+
+    public void resetUserPassword(int id, String newPassword, ApiCallback<Void> callback) {
+        AdminDtos.ResetPasswordRequest req = new AdminDtos.ResetPasswordRequest(newPassword);
+        sendJson("api/admin/users/" + id + "/reset-password", req, "POST", callback);
+    }
+
+
+    public void getProcessingComplaints(ApiCallback<List<DashboardComplaintDto>> callback) {
+        Type type = new TypeToken<ApiResponse<List<DashboardComplaintDto>>>(){}.getType();
+        get("api/dashboard/complaints/processing", type, callback);
+    }
+
+    public void getReminders(ApiCallback<List<DashboardReminderDto>> callback) {
+        Type type = new TypeToken<ApiResponse<List<DashboardReminderDto>>>(){}.getType();
+        get("api/dashboard/reminders", type, callback);
     }
 }
