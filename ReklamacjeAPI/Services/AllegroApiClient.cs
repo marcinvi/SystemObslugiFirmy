@@ -97,6 +97,64 @@ public class AllegroApiClient
         _ = await RefreshTokenAsync(accountId);
     }
 
+    public async Task<List<AllegroIssueSummaryDto>> GetIssuesAsync(int accountId, int limit = 100, int offset = 0)
+    {
+        var endpoint = $"{ApiBaseUrl}/sale/issues?limit={limit}&offset={offset}";
+        var token = await GetAccessTokenAsync(accountId);
+        var request = BuildRequest(HttpMethod.Get, endpoint, null, token, AcceptBetaV1);
+        var response = await _httpClient.SendAsync(request);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            _logger.LogWarning("Token Allegro wygasł podczas pobierania issues dla konta {AccountId}.", accountId);
+            token = await RefreshTokenAsync(accountId);
+            request = BuildRequest(HttpMethod.Get, endpoint, null, token, AcceptBetaV1);
+            response = await _httpClient.SendAsync(request);
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"Błąd Allegro API ({response.StatusCode}): {errorBody}", null, response.StatusCode);
+        }
+
+        var body = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return new List<AllegroIssueSummaryDto>();
+        }
+
+        using var doc = JsonDocument.Parse(body);
+        if (!doc.RootElement.TryGetProperty("issues", out var issuesElement) || issuesElement.ValueKind != JsonValueKind.Array)
+        {
+            return new List<AllegroIssueSummaryDto>();
+        }
+
+        var results = new List<AllegroIssueSummaryDto>();
+        foreach (var item in issuesElement.EnumerateArray())
+        {
+            var issue = new AllegroIssueSummaryDto
+            {
+                Id = item.TryGetProperty("id", out var idEl) ? idEl.GetString() : null,
+                Type = item.TryGetProperty("type", out var typeEl) ? typeEl.GetString() : null,
+                Subject = item.TryGetProperty("subject", out var subEl) ? subEl.GetString() : null,
+                Status = item.TryGetProperty("currentState", out var stateEl) && stateEl.TryGetProperty("status", out var statusEl)
+                    ? statusEl.GetString()
+                    : null,
+                OpenedAt = item.TryGetProperty("openedAt", out var openedAtEl) && openedAtEl.ValueKind == JsonValueKind.String
+                    ? DateTime.TryParse(openedAtEl.GetString(), out var openedAt) ? openedAt : null
+                    : null
+            };
+
+            if (!string.IsNullOrWhiteSpace(issue.Id))
+            {
+                results.Add(issue);
+            }
+        }
+
+        return results;
+    }
+
     private async Task<string?> ResolveCheckoutFormIdFromEventsAsync(int accountId, string checkoutFormId)
     {
         var endpoint = $"{ApiBaseUrl}/order/events?order.checkoutForm.id={Uri.EscapeDataString(checkoutFormId)}&limit=1";
@@ -250,6 +308,15 @@ public class AllegroApiClient
 
         [JsonPropertyName("expires_in")]
         public int ExpiresIn { get; set; }
+    }
+
+    public sealed class AllegroIssueSummaryDto
+    {
+        public string? Id { get; set; }
+        public string? Type { get; set; }
+        public string? Subject { get; set; }
+        public string? Status { get; set; }
+        public DateTime? OpenedAt { get; set; }
     }
 
     public sealed class OrderDetailsDto

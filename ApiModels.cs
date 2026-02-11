@@ -327,4 +327,43 @@ namespace Reklamacje_Dane
         [JsonProperty("zgloszenieId")]
         public int? ZgloszenieId { get; set; }
     }
+
+    public class AllegroSyncStatusApi
+    {
+        [JsonProperty("isRunning")]
+        public bool IsRunning { get; set; }
+
+        [JsonProperty("lastStartedAt")]
+        public DateTime? LastStartedAt { get; set; }
+
+        [JsonProperty("lastCompletedAt")]
+        public DateTime? LastCompletedAt { get; set; }
+
+        [JsonProperty("lastRunSuccess")]
+        public bool LastRunSuccess { get; set; }
+
+        [JsonProperty("lastError")]
+        public string LastError { get; set; }
+
+        [JsonProperty("newDisputesFoundLastRun")]
+        public int NewDisputesFoundLastRun { get; set; }
+
+        [JsonProperty("unregisteredDisputesCount")]
+        public int UnregisteredDisputesCount { get; set; }
+
+        [JsonProperty("disputesWithNewMessages")]
+        public int DisputesWithNewMessages { get; set; }
+    }
+
+    public class AllegroSyncRunResultApi
+    {
+        [JsonProperty("success")]
+        public bool Success { get; set; }
+
+        [JsonProperty("message")]
+        public string Message { get; set; }
+
+        [JsonProperty("status")]
+        public AllegroSyncStatusApi Status { get; set; }
+    }
 }
