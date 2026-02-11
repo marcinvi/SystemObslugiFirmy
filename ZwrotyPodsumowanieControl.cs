@@ -169,6 +169,7 @@ namespace Reklamacje_Dane
                 FROM AllegroCustomerReturns acr
                 LEFT JOIN Statusy s ON s.Id = acr.StatusWewnetrznyId
                 WHERE s.Nazwa IS NOT NULL
+                  AND s.Nazwa <> 'Oczekuje na przyjęcie'
                 ORDER BY s.Nazwa");
             _statusy = dtS.AsEnumerable().Select(r => SafeGetString(r["Nazwa"])).ToList();
             _statusy.Insert(0, "— wszystkie —");
@@ -193,17 +194,37 @@ namespace Reklamacje_Dane
                         acr.PrzyjetyPrzezId,
                         acr.DataPrzyjecia,
                         acr.UwagiMagazynu,
+                        IFNULL(la.LastActionAt, acr.CreatedAt) AS LastActionAt,
+                        IFNULL(ld.Uzytkownik, '') AS KtoPodjalDecyzje,
+                        IFNULL(ld.Tresc, '') AS TrescDecyzji,
                         IFNULL(s2.Nazwa, 'Nieznany') AS StatusWew,
                         IFNULL(s3.Nazwa, 'Nieznany') AS DecyzjaHandl
                     FROM AllegroCustomerReturns acr
                     LEFT JOIN Statusy s2 ON s2.Id = acr.StatusWewnetrznyId
                     LEFT JOIN Statusy s3 ON s3.Id = acr.DecyzjaHandlowcaId
+                    LEFT JOIN (
+                        SELECT ZwrotId, MAX(`Data`) AS LastActionAt
+                        FROM ZwrotDzialania
+                        GROUP BY ZwrotId
+                    ) la ON la.ZwrotId = acr.Id
+                    LEFT JOIN ZwrotDzialania ld ON ld.Id = (
+                        SELECT z2.Id
+                        FROM ZwrotDzialania z2
+                        WHERE z2.ZwrotId = acr.Id
+                          AND z2.Tresc LIKE 'Podjęto decyzję:%'
+                        ORDER BY z2.`Data` DESC
+                        LIMIT 1
+                    )
                 ");
 
                 var where = new List<string>();
                 var p = new List<MySqlParameter>();
 
-                if (_activeFilterButton == btnFilterDoDecyzji)
+                where.Add("IFNULL(s2.Nazwa, '') <> 'Oczekuje na przyjęcie'");
+
+                if (_activeFilterButton == btnFilterWszystkie)
+                    where.Add("s2.Nazwa = 'Po decyzji'");
+                else if (_activeFilterButton == btnFilterDoDecyzji)
                     where.Add("s2.Nazwa = 'Oczekuje na decyzję handlowca'");
                 else if (_activeFilterButton == btnFilterZakonczone)
                     where.Add("s2.Nazwa = 'Zakończony'");
@@ -239,7 +260,7 @@ namespace Reklamacje_Dane
 
                 if (where.Any())
                     sb.Append(" WHERE ").Append(string.Join(" AND ", where));
-                sb.Append(" ORDER BY acr.CreatedAt DESC");
+                sb.Append(" ORDER BY IFNULL(la.LastActionAt, acr.CreatedAt) DESC");
 
                 var dt = await _dbMagazyn.GetDataTableAsync(sb.ToString(), p.ToArray());
 
@@ -259,20 +280,8 @@ namespace Reklamacje_Dane
                         else ktoPrzyjal = "(przyjęte)";
                     }
 
-                    string ktoPodjal = "";
-                    string uwagiHand = "";
-
-                    var ldt = await _dbMagazyn.GetDataTableAsync(
-                        @"SELECT Uzytkownik, Tresc FROM ZwrotDzialania 
-                          WHERE ZwrotId = @id AND Tresc LIKE 'Podjęto decyzję:%' 
-                          ORDER BY Data DESC LIMIT 1",
-                        new MySqlParameter("@id", id)
-                    );
-                    if (ldt.Rows.Count > 0)
-                    {
-                        ktoPodjal = SafeGetString(ldt.Rows[0]["Uzytkownik"]);
-                        uwagiHand = ExtractKomentarz(SafeGetString(ldt.Rows[0]["Tresc"]));
-                    }
+                    string ktoPodjal = SafeGetString(r["KtoPodjalDecyzje"]);
+                    string uwagiHand = ExtractKomentarz(SafeGetString(r["TrescDecyzji"]));
 
                     string jakaDecyzja = SafeGetString(r["DecyzjaHandl"]);
                     string uwagiMag = SafeGetString(r["UwagiMagazynu"]);
@@ -320,11 +329,14 @@ namespace Reklamacje_Dane
                 p.Add(new MySqlParameter("@q", $"%{txtSearch.Text}%"));
             }
 
+            whereParts.Add("IFNULL(s2.Nazwa, '') <> 'Oczekuje na przyjęcie'");
+
             string whereSql = whereParts.Any() ? " WHERE " + string.Join(" AND ", whereParts) : string.Empty;
 
             var dt = await _dbMagazyn.GetDataTableAsync($@"
                 SELECT
                     COUNT(acr.Id) AS Total,
+                    SUM(CASE WHEN IFNULL(s2.Nazwa, '') = 'Po decyzji' THEN 1 ELSE 0 END) AS Nowe,
                     SUM(CASE WHEN IFNULL(s2.Nazwa, '') = 'Oczekuje na decyzję handlowca' THEN 1 ELSE 0 END) AS DoDecyzji,
                     SUM(CASE WHEN IFNULL(s2.Nazwa, '') = 'Zakończony' THEN 1 ELSE 0 END) AS Zakonczone
                 FROM AllegroCustomerReturns acr
@@ -336,7 +348,8 @@ namespace Reklamacje_Dane
             if (dt.Rows.Count > 0)
             {
                 lblTotal.Text = "Razem: " + SafeGetInt(dt.Rows[0]["Total"]);
-                lblDoDecyzji.Text = "Do decyzji: " + SafeGetInt(dt.Rows[0]["DoDecyzji"]);
+                btnFilterWszystkie.Text = "Nowe (" + SafeGetInt(dt.Rows[0]["Nowe"]) + ")";
+                lblDoDecyzji.Text = "Oczekują na decyzję: " + SafeGetInt(dt.Rows[0]["DoDecyzji"]);
                 lblZakonczone.Text = "Zakończone: " + SafeGetInt(dt.Rows[0]["Zakonczone"]);
             }
         }
