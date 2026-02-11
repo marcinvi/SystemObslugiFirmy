@@ -28,4 +28,9 @@
         <item>Rohlig Suus (Rohling-Suus)</item>
         <item>Inny</item>
     </string-array>
+    <string name="photo_preview_content_description">Podgląd zdjęcia zwrotu</string>
+    <string name="photo_preview_close">Zamknij podgląd zdjęcia</string>
+    <string name="photo_preview_default_name">Zdjęcie</string>
+    <string name="photo_preview_error_invalid_id">Nieprawidłowe ID zdjęcia.</string>
+    <string name="photo_preview_error_decode">Nie udało się wyświetlić zdjęcia.</string>
 </resources>
