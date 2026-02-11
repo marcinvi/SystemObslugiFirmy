@@ -131,8 +131,8 @@ namespace Reklamacje_Dane
             this.chkDateTo.AutoSize = true; this.chkDateTo.Text = "Do:"; this.chkDateTo.Location = new System.Drawing.Point(210, 44);
             this.dtpTo.Format = DateTimePickerFormat.Short; this.dtpTo.Location = new System.Drawing.Point(250, 42); this.dtpTo.Width = 120;
 
-            this.btnFilterWszystkie.Text = "Nowe"; this.btnFilterWszystkie.Location = new System.Drawing.Point(410, 42); this.btnFilterWszystkie.Width = 100; this.btnFilterWszystkie.Height = 28; this.btnFilterWszystkie.FlatStyle = FlatStyle.Flat;
-            this.btnFilterDoDecyzji.Text = "Oczekują na decyzję"; this.btnFilterDoDecyzji.Location = new System.Drawing.Point(520, 42); this.btnFilterDoDecyzji.Width = 100; this.btnFilterDoDecyzji.Height = 28; this.btnFilterDoDecyzji.FlatStyle = FlatStyle.Flat;
+            this.btnFilterWszystkie.Text = "Wszystkie"; this.btnFilterWszystkie.Location = new System.Drawing.Point(410, 42); this.btnFilterWszystkie.Width = 100; this.btnFilterWszystkie.Height = 28; this.btnFilterWszystkie.FlatStyle = FlatStyle.Flat;
+            this.btnFilterDoDecyzji.Text = "Do decyzji"; this.btnFilterDoDecyzji.Location = new System.Drawing.Point(520, 42); this.btnFilterDoDecyzji.Width = 100; this.btnFilterDoDecyzji.Height = 28; this.btnFilterDoDecyzji.FlatStyle = FlatStyle.Flat;
             this.btnFilterZakonczone.Text = "Zakończone"; this.btnFilterZakonczone.Location = new System.Drawing.Point(630, 42); this.btnFilterZakonczone.Width = 110; this.btnFilterZakonczone.Height = 28; this.btnFilterZakonczone.FlatStyle = FlatStyle.Flat;
 
             this.btnExportCsv.Text = "Eksport CSV"; this.btnExportCsv.Location = new System.Drawing.Point(760, 42); this.btnExportCsv.Width = 120; this.btnExportCsv.Height = 28; this.btnExportCsv.FlatStyle = FlatStyle.Flat;
@@ -164,7 +164,7 @@ namespace Reklamacje_Dane
 
             this.lblCount.AutoSize = true; this.lblCount.Text = "Wyświetlono: 0"; this.lblCount.Location = new System.Drawing.Point(16, 12);
             this.lblTotal.AutoSize = true; this.lblTotal.Text = "Razem: 0"; this.lblTotal.Location = new System.Drawing.Point(220, 12);
-            this.lblDoDecyzji.AutoSize = true; this.lblDoDecyzji.Text = "Oczekują na decyzję: 0"; this.lblDoDecyzji.Location = new System.Drawing.Point(360, 12);
+            this.lblDoDecyzji.AutoSize = true; this.lblDoDecyzji.Text = "Do decyzji: 0"; this.lblDoDecyzji.Location = new System.Drawing.Point(360, 12);
             this.lblZakonczone.AutoSize = true; this.lblZakonczone.Text = "Zakończone: 0"; this.lblZakonczone.Location = new System.Drawing.Point(520, 12);
 
             this.panelFooter.Controls.Add(this.lblCount);

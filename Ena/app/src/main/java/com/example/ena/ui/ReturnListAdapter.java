@@ -49,25 +49,27 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         if (data != null) {
             items.addAll(data);
         }
-        items.sort((left, right) -> {
-            int leftPriority = statusPriority(left);
-            int rightPriority = statusPriority(right);
-            if (leftPriority != rightPriority) {
-                return Integer.compare(leftPriority, rightPriority);
-            }
-            OffsetDateTime leftDate = left.getCreatedAt();
-            OffsetDateTime rightDate = right.getCreatedAt();
-            if (leftDate == null && rightDate == null) {
-                return 0;
-            }
-            if (leftDate == null) {
-                return 1;
-            }
-            if (rightDate == null) {
-                return -1;
-            }
-            return rightDate.compareTo(leftDate);
-        });
+        if (displayMode != DisplayMode.SUMMARY) {
+            items.sort((left, right) -> {
+                int leftPriority = statusPriority(left);
+                int rightPriority = statusPriority(right);
+                if (leftPriority != rightPriority) {
+                    return Integer.compare(leftPriority, rightPriority);
+                }
+                OffsetDateTime leftDate = left.getCreatedAt();
+                OffsetDateTime rightDate = right.getCreatedAt();
+                if (leftDate == null && rightDate == null) {
+                    return 0;
+                }
+                if (leftDate == null) {
+                    return 1;
+                }
+                if (rightDate == null) {
+                    return -1;
+                }
+                return rightDate.compareTo(leftDate);
+            });
+        }
         notifyDataSetChanged();
     }
 
