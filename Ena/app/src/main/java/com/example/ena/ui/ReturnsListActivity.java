@@ -395,12 +395,12 @@ public class ReturnsListActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     if (progressBar != null) progressBar.setVisibility(View.GONE);
                     List<ReturnListItemDto> items = data != null ? data.getItems() : null;
-                    List<ReturnListItemDto> displayItems = applyLocalStatusFilter(items);
-                    adapter.setItems(displayItems);
-                    if (displayItems == null || displayItems.isEmpty()) {
+                    List<ReturnListItemDto> filteredItems = applyLocalStatusFilter(items);
+                    adapter.setItems(filteredItems);
+                    if (filteredItems == null || filteredItems.isEmpty()) {
                         if (txtEmpty != null) txtEmpty.setVisibility(View.VISIBLE);
                     }
-                    int count = displayItems == null ? 0 : displayItems.size();
+                    int count = filteredItems == null ? 0 : filteredItems.size();
                     if (txtCount != null) txtCount.setText("Wyświetlono: " + count);
 
                     if ("sales".equals(mode)) {
