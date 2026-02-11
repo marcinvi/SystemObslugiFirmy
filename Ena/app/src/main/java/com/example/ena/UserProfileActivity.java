@@ -1,7 +1,7 @@
 package com.example.ena.ui;
 
 import android.app.DatePickerDialog;
-import android.content.Intent; // WAŻNE: Dodaj import Intent
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -11,12 +11,12 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.CheckBox;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.ena.R;
-import com.example.ena.SendLinkActivity; // WAŻNE: Import Twojej aktywności wysyłania
 import com.example.ena.api.ApiClient;
 import com.example.ena.api.DelegacjaDto;
 import com.example.ena.api.SimpleUserDto;
@@ -34,8 +34,10 @@ public class UserProfileActivity extends AppCompatActivity {
     private TextInputEditText editEmail, editPhone;
     private EditText editOldPass, editNewPass;
     private Button btnSaveContact, btnChangePass, btnDateFrom, btnDateTo, btnAddAbsence;
-    // NOWY PRZYCISK
-    private Button btnOpenSendLink;
+    private static final String PREFS_NAME = "ena_prefs";
+    private static final String PREF_SHOW_SMS_LINKS = "show_sms_links";
+
+    private CheckBox chkSendLinkAfterCall;
 
     private RadioGroup radioGroupType;
     private Spinner spinnerReplacement;
@@ -64,8 +66,7 @@ public class UserProfileActivity extends AppCompatActivity {
     private void initViews() {
         txtProfileHeader = findViewById(R.id.txtProfileHeader);
 
-        // Inicjalizacja nowego przycisku
-        btnOpenSendLink = findViewById(R.id.btnOpenSendLink);
+        chkSendLinkAfterCall = findViewById(R.id.chkSendLinkAfterCall);
 
         editEmail = findViewById(R.id.editEmail);
         editPhone = findViewById(R.id.editPhone);
@@ -87,10 +88,16 @@ public class UserProfileActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        // OBSŁUGA NOWEGO PRZYCISKU
-        btnOpenSendLink.setOnClickListener(v -> {
-            Intent intent = new Intent(UserProfileActivity.this, SendLinkActivity.class);
-            startActivity(intent);
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean enabled = prefs.getBoolean(PREF_SHOW_SMS_LINKS, false);
+        chkSendLinkAfterCall.setChecked(enabled);
+
+        chkSendLinkAfterCall.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            prefs.edit().putBoolean(PREF_SHOW_SMS_LINKS, isChecked).apply();
+            String msg = isChecked
+                    ? "Włączono automatyczne SMS po zakończonej rozmowie."
+                    : "Wyłączono automatyczne SMS po zakończonej rozmowie.";
+            Toast.makeText(UserProfileActivity.this, msg, Toast.LENGTH_SHORT).show();
         });
 
         btnSaveContact.setOnClickListener(v -> saveContactInfo());
