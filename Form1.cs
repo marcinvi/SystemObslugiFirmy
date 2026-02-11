@@ -30,13 +30,11 @@ namespace Reklamacje_Dane
         private volatile bool _isCheckingGoogleSheets = false;
         private volatile bool _isCheckingAllegro = false;
 
-        private readonly AllegroSyncService _allegroSyncService;
 
         public Form1(string fullName)
         {
             InitializeComponent();
             this.Text = "System Obsługi Reklamacji";
-            _allegroSyncService = new AllegroSyncService();
 
             EnableDoubleBuffering(dataGridViewProcessing);
             EnableDoubleBuffering(dataGridViewReminders);
@@ -117,36 +115,27 @@ namespace Reklamacje_Dane
 
             try
             {
-                var result = await _allegroSyncService.SynchronizeDisputesAsync();
-
-                if (this.IsHandleCreated && !this.IsDisposed)
+                if (IsApiAuthenticated())
                 {
-                    this.Invoke((MethodInvoker)delegate
+                    var status = await GetServerAllegroSyncStatusAsync();
+
+                    if (this.IsHandleCreated && !this.IsDisposed)
                     {
-                        // Aktualizuj licznik niezarejestrowanych zgłoszeń
-                        lblAllegroCount.Text = result.UnregisteredDisputesCount.ToString();
-                        lblAllegroCount.Visible = result.UnregisteredDisputesCount > 0;
-
-                        // [NOWA LOGIKA] Aktualizuj licznik nieprzeczytanych wiadomości
-                        lblAllegroMessages.Text = result.DisputesWithNewMessages.ToString();
-                       // lblAllegroMessages.Visible = result.DisputesWithNewMessages > 0;
-
-                        if (result.DisputesWithNewMessages > 0)
+                        this.Invoke((MethodInvoker)delegate
                         {
-                            powiadomienie.Text = $"Masz {result.DisputesWithNewMessages} dyskusji z nowymi wiadomościami!";
-                            powiadomienie.BackColor = Color.Gold;
-                            powiadomienie.ForeColor = Color.Black;
-                            powiadomienie.Visible = true;
-                        }
+                            lblAllegroCount.Text = status.UnregisteredDisputesCount.ToString();
+                            lblAllegroCount.Visible = status.UnregisteredDisputesCount > 0;
+                            lblAllegroMessages.Text = status.DisputesWithNewMessages.ToString();
 
-                        if (result.NewDisputesFound > 0)
-                        {
-                            powiadomienie.Text = $"Pobrano {result.NewDisputesFound} nowych dyskusji z Allegro!";
-                            powiadomienie.BackColor = Color.DarkOrange;
-                            powiadomienie.Visible = true;
-                            UpdateManager.NotifySubscribers();
-                        }
-                    });
+                            if (status.DisputesWithNewMessages > 0)
+                            {
+                                powiadomienie.Text = $"Masz {status.DisputesWithNewMessages} dyskusji z nowymi wiadomościami!";
+                                powiadomienie.BackColor = Color.Gold;
+                                powiadomienie.ForeColor = Color.Black;
+                                powiadomienie.Visible = true;
+                            }
+                        });
+                    }
                 }
             }
             catch (Exception ex)
@@ -158,6 +147,44 @@ namespace Reklamacje_Dane
                 _isCheckingAllegro = false;
             }
         }
+
+
+        private bool IsApiAuthenticated()
+        {
+            try
+            {
+                return ApiSyncService.Instance != null && ApiSyncService.Instance.IsInitialized && ApiSyncService.Instance.IsAuthenticated;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private async Task<AllegroSyncStatusApi> GetServerAllegroSyncStatusAsync()
+        {
+            if (!IsApiAuthenticated())
+            {
+                return new AllegroSyncStatusApi();
+            }
+
+            var apiClient = new ReklamacjeApiClient(ApiSyncService.Instance.BaseUrl);
+            apiClient.SetToken(Properties.Settings.Default.ApiToken);
+            return await apiClient.GetAllegroSyncStatusAsync();
+        }
+
+        private async Task<OperationsSyncSnapshotApi> GetServerOperationsSyncStatusAsync()
+        {
+            if (!IsApiAuthenticated())
+            {
+                return new OperationsSyncSnapshotApi();
+            }
+
+            var apiClient = new ReklamacjeApiClient(ApiSyncService.Instance.BaseUrl);
+            apiClient.SetToken(Properties.Settings.Default.ApiToken);
+            return await apiClient.GetOperationsSyncStatusAsync();
+        }
+
         private void lblAllegroMessages_Click(object sender, EventArgs e)
         {
             // Otwórz formularz z listą dyskusji Allegro
@@ -178,10 +205,34 @@ namespace Reklamacje_Dane
 
             try
             {
-                await UpdateGoogleSheetRowCountAsync();
+                if (IsApiAuthenticated())
+                {
+                    var sync = await GetServerOperationsSyncStatusAsync();
+                    var google = sync?.Google ?? new SyncServiceStatusApi();
+
+                    if (this.IsHandleCreated && !this.IsDisposed)
+                    {
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            var complaintCount = google.MetricValue;
+                            if (complaintCount > _lastGoogleSheetRows && _lastGoogleSheetRows != -1)
+                            {
+                                powiadomienie.Text = "Nowe zgłoszenie do rejestracji w Google Sheets!";
+                                powiadomienie.BackColor = Color.SeaGreen;
+                                powiadomienie.Visible = true;
+                            }
+                            _lastGoogleSheetRows = complaintCount;
+                            label10.Text = complaintCount.ToString();
+                        });
+                    }
+                }
             }
             catch (Exception ex)
             {
+                if (this.IsHandleCreated && !this.IsDisposed)
+                {
+                    this.Invoke((MethodInvoker)delegate { label10.Text = "Błąd"; });
+                }
                 Console.WriteLine($"Błąd podczas synchronizacji z Google Sheets: {ex.Message}");
             }
             finally
@@ -315,52 +366,7 @@ namespace Reklamacje_Dane
 
         private async Task UpdateGoogleSheetRowCountAsync()
         {
-            try
-            {
-                GoogleCredential credential;
-                using (var stream = new FileStream("reklamacje-baza-ed853b4e33f7.json", FileMode.Open, FileAccess.Read))
-                {
-                    credential = GoogleCredential.FromStream(stream).CreateScoped(new[] { SheetsService.Scope.SpreadsheetsReadonly });
-                }
-                var service = new SheetsService(new BaseClientService.Initializer() { HttpClientInitializer = credential });
-                string spreadsheetId = "1VXGP4Cckt6NmSHtiv-Um7nqg-itLMczAGd-5a_Tc4Ds";
-                string[] sheetsToRead = { "B", "Z" };
-                int totalRows = 0;
-
-                foreach (var sheetName in sheetsToRead)
-                {
-                    var request = service.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!A:A");
-                    var response = await request.ExecuteAsync();
-                    if (response.Values != null)
-                    {
-                        totalRows += response.Values.Count(row => row.Any(cell => !string.IsNullOrWhiteSpace(cell?.ToString())));
-                    }
-                }
-                int complaintCount = Math.Max(0, totalRows - 2); // Odejmujemy 2 wiersze nagłówkowe
-
-                if (this.IsHandleCreated && !this.IsDisposed)
-                {
-                    this.Invoke((MethodInvoker)delegate
-                    {
-                        if (complaintCount > _lastGoogleSheetRows && _lastGoogleSheetRows != -1)
-                        {
-                            powiadomienie.Text = "Nowe zgłoszenie do rejestracji w Google Sheets!";
-                            powiadomienie.BackColor = Color.SeaGreen;
-                            powiadomienie.Visible = true;
-                        }
-                        _lastGoogleSheetRows = complaintCount;
-                        label10.Text = complaintCount.ToString();
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                if (this.IsHandleCreated && !this.IsDisposed)
-                {
-                    this.Invoke((MethodInvoker)delegate { label10.Text = "Błąd"; });
-                }
-                Console.WriteLine("Błąd pobierania danych z Google Sheets: " + ex.Message);
-            }
+            await RunGoogleSheetsSync();
         }
 
         private async Task LoadProcessingCasesAsync()
@@ -453,7 +459,7 @@ namespace Reklamacje_Dane
         }
         private void labelZalogowany_Click(object sender, EventArgs e) { MessageBox.Show($"Zalogowany jako: {Program.fullName}"); }
         private void powiadomienie_Click(object sender, EventArgs e) { powiadomienie.Visible = false; }
-        private void label10_Click(object sender, EventArgs e) => _ = UpdateGoogleSheetRowCountAsync();
+        private void label10_Click(object sender, EventArgs e) => _ = RunGoogleSheetsSync();
         private void dodajNoweToolStripMenuItem_Click(object sender, EventArgs e) { MessageBox.Show("Funkcja w przygotowaniu."); }
         private void pokażWyszystkieToolStripMenuItem_Click(object sender, EventArgs e) { MessageBox.Show("Funkcja w przygotowaniu."); }
         private void oczekująceNaDostawęProsuktuToolStripMenuItem_Click(object sender, EventArgs e) { MessageBox.Show("Funkcja w przygotowaniu."); }

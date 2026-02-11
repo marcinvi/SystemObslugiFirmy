@@ -327,4 +327,81 @@ namespace Reklamacje_Dane
         [JsonProperty("zgloszenieId")]
         public int? ZgloszenieId { get; set; }
     }
+
+    public class AllegroSyncStatusApi
+    {
+        [JsonProperty("isRunning")]
+        public bool IsRunning { get; set; }
+
+        [JsonProperty("lastStartedAt")]
+        public DateTime? LastStartedAt { get; set; }
+
+        [JsonProperty("lastCompletedAt")]
+        public DateTime? LastCompletedAt { get; set; }
+
+        [JsonProperty("lastRunSuccess")]
+        public bool LastRunSuccess { get; set; }
+
+        [JsonProperty("lastError")]
+        public string LastError { get; set; }
+
+        [JsonProperty("newDisputesFoundLastRun")]
+        public int NewDisputesFoundLastRun { get; set; }
+
+        [JsonProperty("unregisteredDisputesCount")]
+        public int UnregisteredDisputesCount { get; set; }
+
+        [JsonProperty("disputesWithNewMessages")]
+        public int DisputesWithNewMessages { get; set; }
+    }
+
+    public class AllegroSyncRunResultApi
+    {
+        [JsonProperty("success")]
+        public bool Success { get; set; }
+
+        [JsonProperty("message")]
+        public string Message { get; set; }
+
+        [JsonProperty("status")]
+        public AllegroSyncStatusApi Status { get; set; }
+    }
+
+
+    public class SyncServiceStatusApi
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("isRunning")]
+        public bool IsRunning { get; set; }
+
+        [JsonProperty("lastSuccess")]
+        public bool LastSuccess { get; set; }
+
+        [JsonProperty("lastStartedAt")]
+        public DateTime? LastStartedAt { get; set; }
+
+        [JsonProperty("lastFinishedAt")]
+        public DateTime? LastFinishedAt { get; set; }
+
+        [JsonProperty("lastError")]
+        public string LastError { get; set; }
+
+        [JsonProperty("metricValue")]
+        public int MetricValue { get; set; }
+
+        [JsonProperty("metricLabel")]
+        public string MetricLabel { get; set; }
+    }
+
+    public class OperationsSyncSnapshotApi
+    {
+        [JsonProperty("google")]
+        public SyncServiceStatusApi Google { get; set; }
+
+        [JsonProperty("dpd")]
+        public SyncServiceStatusApi Dpd { get; set; }
+    }
+
 }

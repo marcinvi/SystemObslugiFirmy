@@ -28,7 +28,7 @@ namespace Reklamacje_Dane
 
             // 2. Pobranie zmian (Tylko te, które mają WAŻNY status w nawiasie [])
             string query = @"
-                SELECT p.Id, p.NumerListu, p.NrZgloszenia, p.OstatniStatus,
+                SELECT p.Id, p.NumerListu, p.NrZgloszenia, p.OstatniStatus, p.OdbiorcaId,
                        CONCAT(k.ImieNazwisko, ' ', k.NazwaFirmy) AS NazwaOdbiorcy
                 FROM Przesylki p
                 LEFT JOIN Klienci k ON p.OdbiorcaId = k.Id
@@ -38,6 +38,8 @@ namespace Reklamacje_Dane
             var dt = await _dbService.GetDataTableAsync(query);
             if (dt.Rows.Count == 0) return;
 
+            int idFirmyWlasnej = await GetOwnFirmIdAsync();
+
             var alertsToShow = new List<PrzesylkaAlert>();
 
             foreach (DataRow row in dt.Rows)
@@ -45,7 +47,7 @@ namespace Reklamacje_Dane
                 var shipmentId = Convert.ToInt32(row["Id"]);
                 var nrZgloszenia = row["NrZgloszenia"].ToString();
                 var ostatniStatus = row["OstatniStatus"].ToString();
-                var odbiorca = row["NazwaOdbiorcy"].ToString().Trim();
+                var odbiorcaId = row["OdbiorcaId"] == DBNull.Value ? 0 : Convert.ToInt32(row["OdbiorcaId"]);
                 var numerListu = row["NumerListu"].ToString();
 
                 string notificationText = null;
@@ -54,6 +56,8 @@ namespace Reklamacje_Dane
 
                 bool createReminder = false;
                 bool clearDeliveryReminder = false;
+                bool shouldNotifyUser = false;
+                bool isForOwnCompany = idFirmyWlasnej > 0 && odbiorcaId == idFirmyWlasnej;
 
                 // --- LOGIKA BIZNESOWA ---
 
@@ -63,6 +67,7 @@ namespace Reklamacje_Dane
                     toastTitle = "Problem z Przesyłką";
                     toastType = NotificationType.Error;
                     createReminder = true;
+                    shouldNotifyUser = true;
                 }
                 else if (ostatniStatus.StartsWith("[ZWROT]"))
                 {
@@ -70,28 +75,40 @@ namespace Reklamacje_Dane
                     toastTitle = "Zwrot Przesyłki";
                     toastType = NotificationType.Warning;
                     createReminder = true;
+                    shouldNotifyUser = true;
                 }
                 else if (ostatniStatus.StartsWith("[W DORĘCZENIU]"))
                 {
-                    notificationText = $"[PRZESYŁKA] Do nas: {nrZgloszenia} jest w doręczeniu.";
-                    toastTitle = "W Doręczeniu";
-                    toastType = NotificationType.Info;
-                    createReminder = true;
+                    // Powiadomienie i przypomnienie o "w doręczeniu" tylko dla przesyłek do naszej firmy.
+                    if (isForOwnCompany)
+                    {
+                        notificationText = $"[PRZESYŁKA] Do nas: {nrZgloszenia} jest w doręczeniu.";
+                        toastTitle = "W Doręczeniu";
+                        toastType = NotificationType.Info;
+                        createReminder = true;
+                        shouldNotifyUser = true;
+                    }
                 }
                 else if (ostatniStatus.StartsWith("[DORĘCZONA]"))
                 {
-                    notificationText = $"[PRZESYŁKA] Zgłoszenie {nrZgloszenia} zostało doręczone.";
-                    toastTitle = "Doręczono";
-                    toastType = NotificationType.Success;
-                    createReminder = false;
                     clearDeliveryReminder = true;
+
+                    // Powiadomienie o doręczeniu tylko dla przesyłek do naszej firmy.
+                    if (isForOwnCompany)
+                    {
+                        notificationText = $"[PRZESYŁKA] Zgłoszenie {nrZgloszenia} zostało doręczone.";
+                        toastTitle = "Doręczono";
+                        toastType = NotificationType.Success;
+                        shouldNotifyUser = true;
+                    }
                 }
 
                 // --- WYKONANIE AKCJI ---
-                if (notificationText != null)
+                bool hasAction = shouldNotifyUser || createReminder || clearDeliveryReminder;
+                if (hasAction)
                 {
-                    // 1. Toast
-                    if (_owner != null && !_owner.IsDisposed && _owner.IsHandleCreated)
+                    // 1. Toast (opcjonalny)
+                    if (shouldNotifyUser && _owner != null && !_owner.IsDisposed && _owner.IsHandleCreated)
                     {
                         _owner.Invoke((MethodInvoker)delegate {
                             ToastManager.ShowToast(toastTitle, notificationText, toastType);
@@ -109,16 +126,19 @@ namespace Reklamacje_Dane
                         await AddReminderAsync(notificationText, nrZgloszenia);
                     }
 
-                    // 3. Dodaj do listy alertów (do okna popup)
-                    alertsToShow.Add(new PrzesylkaAlert
+                    // 3. Dodaj do listy alertów (popup) tylko gdy powiadomienie ma być pokazane użytkownikowi
+                    if (shouldNotifyUser)
                     {
-                        Id = shipmentId,
-                        NumerListu = numerListu,
-                        NrZgloszenia = nrZgloszenia,
-                        NowyStatus = ostatniStatus
-                    });
+                        alertsToShow.Add(new PrzesylkaAlert
+                        {
+                            Id = shipmentId,
+                            NumerListu = numerListu,
+                            NrZgloszenia = nrZgloszenia,
+                            NowyStatus = ostatniStatus
+                        });
+                    }
 
-                    // 4. Aktualizacja bazy
+                    // 4. Aktualizacja bazy (żeby nie zapętlać notyfikacji)
                     await UpdateLastNotificationStatusAsync(shipmentId, ostatniStatus);
                 }
             }
@@ -136,6 +156,22 @@ namespace Reklamacje_Dane
                 }
                 UpdateManager.NotifySubscribers();
             }
+        }
+
+        private async Task<int> GetOwnFirmIdAsync()
+        {
+            try
+            {
+                using (var con = Database.GetNewOpenConnection())
+                using (var cmd = new MySqlCommand("SELECT WartoscZaszyfrowana FROM Ustawienia WHERE Klucz = 'IdFirmyWlasnej'", con))
+                {
+                    var res = await cmd.ExecuteScalarAsync();
+                    if (res != null && int.TryParse(res.ToString(), out int id)) return id;
+                }
+            }
+            catch { }
+
+            return 0;
         }
 
         private async Task AddReminderAsync(string text, string complaintNumber)

@@ -13,6 +13,9 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using Newtonsoft.Json.Linq;
 
 namespace Reklamacje_Dane
 {
@@ -49,9 +52,7 @@ namespace Reklamacje_Dane
         private int _pendingLoad;
 
         // Serwisy
-        private readonly AllegroSyncService _allegroSyncService;
         private readonly EmailService _emailService; // Serwis Maili
-        private ShipmentNotificationService _shipmentNotificationService;
         private readonly string _fullName;
         private readonly string _userRole;
         private WebView2 _privateWebView;
@@ -73,7 +74,6 @@ namespace Reklamacje_Dane
             _userRole = userRole;
 
             // Inicjalizacja serwisów
-            _allegroSyncService = new AllegroSyncService();
             _emailService = new EmailService();
 
             EnsureProcessingGridScrollable();
@@ -157,7 +157,6 @@ namespace Reklamacje_Dane
             // WebView inicjujemy w tle, nie czekamy na niego
             _ = _privateWebView.EnsureCoreWebView2Async(null);
 
-            _shipmentNotificationService = new ShipmentNotificationService(this.FindForm(), _privateWebView);
 
             try { await ReminderService.InitializeAsync(); } catch { }
 
@@ -349,9 +348,25 @@ namespace Reklamacje_Dane
             if (_isCheckingShipments) return; _isCheckingShipments = true;
             try
             {
-                SetActivity("DPD: Pobieranie statusów...");
-                await _shipmentNotificationService.CheckAndNotifyAsync();
-                UpdateSyncStatus("Przesyłki DPD", "OK", "Sprawdzono pomyślnie");
+                SetActivity("DPD: Pobieranie statusu z API...");
+                var sync = await GetServerOperationsSyncStatusAsync();
+                var dpd = sync.Dpd;
+
+                SafeInvoke(() =>
+                {
+                    if (dpd.MetricValue > 0)
+                    {
+                        btnTracking.Text = $"🚚 Śledzenie DPD ({dpd.MetricValue})";
+                        btnTracking.ForeColor = Color.Orange;
+                    }
+                    else
+                    {
+                        btnTracking.Text = "🚚 Śledzenie DPD";
+                        btnTracking.ForeColor = Color.FromArgb(180, 190, 210);
+                    }
+                });
+
+                UpdateSyncStatus("Przesyłki DPD", dpd.LastSuccess ? "OK" : "Błąd", dpd.LastError ?? $"Zmiany: {dpd.MetricValue}");
             }
             catch (Exception ex) { UpdateSyncStatus("Przesyłki DPD", "Błąd", ex.Message); }
             finally { _isCheckingShipments = false; SetActivity(""); }
@@ -362,18 +377,112 @@ namespace Reklamacje_Dane
             if (_isCheckingAllegro) return; _isCheckingAllegro = true;
             try
             {
-                SetActivity("Allegro: Łączenie z API...");
-                var progress = new Progress<string>(msg => SetActivity($"Allegro: {msg}"));
-                var result = await _allegroSyncService.SynchronizeDisputesAsync(progress);
+                SetActivity("Allegro: Pobieranie statusu z API...");
+                var status = await GetServerAllegroSyncStatusAsync();
                 SafeInvoke(() => {
-                    btnNewAllegro.Text = $"🟠 Nowe Allegro ({result.UnregisteredDisputesCount})";
-                    btnChat.Text = $"💬 Czat Allegro ({result.DisputesWithNewMessages})";
-                    if (result.NewDisputesFound > 0) UpdateManager.NotifySubscribers();
+                    btnNewAllegro.Text = $"🟠 Nowe Allegro ({status.UnregisteredDisputesCount})";
+                    btnChat.Text = $"💬 Czat Allegro ({status.DisputesWithNewMessages})";
+                    if (status.NewDisputesFoundLastRun > 0) UpdateManager.NotifySubscribers();
                 });
-                UpdateSyncStatus("Allegro", "OK", $"Pobrano {result.UnregisteredDisputesCount} nowych");
+                UpdateSyncStatus("Allegro", status.LastRunSuccess ? "OK" : "Błąd", status.LastError ?? $"Nowe: {status.UnregisteredDisputesCount}");
             }
             catch (Exception ex) { UpdateSyncStatus("Allegro", "Błąd", ex.Message); }
             finally { _isCheckingAllegro = false; SetActivity(""); }
+        }
+
+
+
+        private bool IsApiAuthenticated()
+        {
+            try
+            {
+                return ApiSyncService.Instance != null && ApiSyncService.Instance.IsInitialized && ApiSyncService.Instance.IsAuthenticated;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private sealed class SyncServiceStatusLite
+        {
+            public bool LastSuccess { get; set; }
+            public string LastError { get; set; }
+            public int MetricValue { get; set; }
+        }
+
+        private sealed class OperationsSyncSnapshotLite
+        {
+            public SyncServiceStatusLite Google { get; set; } = new SyncServiceStatusLite();
+            public SyncServiceStatusLite Dpd { get; set; } = new SyncServiceStatusLite();
+        }
+
+        private async Task<OperationsSyncSnapshotLite> GetServerOperationsSyncStatusAsync()
+        {
+            var snapshot = new OperationsSyncSnapshotLite();
+
+            try
+            {
+                if (!IsApiAuthenticated())
+                {
+                    return snapshot;
+                }
+
+                using (var http = new HttpClient())
+                {
+                    http.Timeout = TimeSpan.FromSeconds(15);
+                    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Properties.Settings.Default.ApiToken);
+                    var response = await http.GetAsync($"{ApiSyncService.Instance.BaseUrl}/api/ops-sync/status");
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return snapshot;
+                    }
+
+                    var body = await response.Content.ReadAsStringAsync();
+                    var json = JObject.Parse(body);
+                    var data = json["data"] as JObject;
+                    if (data == null) return snapshot;
+
+                    snapshot.Dpd = ParseStatus(data["dpd"] as JObject);
+                    snapshot.Google = ParseStatus(data["google"] as JObject);
+                    return snapshot;
+                }
+            }
+            catch
+            {
+                return snapshot;
+            }
+        }
+
+        private static SyncServiceStatusLite ParseStatus(JObject source)
+        {
+            if (source == null) return new SyncServiceStatusLite();
+
+            return new SyncServiceStatusLite
+            {
+                LastSuccess = source.Value<bool?>("lastSuccess") ?? false,
+                LastError = source.Value<string>("lastError"),
+                MetricValue = source.Value<int?>("metricValue") ?? 0
+            };
+        }
+
+        private async Task<AllegroSyncStatusApi> GetServerAllegroSyncStatusAsync()
+        {
+            try
+            {
+                if (!IsApiAuthenticated())
+                {
+                    return new AllegroSyncStatusApi();
+                }
+
+                var apiClient = new ReklamacjeApiClient(ApiSyncService.Instance.BaseUrl);
+                apiClient.SetToken(Properties.Settings.Default.ApiToken);
+                return await apiClient.GetAllegroSyncStatusAsync();
+            }
+            catch
+            {
+                return new AllegroSyncStatusApi();
+            }
         }
 
         private async Task RunGoogleSheetsSync()
@@ -381,9 +490,17 @@ namespace Reklamacje_Dane
             if (_isCheckingGoogleSheets) return; _isCheckingGoogleSheets = true;
             try
             {
-                SetActivity("Google: Pobieranie arkuszy...");
-                await UpdateGoogleSheetRowCountAsync();
-                UpdateSyncStatus("Google Sheets", "OK", "Synchronizacja zakończona");
+                SetActivity("Google: Pobieranie statusu z API...");
+                var sync = await GetServerOperationsSyncStatusAsync();
+                var google = sync.Google;
+
+                SafeInvoke(() =>
+                {
+                    btnNewGoogle.Text = $"🟢 Nowe Google ({google.MetricValue})";
+                    _lastGoogleSheetRows = google.MetricValue;
+                });
+
+                UpdateSyncStatus("Google Sheets", google.LastSuccess ? "OK" : "Błąd", google.LastError ?? $"Wiersze: {google.MetricValue}");
             }
             catch (Exception ex) { UpdateSyncStatus("Google Sheets", "Błąd", ex.Message); }
             finally { _isCheckingGoogleSheets = false; SetActivity(""); }
