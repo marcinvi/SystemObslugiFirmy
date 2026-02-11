@@ -627,8 +627,7 @@ namespace Reklamacje_Dane
                     progress?.Report($"Konto {accountId}: Issues OK ({countInApi}) - nic do synchronizacji");
                     System.Diagnostics.Debug.WriteLine($"[SYNC QUICK] Issues aktualne - pomijam (w tym czaty - za wolno)");
 
-                    // ⚠️ WYŁĄCZONE: Synchronizacja czatów dla 300 issues = 600 API calls = 5+ minut!
-                    // result.IssuesWithNewMessages = await SynchronizeChatsOnlyAsync(apiClient, accountId, con, progress);
+                    // Czat nie jest wykonywany w trybie quick-check (wydajność).
                     result.IssuesWithNewMessages = 0;
 
                     progress?.Report($"Konto {accountId}: ✅ OK! (Issues: 0, Czaty: POMINIĘTE)");
@@ -667,8 +666,7 @@ namespace Reklamacje_Dane
                 progress?.Report($"Konto {accountId}: ⚠️ Czaty pominięte (oszczędność czasu)");
                 System.Diagnostics.Debug.WriteLine($"[SYNC] Czaty POMINIĘTE dla oszczędności czasu");
                 
-                 result.IssuesWithNewMessages = await SynchronizeChatsOnlyAsync(apiClient, accountId, con, progress);
-                result.IssuesWithNewMessages = 0;
+                result.IssuesWithNewMessages = await SynchronizeChatsOnlyAsync(apiClient, accountId, con, progress);
 
                 progress?.Report($"Konto {accountId}: ✅ OK! (Nowych: {result.NewIssues}, Czaty: {result.IssuesWithNewMessages})");
                 await LogSyncCompleteAsync(logId, "SUCCESS", result.TotalProcessed, result.NewIssues, result.IssuesWithNewMessages, con);

@@ -87,7 +87,6 @@ public class ReturnsService
             return response;
         }
 
-        var dateFrom = DateTime.UtcNow.AddDays(-daysBack).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
 
         int? defaultStatusId;
         await using (var conn = DbConnectionFactory.CreateMagazynConnection(_configuration))
@@ -110,6 +109,7 @@ public class ReturnsService
                 const int limit = 100;
                 var processedInAccount = 0;
                 int? totalInAccount = null;
+                var dateFrom = await GetReturnsSyncDateFromAsync(account.Id, daysBack);
 
                 while (true)
                 {
@@ -136,6 +136,15 @@ public class ReturnsService
                             {
                                 _progressService.UpdateReturn(progress, processedInAccount, totalInAccount.Value, returnLabel);
                             }
+                            var snapshot = await GetExistingReturnSnapshotAsync(account.Id, ret.Id, ret.ReferenceNumber);
+                            var statusUnchanged = snapshot != null
+                                && string.Equals(snapshot.StatusAllegro, ret.Status, StringComparison.OrdinalIgnoreCase);
+
+                            if (statusUnchanged)
+                            {
+                                continue;
+                            }
+
                             AllegroApiClient.OrderDetailsDto? orderDetails = null;
                             string? invoiceNumber = null;
 
@@ -212,6 +221,67 @@ public class ReturnsService
         }
         return response;
     }
+    private async Task<string> GetReturnsSyncDateFromAsync(int accountId, int daysBack)
+    {
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        const string query = @"
+            SELECT MAX(CreatedAt)
+            FROM AllegroCustomerReturns
+            WHERE AllegroAccountId = @accountId";
+
+        await using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@accountId", accountId);
+
+        var scalar = await command.ExecuteScalarAsync();
+        var fallback = DateTime.UtcNow.AddDays(-daysBack);
+
+        if (scalar == null || scalar == DBNull.Value)
+        {
+            return fallback.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
+        }
+
+        var lastDate = Convert.ToDateTime(scalar).ToUniversalTime().AddDays(-1);
+        if (lastDate < fallback)
+        {
+            lastDate = fallback;
+        }
+
+        return lastDate.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
+    }
+
+    private async Task<ExistingReturnSnapshot?> GetExistingReturnSnapshotAsync(int accountId, string? allegroReturnId, string? referenceNumber)
+    {
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        const string query = @"
+            SELECT Id, StatusAllegro
+            FROM AllegroCustomerReturns
+            WHERE AllegroAccountId = @accountId
+              AND (
+                    (@allegroId IS NOT NULL AND AllegroReturnId = @allegroId)
+                 OR (@referenceNumber IS NOT NULL AND ReferenceNumber = @referenceNumber)
+              )
+            LIMIT 1";
+
+        await using var command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@accountId", accountId);
+        command.Parameters.AddWithValue("@allegroId", string.IsNullOrWhiteSpace(allegroReturnId) ? DBNull.Value : allegroReturnId);
+        command.Parameters.AddWithValue("@referenceNumber", string.IsNullOrWhiteSpace(referenceNumber) ? DBNull.Value : referenceNumber);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
+        return new ExistingReturnSnapshot(reader.GetInt32("Id"), reader["StatusAllegro"]?.ToString());
+    }
+
+    private sealed record ExistingReturnSnapshot(int Id, string? StatusAllegro);
+
     private async Task<string> ResolveReturnPhotosPathWithSubfolder(MySqlConnection connection, int returnId)
     {
         // Pobierz numer zwrotu (ReferenceNumber)

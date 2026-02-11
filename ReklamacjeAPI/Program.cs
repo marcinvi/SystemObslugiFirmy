@@ -106,6 +106,8 @@ builder.Services.AddSingleton<ReturnSyncProgressService>();
 builder.Services.AddScoped<MessagesService>();
 builder.Services.AddHttpClient<AllegroApiClient>();
 builder.Services.AddScoped<AllegroCredentialsService>();
+builder.Services.AddHostedService<AllegroTokenRefreshBackgroundService>();
+builder.Services.AddHostedService<ReturnsSyncBackgroundService>();
 builder.Services.AddScoped<ModulesService>();    // <--- TEGO BRAKUJE dla modułów
 builder.Services.AddScoped<MessagesService>();   // <--- To będzie potrzebne dla Wiadomości
 builder.Services.AddScoped<FileService>();

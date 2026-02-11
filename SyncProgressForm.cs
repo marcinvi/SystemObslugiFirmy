@@ -41,10 +41,10 @@ namespace Reklamacje_Dane
                     AddLogEntry(t.message, t.color);
                 });
 
-                // WYWOŁANIE NOWEJ METODY
-                await InitialAllegroSynchronizer.PerformTokenRefreshAsync(progress);
+                AddLogEntry("Odświeżanie tokenów po stronie WinForms zostało wyłączone.", Color.DarkOrange);
+                AddLogEntry("Tokeny są odświeżane centralnie po stronie API (background service).", Color.Black);
 
-                UpdateStatus("Odświeżanie tokenów zakończone.");
+                UpdateStatus("Weryfikacja zakończona.");
                 AddLogEntry("✓ Zakończono", Color.ForestGreen);
             }
             catch (Exception ex)
