@@ -30,13 +30,11 @@ namespace Reklamacje_Dane
         private volatile bool _isCheckingGoogleSheets = false;
         private volatile bool _isCheckingAllegro = false;
 
-        private readonly AllegroSyncService _allegroSyncService;
 
         public Form1(string fullName)
         {
             InitializeComponent();
             this.Text = "System Obsługi Reklamacji";
-            _allegroSyncService = new AllegroSyncService();
 
             EnableDoubleBuffering(dataGridViewProcessing);
             EnableDoubleBuffering(dataGridViewReminders);
@@ -117,36 +115,27 @@ namespace Reklamacje_Dane
 
             try
             {
-                var result = await _allegroSyncService.SynchronizeDisputesAsync();
-
-                if (this.IsHandleCreated && !this.IsDisposed)
+                if (IsApiAuthenticated())
                 {
-                    this.Invoke((MethodInvoker)delegate
+                    var status = await GetServerAllegroSyncStatusAsync();
+
+                    if (this.IsHandleCreated && !this.IsDisposed)
                     {
-                        // Aktualizuj licznik niezarejestrowanych zgłoszeń
-                        lblAllegroCount.Text = result.UnregisteredDisputesCount.ToString();
-                        lblAllegroCount.Visible = result.UnregisteredDisputesCount > 0;
-
-                        // [NOWA LOGIKA] Aktualizuj licznik nieprzeczytanych wiadomości
-                        lblAllegroMessages.Text = result.DisputesWithNewMessages.ToString();
-                       // lblAllegroMessages.Visible = result.DisputesWithNewMessages > 0;
-
-                        if (result.DisputesWithNewMessages > 0)
+                        this.Invoke((MethodInvoker)delegate
                         {
-                            powiadomienie.Text = $"Masz {result.DisputesWithNewMessages} dyskusji z nowymi wiadomościami!";
-                            powiadomienie.BackColor = Color.Gold;
-                            powiadomienie.ForeColor = Color.Black;
-                            powiadomienie.Visible = true;
-                        }
+                            lblAllegroCount.Text = status.UnregisteredDisputesCount.ToString();
+                            lblAllegroCount.Visible = status.UnregisteredDisputesCount > 0;
+                            lblAllegroMessages.Text = status.DisputesWithNewMessages.ToString();
 
-                        if (result.NewDisputesFound > 0)
-                        {
-                            powiadomienie.Text = $"Pobrano {result.NewDisputesFound} nowych dyskusji z Allegro!";
-                            powiadomienie.BackColor = Color.DarkOrange;
-                            powiadomienie.Visible = true;
-                            UpdateManager.NotifySubscribers();
-                        }
-                    });
+                            if (status.DisputesWithNewMessages > 0)
+                            {
+                                powiadomienie.Text = $"Masz {status.DisputesWithNewMessages} dyskusji z nowymi wiadomościami!";
+                                powiadomienie.BackColor = Color.Gold;
+                                powiadomienie.ForeColor = Color.Black;
+                                powiadomienie.Visible = true;
+                            }
+                        });
+                    }
                 }
             }
             catch (Exception ex)
@@ -158,6 +147,32 @@ namespace Reklamacje_Dane
                 _isCheckingAllegro = false;
             }
         }
+
+
+        private bool IsApiAuthenticated()
+        {
+            try
+            {
+                return ApiSyncService.Instance != null && ApiSyncService.Instance.IsInitialized && ApiSyncService.Instance.IsAuthenticated;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private async Task<AllegroSyncStatusApi> GetServerAllegroSyncStatusAsync()
+        {
+            if (!IsApiAuthenticated())
+            {
+                return new AllegroSyncStatusApi();
+            }
+
+            var apiClient = new ReklamacjeApiClient(ApiSyncService.Instance.BaseUrl);
+            apiClient.SetToken(Properties.Settings.Default.ApiToken);
+            return await apiClient.GetAllegroSyncStatusAsync();
+        }
+
         private void lblAllegroMessages_Click(object sender, EventArgs e)
         {
             // Otwórz formularz z listą dyskusji Allegro

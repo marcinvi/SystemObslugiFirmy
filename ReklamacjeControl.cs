@@ -49,7 +49,6 @@ namespace Reklamacje_Dane
         private int _pendingLoad;
 
         // Serwisy
-        private readonly AllegroSyncService _allegroSyncService;
         private readonly EmailService _emailService; // Serwis Maili
         private ShipmentNotificationService _shipmentNotificationService;
         private readonly string _fullName;
@@ -73,7 +72,6 @@ namespace Reklamacje_Dane
             _userRole = userRole;
 
             // Inicjalizacja serwisów
-            _allegroSyncService = new AllegroSyncService();
             _emailService = new EmailService();
 
             EnsureProcessingGridScrollable();
@@ -362,18 +360,50 @@ namespace Reklamacje_Dane
             if (_isCheckingAllegro) return; _isCheckingAllegro = true;
             try
             {
-                SetActivity("Allegro: Łączenie z API...");
-                var progress = new Progress<string>(msg => SetActivity($"Allegro: {msg}"));
-                var result = await _allegroSyncService.SynchronizeDisputesAsync(progress);
+                SetActivity("Allegro: Pobieranie statusu z API...");
+                var status = await GetServerAllegroSyncStatusAsync();
                 SafeInvoke(() => {
-                    btnNewAllegro.Text = $"🟠 Nowe Allegro ({result.UnregisteredDisputesCount})";
-                    btnChat.Text = $"💬 Czat Allegro ({result.DisputesWithNewMessages})";
-                    if (result.NewDisputesFound > 0) UpdateManager.NotifySubscribers();
+                    btnNewAllegro.Text = $"🟠 Nowe Allegro ({status.UnregisteredDisputesCount})";
+                    btnChat.Text = $"💬 Czat Allegro ({status.DisputesWithNewMessages})";
+                    if (status.NewDisputesFoundLastRun > 0) UpdateManager.NotifySubscribers();
                 });
-                UpdateSyncStatus("Allegro", "OK", $"Pobrano {result.UnregisteredDisputesCount} nowych");
+                UpdateSyncStatus("Allegro", status.LastRunSuccess ? "OK" : "Błąd", status.LastError ?? $"Nowe: {status.UnregisteredDisputesCount}");
             }
             catch (Exception ex) { UpdateSyncStatus("Allegro", "Błąd", ex.Message); }
             finally { _isCheckingAllegro = false; SetActivity(""); }
+        }
+
+
+
+        private bool IsApiAuthenticated()
+        {
+            try
+            {
+                return ApiSyncService.Instance != null && ApiSyncService.Instance.IsInitialized && ApiSyncService.Instance.IsAuthenticated;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private async Task<AllegroSyncStatusApi> GetServerAllegroSyncStatusAsync()
+        {
+            try
+            {
+                if (!IsApiAuthenticated())
+                {
+                    return new AllegroSyncStatusApi();
+                }
+
+                var apiClient = new ReklamacjeApiClient(ApiSyncService.Instance.BaseUrl);
+                apiClient.SetToken(Properties.Settings.Default.ApiToken);
+                return await apiClient.GetAllegroSyncStatusAsync();
+            }
+            catch
+            {
+                return new AllegroSyncStatusApi();
+            }
         }
 
         private async Task RunGoogleSheetsSync()

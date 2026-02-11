@@ -395,6 +395,40 @@ namespace Reklamacje_Dane
             }
         }
 
+
+
+        // ===== ALLEGRO SYNC (SERVER-SIDE) =====
+
+        public async Task<AllegroSyncStatusApi> GetAllegroSyncStatusAsync()
+        {
+            CheckAuthentication();
+
+            var response = await _httpClient.GetAsync($"{_baseUrl}/api/allegro-sync/status");
+            var responseBody = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"Błąd pobierania statusu synchronizacji Allegro: {response.StatusCode}");
+            }
+
+            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<AllegroSyncStatusApi>>(responseBody);
+            return apiResponse?.Data;
+        }
+
+        public async Task<AllegroSyncRunResultApi> TriggerAllegroSyncAsync()
+        {
+            CheckAuthentication();
+
+            var response = await _httpClient.PostAsync($"{_baseUrl}/api/allegro-sync/trigger", null);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"Błąd uruchomienia synchronizacji Allegro: {response.StatusCode} - {responseBody}");
+            }
+
+            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<AllegroSyncRunResultApi>>(responseBody);
+            return apiResponse?.Data;
+        }
+
         // ===== HEALTH CHECK =====
 
         /// <summary>
