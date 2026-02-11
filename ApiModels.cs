@@ -366,42 +366,4 @@ namespace Reklamacje_Dane
         [JsonProperty("status")]
         public AllegroSyncStatusApi Status { get; set; }
     }
-
-
-    public class SyncServiceStatusApi
-    {
-        [JsonProperty("name")]
-        public string Name { get; set; }
-
-        [JsonProperty("isRunning")]
-        public bool IsRunning { get; set; }
-
-        [JsonProperty("lastSuccess")]
-        public bool LastSuccess { get; set; }
-
-        [JsonProperty("lastStartedAt")]
-        public DateTime? LastStartedAt { get; set; }
-
-        [JsonProperty("lastFinishedAt")]
-        public DateTime? LastFinishedAt { get; set; }
-
-        [JsonProperty("lastError")]
-        public string LastError { get; set; }
-
-        [JsonProperty("metricValue")]
-        public int MetricValue { get; set; }
-
-        [JsonProperty("metricLabel")]
-        public string MetricLabel { get; set; }
-    }
-
-    public class OperationsSyncSnapshotApi
-    {
-        [JsonProperty("google")]
-        public SyncServiceStatusApi Google { get; set; }
-
-        [JsonProperty("dpd")]
-        public SyncServiceStatusApi Dpd { get; set; }
-    }
-
 }

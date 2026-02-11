@@ -401,25 +401,6 @@ namespace Reklamacje_Dane
             }
         }
 
-        private async Task<OperationsSyncSnapshotApi> GetServerOperationsSyncStatusAsync()
-        {
-            try
-            {
-                if (!IsApiAuthenticated())
-                {
-                    return new OperationsSyncSnapshotApi();
-                }
-
-                var apiClient = new ReklamacjeApiClient(ApiSyncService.Instance.BaseUrl);
-                apiClient.SetToken(Properties.Settings.Default.ApiToken);
-                return await apiClient.GetOperationsSyncStatusAsync();
-            }
-            catch
-            {
-                return new OperationsSyncSnapshotApi();
-            }
-        }
-
         private async Task<AllegroSyncStatusApi> GetServerAllegroSyncStatusAsync()
         {
             try

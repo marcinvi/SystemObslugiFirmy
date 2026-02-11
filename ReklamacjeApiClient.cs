@@ -397,40 +397,6 @@ namespace Reklamacje_Dane
 
 
 
-
-
-        // ===== OPERATIONS SYNC (DPD + GOOGLE, SERVER-SIDE) =====
-
-        public async Task<OperationsSyncSnapshotApi> GetOperationsSyncStatusAsync()
-        {
-            CheckAuthentication();
-
-            var response = await _httpClient.GetAsync($"{_baseUrl}/api/ops-sync/status");
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception($"Błąd pobierania statusu synchronizacji DPD/Google: {response.StatusCode}");
-            }
-
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<OperationsSyncSnapshotApi>>(responseBody);
-            return apiResponse?.Data;
-        }
-
-        public async Task<OperationsSyncSnapshotApi> TriggerOperationsSyncAsync()
-        {
-            CheckAuthentication();
-
-            var response = await _httpClient.PostAsync($"{_baseUrl}/api/ops-sync/trigger", null);
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception($"Błąd uruchomienia synchronizacji DPD/Google: {response.StatusCode} - {responseBody}");
-            }
-
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<OperationsSyncSnapshotApi>>(responseBody);
-            return apiResponse?.Data;
-        }
-
         // ===== ALLEGRO SYNC (SERVER-SIDE) =====
 
         public async Task<AllegroSyncStatusApi> GetAllegroSyncStatusAsync()

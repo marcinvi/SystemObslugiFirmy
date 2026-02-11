@@ -173,18 +173,6 @@ namespace Reklamacje_Dane
             return await apiClient.GetAllegroSyncStatusAsync();
         }
 
-        private async Task<OperationsSyncSnapshotApi> GetServerOperationsSyncStatusAsync()
-        {
-            if (!IsApiAuthenticated())
-            {
-                return new OperationsSyncSnapshotApi();
-            }
-
-            var apiClient = new ReklamacjeApiClient(ApiSyncService.Instance.BaseUrl);
-            apiClient.SetToken(Properties.Settings.Default.ApiToken);
-            return await apiClient.GetOperationsSyncStatusAsync();
-        }
-
         private void lblAllegroMessages_Click(object sender, EventArgs e)
         {
             // Otwórz formularz z listą dyskusji Allegro
