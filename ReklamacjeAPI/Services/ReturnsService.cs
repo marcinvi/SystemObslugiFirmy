@@ -1426,7 +1426,8 @@ public class ReturnsService
         }
 
         var opiekunId = Convert.ToInt32(opiekunIdObj);
-        var odbiorcaId = opiekunId;
+        var recipients = new HashSet<int> { opiekunId };
+        int? zastepcaId = null;
 
         const string delegacjaQuery = @"
             SELECT ZastepcaId
@@ -1440,14 +1441,17 @@ public class ReturnsService
         var zastepcaIdObj = await delegacjaCommand.ExecuteScalarAsync();
         if (zastepcaIdObj != null && zastepcaIdObj != DBNull.Value)
         {
-            odbiorcaId = Convert.ToInt32(zastepcaIdObj);
+            zastepcaId = Convert.ToInt32(zastepcaIdObj);
+            recipients.Add(zastepcaId.Value);
         }
 
         var opiekunName = await GetUserDisplayNameByIdAsync(opiekunId);
-        var odbiorcaName = await GetUserDisplayNameByIdAsync(odbiorcaId);
-        var odbiorcaLabel = odbiorcaId != opiekunId
-            ? $"{odbiorcaName} (zastępstwo za {opiekunName})"
-            : opiekunName;
+        var recipientLabels = new List<string> { opiekunName };
+        if (zastepcaId.HasValue)
+        {
+            var zastepcaName = await GetUserDisplayNameByIdAsync(zastepcaId.Value);
+            recipientLabels.Add($"{zastepcaName} (zastępstwo za {opiekunName})");
+        }
 
         var query = $@"
             UPDATE AllegroCustomerReturns
@@ -1465,21 +1469,24 @@ public class ReturnsService
         var updated = await command.ExecuteNonQueryAsync() > 0;
         if (updated)
         {
-            var messageCommand = new MySqlCommand($@"
-                INSERT INTO Wiadomosci (NadawcaId, OdbiorcaId, Tresc, DataWyslania, DotyczyZwrotuId, {readColumn})
-                VALUES (@nadawcaId, @odbiorcaId, @tresc, @data, @zwrotId, 0)", connection);
-            messageCommand.Parameters.AddWithValue("@nadawcaId", senderId);
-            messageCommand.Parameters.AddWithValue("@odbiorcaId", odbiorcaId);
-            messageCommand.Parameters.AddWithValue("@tresc", $"Zwrot {referenceNumber} oczekuje na Twoją decyzję.");
-            messageCommand.Parameters.AddWithValue("@data", DateTime.Now);
-            messageCommand.Parameters.AddWithValue("@zwrotId", returnId);
-            await messageCommand.ExecuteNonQueryAsync();
+            foreach (var recipientId in recipients)
+            {
+                var messageCommand = new MySqlCommand($@"
+                    INSERT INTO Wiadomosci (NadawcaId, OdbiorcaId, Tresc, DataWyslania, DotyczyZwrotuId, {readColumn})
+                    VALUES (@nadawcaId, @odbiorcaId, @tresc, @data, @zwrotId, 0)", connection);
+                messageCommand.Parameters.AddWithValue("@nadawcaId", senderId);
+                messageCommand.Parameters.AddWithValue("@odbiorcaId", recipientId);
+                messageCommand.Parameters.AddWithValue("@tresc", $"Zwrot {referenceNumber} oczekuje na Twoją decyzję.");
+                messageCommand.Parameters.AddWithValue("@data", DateTime.Now);
+                messageCommand.Parameters.AddWithValue("@zwrotId", returnId);
+                await messageCommand.ExecuteNonQueryAsync();
+            }
 
             await AddReturnActionInternalAsync(connection, returnId, userDisplayName,
-                $"Zwrot przekazany do decyzji handlowca ({odbiorcaLabel}).");
+                $"Zwrot przekazany do decyzji handlowca ({string.Join(", ", recipientLabels)}).", null);
 
             await AddMagazynDziennikAsync(connection, returnId, userDisplayName,
-                $"Przekazano do decyzji handlowca: {odbiorcaLabel}.", null);
+                $"Przekazano do decyzji handlowca: {string.Join(", ", recipientLabels)}.", null);
         }
 
         return updated;
