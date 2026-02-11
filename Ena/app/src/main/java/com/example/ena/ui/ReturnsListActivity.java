@@ -770,7 +770,7 @@ public class ReturnsListActivity extends AppCompatActivity {
                     hideLoadingOverlay();
                     List<ReturnListItemDto> items = data != null ? data.getItems() : null;
                     adapter.setItems(items);
-                    int count = items == null ? 0 : items.size();
+                    int count = displayItems == null ? 0 : displayItems.size();
                     txtCount.setText("Wyświetlono: " + count);
                     txtEmpty.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
 
