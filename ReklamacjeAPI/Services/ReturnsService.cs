@@ -485,17 +485,8 @@ public class ReturnsService
 
         if (!string.IsNullOrWhiteSpace(statusWewnetrzny))
         {
-            if (IsDecisionStatusFilter(statusWewnetrzny))
-            {
-                conditions.Add("s2.Nazwa IN (@statusPoDecyzji, @statusZakonczony)");
-                parameters.Add(new MySqlParameter("@statusPoDecyzji", DecisionStatusName));
-                parameters.Add(new MySqlParameter("@statusZakonczony", CompletedStatusName));
-            }
-            else
-            {
-                conditions.Add("s2.Nazwa = @statusWewnetrzny");
-                parameters.Add(new MySqlParameter("@statusWewnetrzny", statusWewnetrzny));
-            }
+            conditions.Add("s2.Nazwa = @statusWewnetrzny");
+            parameters.Add(new MySqlParameter("@statusWewnetrzny", statusWewnetrzny));
         }
 
         if (!string.IsNullOrWhiteSpace(excludeStatusWewnetrzny))
@@ -2332,7 +2323,7 @@ public class ReturnsService
             SELECT
                 COUNT(acr.Id) AS Total,
                 SUM(CASE WHEN IFNULL(s2.Nazwa, '') = 'Oczekuje na decyzję handlowca' THEN 1 ELSE 0 END) AS DoDecyzji,
-                SUM(CASE WHEN IFNULL(s2.Nazwa, '') IN ('{DecisionStatusName}', '{CompletedStatusName}') THEN 1 ELSE 0 END) AS Zakonczone
+                SUM(CASE WHEN IFNULL(s2.Nazwa, '') = '{CompletedStatusName}' THEN 1 ELSE 0 END) AS Zakonczone
             FROM AllegroCustomerReturns acr
             LEFT JOIN Statusy s2 ON s2.Id = acr.StatusWewnetrznyId
             {whereSql}";
@@ -2356,10 +2347,6 @@ public class ReturnsService
             Zakonczone = Convert.ToInt32(reader["Zakonczone"] ?? 0)
         };
     }
-
-    private static bool IsDecisionStatusFilter(string statusWewnetrzny)
-        => statusWewnetrzny.Equals(DecisionStatusName, StringComparison.OrdinalIgnoreCase)
-           || statusWewnetrzny.Equals(CompletedStatusName, StringComparison.OrdinalIgnoreCase);
 
     private async Task<Klient> EnsureKlientAsync(ComplaintCustomerDto customer)
     {
