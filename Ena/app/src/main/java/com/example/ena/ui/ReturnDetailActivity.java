@@ -87,6 +87,8 @@ public class ReturnDetailActivity extends AppCompatActivity {
     private View cardWarehouse;
     private View cardDecision;
     private View sectionJournal;
+    private View sectionPhotos;
+    private TextView txtPhotosEmpty;
     private View decisionStrip;
     private View decisionContainer;
 
@@ -171,6 +173,8 @@ public class ReturnDetailActivity extends AppCompatActivity {
         cardWarehouse = findViewById(R.id.cardWarehouse);
         cardDecision = findViewById(R.id.cardDecision);
         sectionJournal = findViewById(R.id.sectionJournal);
+        sectionPhotos = findViewById(R.id.sectionPhotos);
+        txtPhotosEmpty = findViewById(R.id.txtPhotosEmpty);
         decisionStrip = findViewById(R.id.decisionStrip);
         decisionContainer = findViewById(R.id.decisionContainer);
 
@@ -761,6 +765,7 @@ public class ReturnDetailActivity extends AppCompatActivity {
             addIfPresent(container, cardShipment);
             addIfPresent(container, cardClient);
             addIfPresent(container, cardWarehouse);
+            addIfPresent(container, sectionPhotos);
         } else if (isAfter) {
             addIfPresent(container, cardProduct);
             addIfPresent(container, cardDecision);
@@ -768,11 +773,13 @@ public class ReturnDetailActivity extends AppCompatActivity {
             addIfPresent(container, cardShipment);
             addIfPresent(container, cardClient);
             addIfPresent(container, cardWarehouse);
+            addIfPresent(container, sectionPhotos);
         } else {
             addIfPresent(container, cardProduct);
             addIfPresent(container, cardShipment);
             addIfPresent(container, cardClient);
             addIfPresent(container, cardWarehouse);
+            addIfPresent(container, sectionPhotos);
             addIfPresent(container, sectionJournal);
         }
 
@@ -1183,18 +1190,32 @@ public class ReturnDetailActivity extends AppCompatActivity {
                         photoAdapter.setItems(data);
                     }
 
+                    boolean hasPhotos = data != null && !data.isEmpty();
+                    if (txtPhotosEmpty != null) {
+                        txtPhotosEmpty.setVisibility(hasPhotos ? View.GONE : View.VISIBLE);
+                    }
+                    if (listReturnPhotos != null) {
+                        listReturnPhotos.setVisibility(hasPhotos ? View.VISIBLE : View.GONE);
+                    }
+
                     // Opcjonalnie: Prefetch thumbnails do cache
-                    prefetchThumbnails(data);
+                    prefetchThumbnails(data != null ? data : new ArrayList<>());
                 });
             }
 
             @Override
             public void onError(String message) {
-                runOnUiThread(() ->
-                        Toast.makeText(ReturnDetailActivity.this,
-                                "Błąd zdjęć: " + message,
-                                Toast.LENGTH_LONG).show()
-                );
+                runOnUiThread(() -> {
+                    if (txtPhotosEmpty != null) {
+                        txtPhotosEmpty.setVisibility(View.VISIBLE);
+                    }
+                    if (listReturnPhotos != null) {
+                        listReturnPhotos.setVisibility(View.GONE);
+                    }
+                    Toast.makeText(ReturnDetailActivity.this,
+                            "Błąd zdjęć: " + message,
+                            Toast.LENGTH_LONG).show();
+                });
             }
         });
     }

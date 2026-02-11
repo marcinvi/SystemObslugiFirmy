@@ -49,6 +49,9 @@ public class ReturnsListActivity extends AppCompatActivity {
     private static final int CAMERA_PERMISSION_REQUEST = 2001;
     private static final String STATE_PENDING_MANUAL_CODE = "pending_manual_code";
     private static final String STATUS_WEW_OCZEKUJE_NA_PRZYJECIE = "Oczekuje na przyjęcie";
+    private static final String STATUS_WEW_PO_DECYZJI = "Po decyzji";
+    private static final String STATUS_WEW_ZAKONCZONY = "Zakończony";
+    private static final String STATUS_WEW_OCZEKUJE_DECYZJI = "Oczekuje na decyzję handlowca";
 
     private ReturnListAdapter adapter;
     private ProgressBar progressBar;
@@ -206,13 +209,13 @@ public class ReturnsListActivity extends AppCompatActivity {
             loadReturns();
         });
         btnFilterNaDecyzje.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+            currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_DECYZJI;
             currentStatusAllegro = null;
             setActiveFilter(btnFilterNaDecyzje);
             loadReturns();
         });
         btnFilterPoDecyzji.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Po decyzji";
+            currentStatusWewnetrzny = STATUS_WEW_PO_DECYZJI;
             currentStatusAllegro = null;
             setActiveFilter(btnFilterPoDecyzji);
             loadReturns();
@@ -231,7 +234,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         });
 
         setActiveFilter(btnFilterPoDecyzji);
-        currentStatusWewnetrzny = "Po decyzji";
+        currentStatusWewnetrzny = STATUS_WEW_PO_DECYZJI;
         currentStatusAllegro = null;
     }
 
@@ -248,7 +251,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         // Zakładka 1: Nowe sprawy
         btnFilterNaDecyzje.setText("Nowe sprawy");
         btnFilterNaDecyzje.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+            currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_DECYZJI;
             currentStatusAllegro = null;
             setActiveFilter(btnFilterNaDecyzje);
             loadReturns();
@@ -259,7 +262,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             btnFilterWTrakcie.setVisibility(View.VISIBLE);
             btnFilterWTrakcie.setText("W trakcie");
             btnFilterWTrakcie.setOnClickListener(v -> {
-                currentStatusWewnetrzny = "Po decyzji";
+                currentStatusWewnetrzny = STATUS_WEW_PO_DECYZJI;
                 currentStatusAllegro = null;
                 setActiveFilter(btnFilterWTrakcie);
                 loadReturns();
@@ -269,7 +272,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         // Zakładka 3: Zakończone
         btnFilterPoDecyzji.setText("Zakończone");
         btnFilterPoDecyzji.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Zakończony";
+            currentStatusWewnetrzny = STATUS_WEW_ZAKONCZONY;
             currentStatusAllegro = null;
             setActiveFilter(btnFilterPoDecyzji);
             loadReturns();
@@ -277,7 +280,7 @@ public class ReturnsListActivity extends AppCompatActivity {
 
         // Domyślnie: Nowe sprawy
         setActiveFilter(btnFilterNaDecyzje);
-        currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+        currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_DECYZJI;
         currentStatusAllegro = null;
         updateSalesCounts();
     }
@@ -330,7 +333,7 @@ public class ReturnsListActivity extends AppCompatActivity {
 
         btnFilterNaDecyzje.setText("Czekają na decyzję");
         btnFilterNaDecyzje.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+            currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_DECYZJI;
             currentStatusAllegro = null;
             setActiveFilter(btnFilterNaDecyzje);
             loadReturns();
@@ -340,7 +343,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             btnFilterWTrakcie.setVisibility(View.VISIBLE);
             btnFilterWTrakcie.setText("Po decyzji");
             btnFilterWTrakcie.setOnClickListener(v -> {
-                currentStatusWewnetrzny = "Po decyzji";
+                currentStatusWewnetrzny = STATUS_WEW_PO_DECYZJI;
                 currentStatusAllegro = null;
                 setActiveFilter(btnFilterWTrakcie);
                 loadReturns();
@@ -349,14 +352,14 @@ public class ReturnsListActivity extends AppCompatActivity {
 
         btnFilterPoDecyzji.setText("Zakończone");
         btnFilterPoDecyzji.setOnClickListener(v -> {
-            currentStatusWewnetrzny = "Zakończony";
+            currentStatusWewnetrzny = STATUS_WEW_ZAKONCZONY;
             currentStatusAllegro = null;
             setActiveFilter(btnFilterPoDecyzji);
             loadReturns();
         });
 
         setActiveFilter(btnFilterWTrakcie != null ? btnFilterWTrakcie : btnFilterNaDecyzje);
-        currentStatusWewnetrzny = "Po decyzji";
+        currentStatusWewnetrzny = STATUS_WEW_PO_DECYZJI;
         currentStatusAllegro = null;
     }
 
@@ -392,11 +395,12 @@ public class ReturnsListActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     if (progressBar != null) progressBar.setVisibility(View.GONE);
                     List<ReturnListItemDto> items = data != null ? data.getItems() : null;
-                    adapter.setItems(items);
-                    if (items == null || items.isEmpty()) {
+                    List<ReturnListItemDto> displayItems = applyLocalStatusFilter(items);
+                    adapter.setItems(displayItems);
+                    if (displayItems == null || displayItems.isEmpty()) {
                         if (txtEmpty != null) txtEmpty.setVisibility(View.VISIBLE);
                     }
-                    int count = items == null ? 0 : items.size();
+                    int count = displayItems == null ? 0 : displayItems.size();
                     if (txtCount != null) txtCount.setText("Wyświetlono: " + count);
 
                     if ("sales".equals(mode)) {
@@ -421,6 +425,39 @@ public class ReturnsListActivity extends AppCompatActivity {
         } else {
             client.fetchReturns(query, callback);
         }
+    }
+
+    private List<ReturnListItemDto> applyLocalStatusFilter(@Nullable List<ReturnListItemDto> items) {
+        if (items == null) {
+            return null;
+        }
+        if (!"sales".equals(mode)) {
+            return items;
+        }
+        if (currentStatusWewnetrzny == null || currentStatusWewnetrzny.isEmpty()) {
+            return items;
+        }
+
+        List<ReturnListItemDto> filtered = new java.util.ArrayList<>();
+        for (ReturnListItemDto item : items) {
+            if (item == null) continue;
+            String status = item.getStatusWewnetrzny();
+            if (status == null) continue;
+            String normalized = status.trim().toLowerCase();
+
+            if (STATUS_WEW_PO_DECYZJI.equals(currentStatusWewnetrzny)
+                    && normalized.equals(STATUS_WEW_PO_DECYZJI.toLowerCase())) {
+                filtered.add(item);
+            } else if (STATUS_WEW_ZAKONCZONY.equals(currentStatusWewnetrzny)
+                    && (normalized.equals(STATUS_WEW_ZAKONCZONY.toLowerCase())
+                    || normalized.equals("zakonczony"))) {
+                filtered.add(item);
+            } else if (STATUS_WEW_OCZEKUJE_DECYZJI.equals(currentStatusWewnetrzny)
+                    && normalized.equals(STATUS_WEW_OCZEKUJE_DECYZJI.toLowerCase())) {
+                filtered.add(item);
+            }
+        }
+        return filtered;
     }
 
     private void openDetails(ReturnListItemDto item) {
@@ -656,13 +693,13 @@ public class ReturnsListActivity extends AppCompatActivity {
         ApiClient client = new ApiClient(this);
 
         // Licznik: Nowe sprawy
-        fetchSalesCount(client, "Oczekuje na decyzję handlowca", count -> {
+        fetchSalesCount(client, STATUS_WEW_OCZEKUJE_DECYZJI, count -> {
             pendingCount = count;
             btnFilterNaDecyzje.setText("Nowe sprawy (" + pendingCount + ")");
         });
 
         // ✅ Licznik: W trakcie
-        fetchSalesCount(client, "Po decyzji", count -> {
+        fetchSalesCount(client, STATUS_WEW_PO_DECYZJI, count -> {
             inProgressCount = count;
             if (btnFilterWTrakcie != null) {
                 btnFilterWTrakcie.setText("W trakcie (" + inProgressCount + ")");
@@ -670,7 +707,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         });
 
         // Licznik: Zakończone
-        fetchSalesCount(client, "Zakończony", count -> {
+        fetchSalesCount(client, STATUS_WEW_ZAKONCZONY, count -> {
             completedCount = count;
             btnFilterPoDecyzji.setText("Zakończone (" + completedCount + ")");
         });
