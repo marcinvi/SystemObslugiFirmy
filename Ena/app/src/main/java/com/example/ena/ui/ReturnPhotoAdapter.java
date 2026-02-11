@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,7 +18,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.ena.R;
 import com.example.ena.api.ApiClient;
-import com.example.ena.api.ApiConfig;
 import com.example.ena.api.ReturnPhotoDto;
 import java.io.File;
 import java.util.ArrayList;
@@ -63,24 +61,18 @@ public class ReturnPhotoAdapter extends RecyclerView.Adapter<ReturnPhotoAdapter.
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ReturnPhotoDto photo = items.get(position);
+        holder.boundPhotoId = photo.getId();
 
-        // Nazwa pliku
         holder.txtName.setText(photo.getFileName() != null ? photo.getFileName() : "Zdjęcie");
+        holder.txtMeta.setText(buildMeta(photo));
 
-        // Metadata
-        String meta = buildMeta(photo);
-        holder.txtMeta.setText(meta);
-
-        // Reset stanu
         holder.imgThumbnail.setVisibility(View.GONE);
         holder.progressBar.setVisibility(View.VISIBLE);
         holder.imgThumbnail.setImageDrawable(null);
 
-        // Załaduj thumbnail asynchronicznie
         loadThumbnail(holder, photo);
 
-        // Kliknięcie - otwórz w pełnej rozdzielczości
-        holder.itemView.setOnClickListener(v -> openPhoto(photo));
+        holder.itemView.setOnClickListener(v -> openPhotoInApp(photo));
     }
 
     @Override
@@ -89,28 +81,28 @@ public class ReturnPhotoAdapter extends RecyclerView.Adapter<ReturnPhotoAdapter.
     }
 
     private void loadThumbnail(ViewHolder holder, ReturnPhotoDto photo) {
+        int photoId = photo.getId();
         executor.submit(() -> {
-            File cachedFile = new File(cacheDir, "thumb_" + photo.getId() + ".jpg");
+            File cachedFile = new File(cacheDir, "thumb_" + photoId + ".jpg");
 
-            // Jeśli jest w cache, użyj go
             if (cachedFile.exists()) {
                 Bitmap bitmap = BitmapFactory.decodeFile(cachedFile.getAbsolutePath());
                 if (bitmap != null) {
-                    showThumbnail(holder, bitmap);
+                    showThumbnail(holder, bitmap, photoId);
                     return;
                 }
             }
 
-            // Pobierz z serwera
-            apiClient.fetchReturnPhoto(photo.getId(), cacheDir, new ApiClient.PhotoCallback() {
+            apiClient.fetchReturnPhoto(photoId, cacheDir, new ApiClient.PhotoCallback() {
                 @Override
                 public void onSuccess(File file) {
-                    // Stwórz thumbnail
                     Bitmap fullBitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
                     if (fullBitmap != null) {
                         Bitmap thumbnail = createThumbnail(fullBitmap);
                         saveThumbnail(thumbnail, cachedFile);
-                        showThumbnail(holder, thumbnail);
+                        showThumbnail(holder, thumbnail, photoId);
+                    } else {
+                        hideProgress(holder, photoId);
                     }
                 }
 
@@ -121,7 +113,7 @@ public class ReturnPhotoAdapter extends RecyclerView.Adapter<ReturnPhotoAdapter.
 
                 @Override
                 public void onError(String message) {
-                    hideProgress(holder);
+                    hideProgress(holder, photoId);
                 }
             });
         });
@@ -141,9 +133,12 @@ public class ReturnPhotoAdapter extends RecyclerView.Adapter<ReturnPhotoAdapter.
         }
     }
 
-    private void showThumbnail(ViewHolder holder, Bitmap bitmap) {
+    private void showThumbnail(ViewHolder holder, Bitmap bitmap, int photoId) {
         if (holder.itemView.getHandler() != null) {
             holder.itemView.post(() -> {
+                if (holder.boundPhotoId != photoId) {
+                    return;
+                }
                 holder.imgThumbnail.setImageBitmap(bitmap);
                 holder.imgThumbnail.setVisibility(View.VISIBLE);
                 holder.progressBar.setVisibility(View.GONE);
@@ -151,26 +146,21 @@ public class ReturnPhotoAdapter extends RecyclerView.Adapter<ReturnPhotoAdapter.
         }
     }
 
-    private void hideProgress(ViewHolder holder) {
+    private void hideProgress(ViewHolder holder, int photoId) {
         if (holder.itemView.getHandler() != null) {
             holder.itemView.post(() -> {
+                if (holder.boundPhotoId != photoId) {
+                    return;
+                }
                 holder.progressBar.setVisibility(View.GONE);
             });
         }
     }
 
-    private void openPhoto(ReturnPhotoDto photo) {
-        String url = photo.getUrl();
-        if (url == null || url.trim().isEmpty()) {
-            return;
-        }
-        String base = ApiConfig.getBaseUrl(context);
-        if (base != null && url.startsWith("/")) {
-            url = base.endsWith("/") ? base.substring(0, base.length() - 1) + url : base + url;
-        }
-
-        // Otwórz w zewnętrznej przeglądarce/aplikacji
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+    private void openPhotoInApp(ReturnPhotoDto photo) {
+        Intent intent = new Intent(context, PhotoPreviewActivity.class);
+        intent.putExtra(PhotoPreviewActivity.EXTRA_PHOTO_ID, photo.getId());
+        intent.putExtra(PhotoPreviewActivity.EXTRA_PHOTO_NAME, photo.getFileName());
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
     }
@@ -210,6 +200,7 @@ public class ReturnPhotoAdapter extends RecyclerView.Adapter<ReturnPhotoAdapter.
         final TextView txtMeta;
         final ImageView imgThumbnail;
         final ProgressBar progressBar;
+        int boundPhotoId;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
