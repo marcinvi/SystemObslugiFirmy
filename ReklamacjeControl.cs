@@ -50,7 +50,6 @@ namespace Reklamacje_Dane
 
         // Serwisy
         private readonly EmailService _emailService; // Serwis Maili
-        private ShipmentNotificationService _shipmentNotificationService;
         private readonly string _fullName;
         private readonly string _userRole;
         private WebView2 _privateWebView;
@@ -155,7 +154,6 @@ namespace Reklamacje_Dane
             // WebView inicjujemy w tle, nie czekamy na niego
             _ = _privateWebView.EnsureCoreWebView2Async(null);
 
-            _shipmentNotificationService = new ShipmentNotificationService(this.FindForm(), _privateWebView);
 
             try { await ReminderService.InitializeAsync(); } catch { }
 
@@ -347,9 +345,25 @@ namespace Reklamacje_Dane
             if (_isCheckingShipments) return; _isCheckingShipments = true;
             try
             {
-                SetActivity("DPD: Pobieranie statusów...");
-                await _shipmentNotificationService.CheckAndNotifyAsync();
-                UpdateSyncStatus("Przesyłki DPD", "OK", "Sprawdzono pomyślnie");
+                SetActivity("DPD: Pobieranie statusu z API...");
+                var sync = await GetServerOperationsSyncStatusAsync();
+                var dpd = sync?.Dpd ?? new SyncServiceStatusApi();
+
+                SafeInvoke(() =>
+                {
+                    if (dpd.MetricValue > 0)
+                    {
+                        btnTracking.Text = $"🚚 Śledzenie DPD ({dpd.MetricValue})";
+                        btnTracking.ForeColor = Color.Orange;
+                    }
+                    else
+                    {
+                        btnTracking.Text = "🚚 Śledzenie DPD";
+                        btnTracking.ForeColor = Color.FromArgb(180, 190, 210);
+                    }
+                });
+
+                UpdateSyncStatus("Przesyłki DPD", dpd.LastSuccess ? "OK" : "Błąd", dpd.LastError ?? $"Zmiany: {dpd.MetricValue}");
             }
             catch (Exception ex) { UpdateSyncStatus("Przesyłki DPD", "Błąd", ex.Message); }
             finally { _isCheckingShipments = false; SetActivity(""); }
@@ -411,9 +425,17 @@ namespace Reklamacje_Dane
             if (_isCheckingGoogleSheets) return; _isCheckingGoogleSheets = true;
             try
             {
-                SetActivity("Google: Pobieranie arkuszy...");
-                await UpdateGoogleSheetRowCountAsync();
-                UpdateSyncStatus("Google Sheets", "OK", "Synchronizacja zakończona");
+                SetActivity("Google: Pobieranie statusu z API...");
+                var sync = await GetServerOperationsSyncStatusAsync();
+                var google = sync?.Google ?? new SyncServiceStatusApi();
+
+                SafeInvoke(() =>
+                {
+                    btnNewGoogle.Text = $"🟢 Nowe Google ({google.MetricValue})";
+                    _lastGoogleSheetRows = google.MetricValue;
+                });
+
+                UpdateSyncStatus("Google Sheets", google.LastSuccess ? "OK" : "Błąd", google.LastError ?? $"Wiersze: {google.MetricValue}");
             }
             catch (Exception ex) { UpdateSyncStatus("Google Sheets", "Błąd", ex.Message); }
             finally { _isCheckingGoogleSheets = false; SetActivity(""); }

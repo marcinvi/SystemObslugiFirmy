@@ -193,10 +193,34 @@ namespace Reklamacje_Dane
 
             try
             {
-                await UpdateGoogleSheetRowCountAsync();
+                if (IsApiAuthenticated())
+                {
+                    var sync = await GetServerOperationsSyncStatusAsync();
+                    var google = sync?.Google ?? new SyncServiceStatusApi();
+
+                    if (this.IsHandleCreated && !this.IsDisposed)
+                    {
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            var complaintCount = google.MetricValue;
+                            if (complaintCount > _lastGoogleSheetRows && _lastGoogleSheetRows != -1)
+                            {
+                                powiadomienie.Text = "Nowe zgłoszenie do rejestracji w Google Sheets!";
+                                powiadomienie.BackColor = Color.SeaGreen;
+                                powiadomienie.Visible = true;
+                            }
+                            _lastGoogleSheetRows = complaintCount;
+                            label10.Text = complaintCount.ToString();
+                        });
+                    }
+                }
             }
             catch (Exception ex)
             {
+                if (this.IsHandleCreated && !this.IsDisposed)
+                {
+                    this.Invoke((MethodInvoker)delegate { label10.Text = "Błąd"; });
+                }
                 Console.WriteLine($"Błąd podczas synchronizacji z Google Sheets: {ex.Message}");
             }
             finally
@@ -330,52 +354,7 @@ namespace Reklamacje_Dane
 
         private async Task UpdateGoogleSheetRowCountAsync()
         {
-            try
-            {
-                GoogleCredential credential;
-                using (var stream = new FileStream("reklamacje-baza-ed853b4e33f7.json", FileMode.Open, FileAccess.Read))
-                {
-                    credential = GoogleCredential.FromStream(stream).CreateScoped(new[] { SheetsService.Scope.SpreadsheetsReadonly });
-                }
-                var service = new SheetsService(new BaseClientService.Initializer() { HttpClientInitializer = credential });
-                string spreadsheetId = "1VXGP4Cckt6NmSHtiv-Um7nqg-itLMczAGd-5a_Tc4Ds";
-                string[] sheetsToRead = { "B", "Z" };
-                int totalRows = 0;
-
-                foreach (var sheetName in sheetsToRead)
-                {
-                    var request = service.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!A:A");
-                    var response = await request.ExecuteAsync();
-                    if (response.Values != null)
-                    {
-                        totalRows += response.Values.Count(row => row.Any(cell => !string.IsNullOrWhiteSpace(cell?.ToString())));
-                    }
-                }
-                int complaintCount = Math.Max(0, totalRows - 2); // Odejmujemy 2 wiersze nagłówkowe
-
-                if (this.IsHandleCreated && !this.IsDisposed)
-                {
-                    this.Invoke((MethodInvoker)delegate
-                    {
-                        if (complaintCount > _lastGoogleSheetRows && _lastGoogleSheetRows != -1)
-                        {
-                            powiadomienie.Text = "Nowe zgłoszenie do rejestracji w Google Sheets!";
-                            powiadomienie.BackColor = Color.SeaGreen;
-                            powiadomienie.Visible = true;
-                        }
-                        _lastGoogleSheetRows = complaintCount;
-                        label10.Text = complaintCount.ToString();
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                if (this.IsHandleCreated && !this.IsDisposed)
-                {
-                    this.Invoke((MethodInvoker)delegate { label10.Text = "Błąd"; });
-                }
-                Console.WriteLine("Błąd pobierania danych z Google Sheets: " + ex.Message);
-            }
+            await RunGoogleSheetsSync();
         }
 
         private async Task LoadProcessingCasesAsync()
@@ -468,7 +447,7 @@ namespace Reklamacje_Dane
         }
         private void labelZalogowany_Click(object sender, EventArgs e) { MessageBox.Show($"Zalogowany jako: {Program.fullName}"); }
         private void powiadomienie_Click(object sender, EventArgs e) { powiadomienie.Visible = false; }
-        private void label10_Click(object sender, EventArgs e) => _ = UpdateGoogleSheetRowCountAsync();
+        private void label10_Click(object sender, EventArgs e) => _ = RunGoogleSheetsSync();
         private void dodajNoweToolStripMenuItem_Click(object sender, EventArgs e) { MessageBox.Show("Funkcja w przygotowaniu."); }
         private void pokażWyszystkieToolStripMenuItem_Click(object sender, EventArgs e) { MessageBox.Show("Funkcja w przygotowaniu."); }
         private void oczekująceNaDostawęProsuktuToolStripMenuItem_Click(object sender, EventArgs e) { MessageBox.Show("Funkcja w przygotowaniu."); }
