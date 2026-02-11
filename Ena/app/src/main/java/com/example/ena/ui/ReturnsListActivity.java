@@ -769,13 +769,15 @@ public class ReturnsListActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
                     hideLoadingOverlay();
                     List<ReturnListItemDto> items = data != null ? data.getItems() : null;
-                    adapter.setItems(items);
-                    int count = displayItems == null ? 0 : displayItems.size();
-                    txtCount.setText("Wyświetlono: " + count);
-                    txtEmpty.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
+                    List<ReturnListItemDto> filteredItems = applyLocalStatusFilter(items);
+                    adapter.setItems(filteredItems);
 
-                    if (count == 1) {
-                        openDetails(items.get(0));
+                    int count = (filteredItems == null) ? 0 : filteredItems.size();
+                    if (txtCount != null) txtCount.setText("Wyświetlono: " + count);
+                    if (txtEmpty != null) txtEmpty.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
+
+                    if (count == 1 && filteredItems != null) {
+                        openDetails(filteredItems.get(0));
                         return;
                     }
                     if (count == 0) {
