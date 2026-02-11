@@ -1042,6 +1042,10 @@ public class ReturnsService
         var photoId = (int)command.LastInsertedId;
         await AddReturnActionInternalAsync(connection, returnId, userDisplayName, "Dodano zdjęcie do zwrotu.");
 
+        var referenceNumber = await GetReturnReferenceNumberAsync(connection, returnId)
+            ?? $"ZWROT-{returnId}";
+        await _notificationsService.NotifyReturnActivityAsync(returnId, referenceNumber, userId, "Dodano nowe zdjęcie.");
+
         return new ReturnPhotoDto
         {
             Id = photoId,
@@ -1119,6 +1123,9 @@ public class ReturnsService
         if (deleted)
         {
             await AddReturnActionInternalAsync(connection, returnId, userDisplayName, "Usunięto zdjęcie zwrotu.");
+            var referenceNumber = await GetReturnReferenceNumberAsync(connection, returnId.Value)
+                ?? $"ZWROT-{returnId.Value}";
+            await _notificationsService.NotifyReturnActivityAsync(returnId.Value, referenceNumber, null, "Usunięto zdjęcie.");
         }
 
         return deleted;
@@ -1144,6 +1151,7 @@ public class ReturnsService
             var referenceNumber = await GetReturnReferenceNumberAsync(connection, returnId)
                 ?? $"ZWROT-{returnId}";
             await _notificationsService.NotifyJournalEntryAsync(returnId, referenceNumber, userId, request.Tresc);
+            await _notificationsService.NotifyReturnActivityAsync(returnId, referenceNumber, userId, "Dodano nowy wpis w dzienniku.");
         }
 
         return new ReturnActionDto
@@ -1232,6 +1240,10 @@ public class ReturnsService
         }
 
         await AddReturnActionInternalAsync(connection, returnId, userDisplayName, actionText);
+
+        var referenceNumber = await GetReturnReferenceNumberAsync(connection, returnId)
+            ?? $"ZWROT-{returnId}";
+        await _notificationsService.NotifyReturnActivityAsync(returnId, referenceNumber, null, "Odrzucono zwrot.");
         return true;
     }
 
@@ -1260,6 +1272,10 @@ public class ReturnsService
         await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
         await connection.OpenAsync();
         await AddReturnActionInternalAsync(connection, returnId, userDisplayName, actionText);
+
+        var referenceNumber = await GetReturnReferenceNumberAsync(connection, returnId)
+            ?? $"ZWROT-{returnId}";
+        await _notificationsService.NotifyReturnActivityAsync(returnId, referenceNumber, null, "Zlecono zwrot wpłaty.");
 
         return true;
     }
@@ -1800,6 +1816,10 @@ public class ReturnsService
             const string actionText = "Zwrot zakończony.";
             await AddReturnActionInternalAsync(connection, returnId, userDisplayName, actionText);
             await AddMagazynDziennikAsync(connection, returnId, userDisplayName, actionText, null);
+
+            var referenceNumber = await GetReturnReferenceNumberAsync(connection, returnId)
+                ?? $"ZWROT-{returnId}";
+            await _notificationsService.NotifyReturnActivityAsync(returnId, referenceNumber, null, "Zakończono zwrot.");
         }
 
         return updated;

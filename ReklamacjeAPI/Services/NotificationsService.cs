@@ -269,6 +269,90 @@ public class NotificationsService
         }
     }
 
+    /// <summary>
+    /// Wysyła powiadomienie o aktywności dla wszystkich użytkowników powiązanych ze zwrotem.
+    /// </summary>
+    public async Task NotifyReturnActivityAsync(int returnId, string referenceNumber, int? actorUserId, string activityText)
+    {
+        await using var connection = DbConnectionFactory.CreateMagazynConnection(_configuration);
+        await connection.OpenAsync();
+
+        var recipients = new HashSet<int>();
+
+        const string recipientsQuery = @"
+            SELECT DISTINCT userId
+            FROM (
+                SELECT PrzyjetyPrzezId AS userId
+                FROM AllegroCustomerReturns
+                WHERE Id = @returnId AND PrzyjetyPrzezId IS NOT NULL
+
+                UNION
+
+                SELECT HandlowiecOpiekunId AS userId
+                FROM AllegroCustomerReturns
+                WHERE Id = @returnId AND HandlowiecOpiekunId IS NOT NULL
+
+                UNION
+
+                SELECT OdbiorcaId AS userId
+                FROM Wiadomosci
+                WHERE DotyczyZwrotuId = @returnId
+
+                UNION
+
+                SELECT NadawcaId AS userId
+                FROM Wiadomosci
+                WHERE DotyczyZwrotuId = @returnId
+
+                UNION
+
+                SELECT DodanyPrzez AS userId
+                FROM ZwrotPliki
+                WHERE ZwrotId = @returnId AND DodanyPrzez IS NOT NULL
+            ) q
+            WHERE userId IS NOT NULL";
+
+        await using (var recipientsCommand = new MySqlCommand(recipientsQuery, connection))
+        {
+            recipientsCommand.Parameters.AddWithValue("@returnId", returnId);
+            await using var reader = await recipientsCommand.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var userId = Convert.ToInt32(reader["userId"]);
+                if (userId > 0 && (!actorUserId.HasValue || userId != actorUserId.Value))
+                {
+                    recipients.Add(userId);
+                }
+            }
+        }
+
+        if (recipients.Count == 0)
+        {
+            return;
+        }
+
+        var readColumn = await ResolveCzyPrzeczytanaColumnAsync(connection);
+        var senderId = actorUserId.HasValue && actorUserId.Value > 0 ? actorUserId.Value : recipients.First();
+        var title = "Aktualizacja zwrotu";
+        var content = $"Zwrot {referenceNumber}: {activityText}";
+
+        var insertQuery = $@"
+            INSERT INTO Wiadomosci (NadawcaId, OdbiorcaId, Tytul, Tresc, DataWyslania, DotyczyZwrotuId, {readColumn})
+            VALUES (@nadawcaId, @odbiorcaId, @tytul, @tresc, @data, @zwrotId, 0)";
+
+        foreach (var recipientId in recipients)
+        {
+            await using var insertCommand = new MySqlCommand(insertQuery, connection);
+            insertCommand.Parameters.AddWithValue("@nadawcaId", senderId);
+            insertCommand.Parameters.AddWithValue("@odbiorcaId", recipientId);
+            insertCommand.Parameters.AddWithValue("@tytul", title);
+            insertCommand.Parameters.AddWithValue("@tresc", content);
+            insertCommand.Parameters.AddWithValue("@data", DateTime.Now);
+            insertCommand.Parameters.AddWithValue("@zwrotId", returnId);
+            await insertCommand.ExecuteNonQueryAsync();
+        }
+    }
+
     private async Task<string> ResolveCzyPrzeczytanaColumnAsync(MySqlConnection connection)
     {
         const string query = @"
