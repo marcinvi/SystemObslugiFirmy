@@ -1,6 +1,6 @@
 using System;
 using System.Drawing;
-using System.Net.Sockets;
+using System.Net;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -484,13 +484,29 @@ namespace Reklamacje_Dane
 
         private static bool IsPortOpen(string host, int port, int timeoutMs = 200)
         {
+            if (string.IsNullOrWhiteSpace(host) || port <= 0 || port > 65535)
+            {
+                return false;
+            }
+
             try
             {
-                using (var client = new TcpClient())
+                var probeUri = new UriBuilder("http", host, port).Uri;
+                var request = (HttpWebRequest)WebRequest.Create(probeUri);
+                request.Method = "HEAD";
+                request.Timeout = timeoutMs;
+                request.ReadWriteTimeout = timeoutMs;
+                request.AllowAutoRedirect = false;
+
+                using (var response = (HttpWebResponse)request.GetResponse())
                 {
-                    var connectTask = client.ConnectAsync(host, port);
-                    return connectTask.Wait(timeoutMs) && client.Connected;
+                    return true;
                 }
+            }
+            catch (WebException ex) when (ex.Response != null)
+            {
+                ex.Response.Close();
+                return true;
             }
             catch
             {
