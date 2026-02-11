@@ -4,6 +4,7 @@ import android.Manifest; // <--- DODANO
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -27,6 +28,8 @@ import com.google.gson.Gson;
 import com.example.ena.api.ApiConfig;
 import com.example.ena.api.ApiClient;
 import com.example.ena.api.NotificationDto;
+import com.example.ena.ui.ReturnDetailActivity;
+import com.example.ena.ui.SalesReturnDetailActivity;
 import com.example.ena.UserSession;
 
 import java.io.IOException;
@@ -457,9 +460,48 @@ public class BackgroundService extends Service {
                 .setContentText(content)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(content))
                 .setAutoCancel(true)
+                .setContentIntent(createNotificationPendingIntent(notification))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
 
         NotificationManagerCompat.from(this).notify(notification.getId(), builder.build());
+    }
+
+    private PendingIntent createNotificationPendingIntent(NotificationDto notification) {
+        Intent targetIntent;
+        Integer relatedReturnId = notification.getDotyczyZwrotuId();
+
+        if (relatedReturnId != null && relatedReturnId > 0) {
+            if (isDecisionNotification(notification)) {
+                targetIntent = new Intent(this, SalesReturnDetailActivity.class);
+                targetIntent.putExtra(SalesReturnDetailActivity.EXTRA_RETURN_ID, relatedReturnId);
+            } else {
+                targetIntent = new Intent(this, ReturnDetailActivity.class);
+                targetIntent.putExtra(ReturnDetailActivity.EXTRA_RETURN_ID, relatedReturnId);
+            }
+        } else {
+            targetIntent = new Intent(this, MainActivity.class);
+        }
+
+        targetIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        int requestCode = notification.getId() > 0 ? notification.getId() : (int) System.currentTimeMillis();
+        return PendingIntent.getActivity(
+                this,
+                requestCode,
+                targetIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+    }
+
+    private boolean isDecisionNotification(NotificationDto notification) {
+        String source = ((notification.getTytul() == null ? "" : notification.getTytul()) + " "
+                + (notification.getTresc() == null ? "" : notification.getTresc())).toLowerCase();
+
+        // Powiadomienia "oczekuje na Twoją decyzję" powinny kierować handlowca
+        // bezpośrednio do widoku decyzji.
+        return source.contains("twoją decyz")
+                || source.contains("twoja decyz")
+                || source.contains("do decyzji");
     }
 
     private int getLastNotificationId() {
