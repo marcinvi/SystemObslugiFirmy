@@ -3,10 +3,14 @@ package com.example.ena.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -33,6 +37,11 @@ public class SummaryActivity extends AppCompatActivity {
     // Logika
     private ApiClient apiClient;
     private View filtersContainer;
+    private Button btnFilterPending;
+    private Button btnFilterAction;
+    private Button btnFilterDone;
+    private Button btnFilterOther;
+    private String currentStatusWewnetrzny;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +64,10 @@ public class SummaryActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
         btnRefresh = findViewById(R.id.btnRefresh);
         filtersContainer = findViewById(R.id.summaryFilters);
+        btnFilterPending = findViewById(R.id.btnFilterPending);
+        btnFilterAction = findViewById(R.id.btnFilterAction);
+        btnFilterDone = findViewById(R.id.btnFilterDone);
+        btnFilterOther = findViewById(R.id.btnFilterOther);
 
         btnBack.setOnClickListener(v -> finish());
         btnRefresh.setOnClickListener(v -> loadReturns());
@@ -76,8 +89,50 @@ public class SummaryActivity extends AppCompatActivity {
     }
 
     private void setupFilters() {
-        if (filtersContainer != null) {
-            filtersContainer.setVisibility(View.GONE);
+        if (filtersContainer == null) {
+            return;
+        }
+
+        filtersContainer.setVisibility(View.VISIBLE);
+
+        btnFilterPending.setText("Nowe");
+        btnFilterPending.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Po decyzji";
+            setActiveFilter(btnFilterPending);
+            loadReturns();
+        });
+
+        btnFilterDone.setText("Zakończone");
+        btnFilterDone.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Zakończony";
+            setActiveFilter(btnFilterDone);
+            loadReturns();
+        });
+
+        btnFilterAction.setText("Oczekują na decyzję");
+        btnFilterAction.setOnClickListener(v -> {
+            currentStatusWewnetrzny = "Oczekuje na decyzję handlowca";
+            setActiveFilter(btnFilterAction);
+            loadReturns();
+        });
+
+        if (btnFilterOther != null) {
+            btnFilterOther.setVisibility(View.GONE);
+        }
+
+        currentStatusWewnetrzny = "Po decyzji";
+        setActiveFilter(btnFilterPending);
+    }
+
+    private void setActiveFilter(Button activeButton) {
+        Button[] buttons = new Button[] { btnFilterPending, btnFilterAction, btnFilterDone };
+        for (Button button : buttons) {
+            if (button == null) continue;
+            if (button == activeButton) {
+                button.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light));
+            } else {
+                button.setBackgroundColor(getResources().getColor(android.R.color.darker_gray));
+            }
         }
     }
 
@@ -89,6 +144,10 @@ public class SummaryActivity extends AppCompatActivity {
         String query = "?page=1&pageSize=0"
                 + "&excludeStatusWewnetrzny=Oczekuje%20na%20przyj%C4%99cie"
                 + "&sortByLastAction=true";
+
+        if (currentStatusWewnetrzny != null && !currentStatusWewnetrzny.isEmpty()) {
+            query += "&statusWewnetrzny=" + encode(currentStatusWewnetrzny);
+        }
 
         // Pobieramy WSZYSTKIE zwroty (fetchReturns), bo to podgląd ogólny
         apiClient.fetchReturns(query, new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
@@ -118,6 +177,10 @@ public class SummaryActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
 }
