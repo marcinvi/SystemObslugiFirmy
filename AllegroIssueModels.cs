@@ -83,6 +83,13 @@ namespace Reklamacje_Dane.Allegro.Issues
     {
         [JsonProperty("messagesCount")] public int MessagesCount { get; set; }
         [JsonProperty("initialMessage")] public InitialMessage InitialMessage { get; set; }
+        [JsonProperty("lastMessage")] public LastMessage LastMessage { get; set; }
+    }
+
+    public class LastMessage
+    {
+        [JsonProperty("status")] public string Status { get; set; }
+        [JsonProperty("createdAt")] public DateTime? CreatedAt { get; set; }
     }
 
     public class InitialMessage

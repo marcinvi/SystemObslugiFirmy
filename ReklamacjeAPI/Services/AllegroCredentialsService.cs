@@ -92,6 +92,40 @@ public class AllegroCredentialsService
 
         await command.ExecuteNonQueryAsync();
     }
+
+    public async Task<List<AuthorizedAllegroAccount>> GetAuthorizedAccountsAsync()
+    {
+        await using var connection = DbConnectionFactory.CreateDefaultConnection(_configuration);
+        await connection.OpenAsync();
+
+        const string query = @"
+            SELECT Id,
+                   AccountName,
+                   TokenExpirationDate
+            FROM AllegroAccounts
+            WHERE IsAuthorized = 1";
+
+        await using var command = new MySqlCommand(query, connection);
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var result = new List<AuthorizedAllegroAccount>();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetInt32("Id");
+            var accountName = reader["AccountName"]?.ToString() ?? $"Account-{id}";
+            var expirationRaw = reader["TokenExpirationDate"]?.ToString();
+
+            DateTime? expirationDate = null;
+            if (!string.IsNullOrWhiteSpace(expirationRaw) && DateTime.TryParse(expirationRaw, out var parsed))
+            {
+                expirationDate = parsed;
+            }
+
+            result.Add(new AuthorizedAllegroAccount(id, accountName, expirationDate));
+        }
+
+        return result;
+    }
 }
 
 public record AllegroAccountCredentials(
@@ -101,3 +135,8 @@ public record AllegroAccountCredentials(
     string? AccessToken,
     string? RefreshToken,
     DateTime? ExpirationDate);
+
+public record AuthorizedAllegroAccount(
+    int Id,
+    string Name,
+    DateTime? TokenExpirationDate);

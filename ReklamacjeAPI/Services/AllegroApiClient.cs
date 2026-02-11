@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -23,6 +24,7 @@ public class AllegroApiClient
     private readonly HttpClient _httpClient;
     private readonly AllegroCredentialsService _credentialsService;
     private readonly ILogger<AllegroApiClient> _logger;
+    private static readonly ConcurrentDictionary<int, SemaphoreSlim> RefreshLocks = new();
 
     public AllegroApiClient(
         HttpClient httpClient,
@@ -88,6 +90,11 @@ public class AllegroApiClient
     {
         var endpoint = $"{ApiBaseUrl}/payments/refunds";
         await SendAsync(accountId, HttpMethod.Post, endpoint, request, AcceptPublicV1);
+    }
+
+    public async Task ForceRefreshTokenAsync(int accountId)
+    {
+        _ = await RefreshTokenAsync(accountId);
     }
 
     private async Task<string?> ResolveCheckoutFormIdFromEventsAsync(int accountId, string checkoutFormId)
@@ -179,49 +186,58 @@ public class AllegroApiClient
 
     private async Task<string> RefreshTokenAsync(int accountId, AllegroAccountCredentials? cachedCredentials = null)
     {
-        var credentials = cachedCredentials ?? await _credentialsService.GetCredentialsAsync(accountId);
-        if (credentials == null)
+        var accountLock = RefreshLocks.GetOrAdd(accountId, _ => new SemaphoreSlim(1, 1));
+        await accountLock.WaitAsync();
+        try
         {
-            throw new InvalidOperationException("Nie znaleziono danych konta Allegro.");
+            var credentials = cachedCredentials ?? await _credentialsService.GetCredentialsAsync(accountId);
+            if (credentials == null)
+            {
+                throw new InvalidOperationException("Nie znaleziono danych konta Allegro.");
+            }
+
+            if (string.IsNullOrWhiteSpace(credentials.RefreshToken))
+            {
+                throw new InvalidOperationException("Brak refresh tokenu dla konta Allegro.");
+            }
+
+            var basicToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{credentials.ClientId}:{credentials.ClientSecret}"));
+            using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, TokenUrl);
+            tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", basicToken);
+            tokenRequest.Content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = credentials.RefreshToken,
+                ["redirect_uri"] = "http://localhost:8989/"
+            });
+
+            var response = await _httpClient.SendAsync(tokenRequest);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Nie udało się odświeżyć tokenu Allegro ({response.StatusCode}): {errorBody}");
+            }
+
+            var body = await response.Content.ReadAsStringAsync();
+            var tokenResponse = JsonSerializer.Deserialize<AllegroTokenResponse>(body, JsonOptions);
+            if (tokenResponse == null || string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
+            {
+                throw new InvalidOperationException("Brak poprawnej odpowiedzi z Allegro podczas odświeżania tokenu.");
+            }
+
+            var refreshToken = string.IsNullOrWhiteSpace(tokenResponse.RefreshToken)
+                ? credentials.RefreshToken
+                : tokenResponse.RefreshToken;
+            var expiresAt = DateTime.Now.AddSeconds(tokenResponse.ExpiresIn);
+
+            await _credentialsService.SaveTokensAsync(accountId, tokenResponse.AccessToken, refreshToken, expiresAt);
+
+            return tokenResponse.AccessToken;
         }
-
-        if (string.IsNullOrWhiteSpace(credentials.RefreshToken))
+        finally
         {
-            throw new InvalidOperationException("Brak refresh tokenu dla konta Allegro.");
+            accountLock.Release();
         }
-
-        var basicToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{credentials.ClientId}:{credentials.ClientSecret}"));
-        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, TokenUrl);
-        tokenRequest.Headers.Authorization = new AuthenticationHeaderValue("Basic", basicToken);
-        tokenRequest.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["grant_type"] = "refresh_token",
-            ["refresh_token"] = credentials.RefreshToken,
-            ["redirect_uri"] = "http://localhost:8989/"
-        });
-
-        var response = await _httpClient.SendAsync(tokenRequest);
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync();
-            throw new HttpRequestException($"Nie udało się odświeżyć tokenu Allegro ({response.StatusCode}): {errorBody}");
-        }
-
-        var body = await response.Content.ReadAsStringAsync();
-        var tokenResponse = JsonSerializer.Deserialize<AllegroTokenResponse>(body, JsonOptions);
-        if (tokenResponse == null || string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
-        {
-            throw new InvalidOperationException("Brak poprawnej odpowiedzi z Allegro podczas odświeżania tokenu.");
-        }
-
-        var refreshToken = string.IsNullOrWhiteSpace(tokenResponse.RefreshToken)
-            ? credentials.RefreshToken
-            : tokenResponse.RefreshToken;
-        var expiresAt = DateTime.Now.AddSeconds(tokenResponse.ExpiresIn);
-
-        await _credentialsService.SaveTokensAsync(accountId, tokenResponse.AccessToken, refreshToken, expiresAt);
-
-        return tokenResponse.AccessToken;
     }
 
     private sealed class AllegroTokenResponse
