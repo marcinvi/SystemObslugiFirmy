@@ -109,6 +109,7 @@ namespace Reklamacje_Dane
             // Inicjalizacja UI
             BuildRemindersTabsBar();
             InitializeSyncStatuses();
+            InitializeMenuCounters();
 
             txtFilterProcessing.TextChanged += txtFilterProcessing_TextChanged;
             dataGridViewProcessing.CellDoubleClick += anyDataGridView_CellClick;
@@ -426,7 +427,44 @@ namespace Reklamacje_Dane
                 // Powiadomienia o przypomnieniach są lokalne i niezależne od API
                 await UpdateReminderNotificationsCountAsync();
             }
-            catch { }
+            catch
+            {
+                await UpdateCountersFromDatabaseFallbackAsync();
+                await UpdateReminderNotificationsCountAsync();
+            }
+        }
+
+        private async Task UpdateCountersFromDatabaseFallbackAsync()
+        {
+            await UpdateAllegroUnregisteredCountFromDbAsync();
+            await UpdateAllegroChatUnreadCountAsync();
+            await PollReturnsCountFromDb();
+        }
+
+        private async Task UpdateAllegroUnregisteredCountFromDbAsync()
+        {
+            try
+            {
+                int count = 0;
+                using (var con = Database.GetNewOpenConnection())
+                {
+                    var sql = @"SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(CzyZarejestrowane, 0) = 0";
+                    using (var cmd = new MySqlCommand(sql, con))
+                        count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                }
+
+                SafeInvoke(() => { btnNewAllegro.Text = $"🟠 Nowe Allegro ({count})"; });
+            }
+            catch
+            {
+                SafeInvoke(() => { btnNewAllegro.Text = "🟠 Nowe Allegro (0)"; });
+            }
+        }
+
+        private async Task PollSyncStatusAndCounters()
+        {
+            await PollSyncStatusFromApi();
+            await PollCountersFromApi();
         }
 
         private async Task PollSyncStatusAndCounters()
@@ -736,13 +774,28 @@ namespace Reklamacje_Dane
                 string[] lines;
                 lock (_syncStatus) { lines = _syncStatus.Values.OrderBy(v => v).ToArray(); }
 
-                bool anyError = lines.Any(l => l.Contains("Błąd"));
-                lblSyncStatus.Text = anyError ? "Synchronizacja: BŁĄD" : "Synchronizacja: OK";
-                lblSyncStatus.ForeColor = anyError ? Color.Red : Color.ForestGreen;
+                bool anyProblem = lines.Any(l =>
+                    l.IndexOf("Błąd", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    l.IndexOf("Brak autoryzacji", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                lblSyncStatus.Text = anyProblem ? "Synchronizacja: BŁĄD" : "Synchronizacja: OK";
+                lblSyncStatus.ForeColor = anyProblem ? Color.Red : Color.ForestGreen;
 
                 string fullText = "Status usług:\n\n" + string.Join("\n", lines);
                 if (_statusTooltip.GetToolTip(lblSyncStatus) != fullText)
                     _statusTooltip.SetToolTip(lblSyncStatus, fullText);
+            });
+        }
+
+        private void InitializeMenuCounters()
+        {
+            SafeInvoke(() =>
+            {
+                btnNewGoogle.Text = "🟢 Nowe Google (0)";
+                btnNewAllegro.Text = "🟠 Nowe Allegro (0)";
+                btnNewReturn.Text = "↩️ Nowe Zwroty (0)";
+                btnChat.Text = "💬 Czat Allegro (0)";
+                btnReminders.Text = "⏰ Przypomnienia (0)";
             });
         }
 
