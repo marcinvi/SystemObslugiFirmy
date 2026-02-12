@@ -8,6 +8,7 @@ using System;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MySql.Data.MySqlClient;
 
 namespace Reklamacje_Dane
 {
@@ -33,24 +34,66 @@ namespace Reklamacje_Dane
         {
             try
             {
-                UpdateStatus("Odświeżanie tokenów Allegro...");
-                AddLogEntry("Rozpoczynam odświeżanie tokenów...", Color.Black);
+                UpdateStatus("Weryfikacja dostępu do bazy danych...");
+                AddLogEntry("Dashboard działa w trybie DB-only: API synchronizuje dane do bazy, a formularz czyta bazę.", Color.Black);
 
-                var progress = new Progress<(string message, Color color)>(t =>
+                string apiUrl = (Properties.Settings.Default.ApiBaseUrl ?? string.Empty).Trim();
+                if (!string.IsNullOrWhiteSpace(apiUrl))
                 {
-                    AddLogEntry(t.message, t.color);
-                });
+                    AddLogEntry($"Info: skonfigurowany URL API = {apiUrl} (http/https zależnie od serwera)", Color.DarkSlateBlue);
+                }
 
-                AddLogEntry("Odświeżanie tokenów po stronie WinForms zostało wyłączone.", Color.DarkOrange);
-                AddLogEntry("Tokeny są odświeżane centralnie po stronie API (background service).", Color.Black);
+                using (var con = Database.GetNewOpenConnection())
+                {
+                    AddLogEntry("✓ Połączenie z bazą OK", Color.ForestGreen);
+
+                    int unregisteredAllegro = 0;
+                    using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(CzyZarejestrowane,0)=0", con))
+                        unregisteredAllegro = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+
+                    int newChat = 0;
+                    using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(HasNewMessages,0)=1", con))
+                        newChat = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+
+                    int newReturns = 0;
+                    using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM NiezarejestrowaneZwrotyReklamacyjne WHERE IFNULL(CzyZarejestrowane,0)=0", con))
+                        newReturns = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+
+                    AddLogEntry($"✓ DB liczniki: Allegro={unregisteredAllegro}, Czat={newChat}, Zwroty={newReturns}", Color.ForestGreen);
+
+                    try
+                    {
+                        using (var cmd = new MySqlCommand(@"SELECT source, started_at, finished_at, ok, rows_written
+                                                           FROM SyncRuns
+                                                           ORDER BY started_at DESC
+                                                           LIMIT 3", con))
+                        using (var rd = await cmd.ExecuteReaderAsync())
+                        {
+                            int i = 0;
+                            while (await rd.ReadAsync())
+                            {
+                                i++;
+                                var source = rd.IsDBNull(0) ? "?" : rd.GetString(0);
+                                var started = rd.IsDBNull(1) ? "?" : rd.GetDateTime(1).ToString("yyyy-MM-dd HH:mm");
+                                var ok = !rd.IsDBNull(3) && rd.GetInt32(3) == 1;
+                                var written = rd.IsDBNull(4) ? 0 : rd.GetInt32(4);
+                                AddLogEntry($"SyncRuns[{i}]: {source} {started} status={(ok ? "OK" : "Błąd")} zapisano={written}", ok ? Color.Black : Color.OrangeRed);
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        AddLogEntry("⚠️ Brak tabeli/rekordów SyncRuns - statusy synchronizacji mogą być ograniczone.", Color.DarkOrange);
+                    }
+                }
 
                 UpdateStatus("Weryfikacja zakończona.");
-                AddLogEntry("✓ Zakończono", Color.ForestGreen);
+                AddLogEntry("✓ Dashboard może działać wyłącznie na danych z bazy.", Color.ForestGreen);
             }
             catch (Exception ex)
             {
                 _hasErrorOccurred = true;
-                UpdateStatus("Błąd odświeżania tokenów.");
+                UpdateStatus("Błąd dostępu do bazy danych.");
                 AddLogEntry("Błąd: " + ex.Message, Color.Red);
             }
             finally

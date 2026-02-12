@@ -13,14 +13,14 @@ using System.Windows.Forms;
 namespace Reklamacje_Dane
 {
     /// <summary>
-    /// ReklamacjeControl v2.1 — HYBRYDOWY
+    /// ReklamacjeControl v2.2 — DB-ONLY DASHBOARD
     /// 
     /// DANE (zgłoszenia, przypomnienia, dziennik) → bezpośrednio z MySQL (szybko, niezawodnie)
-    /// SYNCHRONIZACJA (Allegro, Google, DPD) → TYLKO przez API (BackgroundServices)
-    /// LICZNIKI (nowe Allegro, nowe Google, zwroty) → z API gdy dostępne, fallback MySQL
+    /// SYNCHRONIZACJA (Allegro, Google, DPD) → po stronie API (BackgroundServices)
+    /// DASHBOARD WinForms → czyta wyłącznie MySQL (bez autoryzacji API na stacjach)
     /// 
     /// Dzięki temu 50 użytkowników nie zapycha API Google/Allegro/DPD,
-    /// ale dashboard ZAWSZE działa nawet gdy API jest wyłączone.
+    /// a stacje robocze działają nawet bez logowania do API.
     /// </summary>
     public partial class ReklamacjeControl : UserControl
     {
@@ -28,7 +28,7 @@ namespace Reklamacje_Dane
         private readonly ToolTip _statusTooltip = new ToolTip();
         private System.Timers.Timer _popupCheckTimer;
         private System.Timers.Timer _logCheckTimer;
-        private System.Timers.Timer _syncStatusTimer;      // Odpytuje API o statusy sync (Allegro/Google/DPD)
+        private System.Timers.Timer _syncStatusTimer;      // Odpytuje DB o statusy sync (Allegro/Google/DPD)
         private System.Timers.Timer _emailSyncTimer;
         private System.Timers.Timer _remindersCheckTimer;
         private System.Timers.Timer _returnsSyncTimer;
@@ -109,6 +109,7 @@ namespace Reklamacje_Dane
             // Inicjalizacja UI
             BuildRemindersTabsBar();
             InitializeSyncStatuses();
+            InitializeMenuCounters();
 
             txtFilterProcessing.TextChanged += txtFilterProcessing_TextChanged;
             dataGridViewProcessing.CellDoubleClick += anyDataGridView_CellClick;
@@ -166,8 +167,8 @@ namespace Reklamacje_Dane
 
             // Zadania tła z opóźnieniem
             Task.Delay(2000).ContinueWith(_ => RunEmailSync().FireAndForgetSafe(this));
-            Task.Delay(3000).ContinueWith(_ => PollSyncStatusFromApi().FireAndForgetSafe(this));
-            Task.Delay(4000).ContinueWith(_ => PollCountersFromApi().FireAndForgetSafe(this));
+            Task.Delay(3000).ContinueWith(_ => PollLocalSyncStatusFromDb().FireAndForgetSafe(this));
+            Task.Delay(4000).ContinueWith(_ => PollCountersFromDb().FireAndForgetSafe(this));
             Task.Delay(5000).ContinueWith(_ => GenerateAutomaticRemindersAsync().FireAndForgetSafe(this));
         }
 
@@ -180,8 +181,8 @@ namespace Reklamacje_Dane
             _popupCheckTimer = NewTimer(60000, async () => await CheckForDueRemindersAndPopup());
             _emailSyncTimer = NewTimer(120000, async () => await RunEmailSync());
 
-            // Statusy i liczniki z API — gdy API dostępne
-            _syncStatusTimer = NewTimer(30000, async () => await PollSyncStatusFromApi());
+            // Statusy i liczniki z DB — niezależnie od autoryzacji API na stacji
+            _syncStatusTimer = NewTimer(30000, async () => await PollLocalSyncStatusAndCounters());
         }
 
         private static System.Timers.Timer NewTimer(double interval, Func<Task> callback)
@@ -212,8 +213,9 @@ namespace Reklamacje_Dane
                 var task2 = RebuildRemindersCardsAsync();
                 var task3 = LoadChangeLogAsync();
                 var task4 = UpdateAllegroChatUnreadCountAsync();
+                var task5 = UpdateReminderNotificationsCountAsync();
 
-                await Task.WhenAll(task1, task2, task3, task4);
+                await Task.WhenAll(task1, task2, task3, task4, task5);
 
                 SafeInvoke(() => lblLastRefresh.Text = "Odświeżono: " + DateTime.Now.ToString("HH:mm"));
             }
@@ -272,9 +274,8 @@ namespace Reklamacje_Dane
             try
             {
                 int count = 0;
-                using (var con = DatabaseHelper.GetConnection())
+                using (var con = Database.GetNewOpenConnection())
                 {
-                    await con.OpenAsync();
                     var cmd = new MySqlCommand("SELECT COUNT(*) FROM AllegroDisputes WHERE HasNewMessages = 1", con);
                     count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
                 }
@@ -315,103 +316,147 @@ namespace Reklamacje_Dane
         }
 
         // =====================================================================
-        // SYNC STATUS I LICZNIKI — PRZEZ API (nie blokuje gdy API niedostępne)
-        // Tutaj jest sedno: zamiast 50 userów odpytujących Google/Allegro/DPD,
-        // odpytujemy TYLKO nasze API, które robi sync w BackgroundServices.
+        // SYNC STATUS I LICZNIKI — Z BAZY (DB-ONLY dashboard)
+        // API działa centralnie i zapisuje dane do DB,
+        // a stanowiska odczytują wyłącznie bazę.
         // =====================================================================
 
         /// <summary>
-        /// Pobiera statusy synchronizacji z API (Allegro, Google, DPD).
-        /// Gdy API niedostępne — po prostu nie aktualizuje, dashboard dalej działa.
+        /// Pobiera liczniki bezpośrednio z bazy (tryb DB-only dashboardu).
+        /// Wywoływane raz przy starcie z opóźnieniem.
+        /// Potem aktualizowane przez PollLocalSyncStatusAndCounters co 30s.
         /// </summary>
-        private async Task PollSyncStatusFromApi()
+        private async Task PollCountersFromDb()
+        {
+            try
+            {
+                await UpdateCountersFromDatabaseFallbackAsync();
+                await UpdateGoogleCountFromSyncRunsAsync();
+
+                // Powiadomienia o przypomnieniach są lokalne i niezależne od backendu sync
+                await UpdateReminderNotificationsCountAsync();
+            }
+            catch
+            {
+                await UpdateCountersFromDatabaseFallbackAsync();
+                await UpdateReminderNotificationsCountAsync();
+            }
+        }
+
+        private async Task UpdateCountersFromDatabaseFallbackAsync()
+        {
+            await UpdateAllegroUnregisteredCountFromDbAsync();
+            await UpdateAllegroChatUnreadCountAsync();
+            await PollReturnsCountFromDb();
+        }
+
+        private async Task UpdateAllegroUnregisteredCountFromDbAsync()
+        {
+            try
+            {
+                int count = 0;
+                using (var con = Database.GetNewOpenConnection())
+                {
+                    var sql = @"SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(CzyZarejestrowane, 0) = 0";
+                    using (var cmd = new MySqlCommand(sql, con))
+                        count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                }
+
+                SafeInvoke(() => { btnNewAllegro.Text = $"🟠 Nowe Allegro ({count})"; });
+            }
+            catch
+            {
+                SafeInvoke(() => { btnNewAllegro.Text = "🟠 Nowe Allegro (0)"; });
+            }
+        }
+
+        private async Task PollLocalSyncStatusFromDb()
         {
             if (_isCheckingSyncStatus) return;
             _isCheckingSyncStatus = true;
             try
             {
-                if (!IsApiAuthenticated())
-                {
-                    UpdateSyncStatus("Allegro", "Brak autoryzacji API", "Zaloguj ponownie aplikację");
-                    UpdateSyncStatus("Google Sheets", "Brak autoryzacji API", "Zaloguj ponownie aplikację");
-                    UpdateSyncStatus("Przesyłki DPD", "Brak autoryzacji API", "Zaloguj ponownie aplikację");
-                    return;
-                }
-
-                var apiClient = CreateApiClient();
-
-                // Allegro sync status
-                try
-                {
-                    var allegroStatus = await apiClient.GetAllegroSyncStatusAsync();
-                    SafeInvoke(() =>
-                    {
-                        btnNewAllegro.Text = $"🟠 Nowe Allegro ({allegroStatus.UnregisteredDisputesCount})";
-                        btnChat.Text = $"💬 Czat Allegro ({allegroStatus.DisputesWithNewMessages})";
-                        btnChat.ForeColor = allegroStatus.DisputesWithNewMessages > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
-                        if (allegroStatus.NewDisputesFoundLastRun > 0) UpdateManager.NotifySubscribers();
-                    });
-                    UpdateSyncStatus("Allegro", allegroStatus.LastRunSuccess ? "OK" : "Błąd",
-                        allegroStatus.LastError ?? $"Nowe: {allegroStatus.UnregisteredDisputesCount}");
-                }
-                catch (Exception ex)
-                {
-                    UpdateSyncStatus("Allegro", "Błąd", ex.Message);
-                }
-
-                // Operations sync status (Google + DPD)
-                try
-                {
-                    var opsStatus = await apiClient.GetOperationsSyncStatusAsync();
-                    if (opsStatus != null)
-                    {
-                        var google = opsStatus.Google;
-                        if (google != null)
-                        {
-                            SafeInvoke(() => btnNewGoogle.Text = $"🟢 Nowe Google ({google.MetricValue})");
-                            UpdateSyncStatus("Google Sheets", google.LastSuccess ? "OK" : (google.LastError != null ? "Błąd" : "Oczekiwanie..."),
-                                google.LastError ?? $"Wiersze: {google.MetricValue}");
-                        }
-
-                        var dpd = opsStatus.Dpd;
-                        if (dpd != null)
-                        {
-                            UpdateSyncStatus("Przesyłki DPD", dpd.LastSuccess ? "OK" : (dpd.LastError != null ? "Błąd" : "Oczekiwanie..."),
-                                dpd.LastError ?? $"Zmiany: {dpd.MetricValue}");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    UpdateSyncStatus("Google Sheets", "Błąd API", ex.Message);
-                    UpdateSyncStatus("Przesyłki DPD", "Błąd API", ex.Message);
-                }
+                await UpdateServiceStatusFromSyncRunsAsync("ALLEGRO", "Allegro");
+                await UpdateServiceStatusFromSyncRunsAsync("GOOGLE", "Google Sheets");
+                await UpdateServiceStatusFromSyncRunsAsync("DPD", "Przesyłki DPD");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                UpdateSyncStatus("Allegro", "Błąd", ex.Message);
+                UpdateSyncStatus("Google Sheets", "Błąd", ex.Message);
+                UpdateSyncStatus("Przesyłki DPD", "Błąd", ex.Message);
+            }
             finally { _isCheckingSyncStatus = false; }
         }
 
-        /// <summary>
-        /// Pobiera liczniki z API (gdy dostępne) lub z bazy (fallback).
-        /// Wywoływane raz przy starcie z opóźnieniem.
-        /// Potem aktualizowane przez PollSyncStatusFromApi co 30s.
-        /// </summary>
-        private async Task PollCountersFromApi()
+        private async Task UpdateServiceStatusFromSyncRunsAsync(string source, string uiName)
+        {
+            using (var con = Database.GetNewOpenConnection())
+            using (var cmd = new MySqlCommand(@"SELECT started_at, finished_at, ok, rows_written, error_message
+                                               FROM SyncRuns
+                                               WHERE source = @source
+                                               ORDER BY started_at DESC
+                                               LIMIT 1", con))
+            {
+                cmd.Parameters.AddWithValue("@source", source);
+                using (var rd = await cmd.ExecuteReaderAsync())
+                {
+                    if (!await rd.ReadAsync())
+                    {
+                        UpdateSyncStatus(uiName, "Brak danych", "Brak wpisów w SyncRuns");
+                        return;
+                    }
+
+                    var finishedAt = rd.IsDBNull(1) ? (DateTime?)null : rd.GetDateTime(1);
+                    bool ok = !rd.IsDBNull(2) && rd.GetInt32(2) == 1;
+                    int written = rd.IsDBNull(3) ? 0 : rd.GetInt32(3);
+                    string error = rd.IsDBNull(4) ? "" : rd.GetString(4);
+
+                    if (finishedAt == null)
+                    {
+                        UpdateSyncStatus(uiName, "Trwa...", "Synchronizacja w toku");
+                    }
+                    else if (ok)
+                    {
+                        UpdateSyncStatus(uiName, "OK", $"Ostatnio zapisano: {written}");
+                    }
+                    else
+                    {
+                        UpdateSyncStatus(uiName, "Błąd", string.IsNullOrWhiteSpace(error) ? "Sprawdź wpisy w SyncRuns" : error);
+                    }
+                }
+            }
+        }
+
+        private async Task UpdateGoogleCountFromSyncRunsAsync()
         {
             try
             {
-                if (IsApiAuthenticated())
+                int count = 0;
+                using (var con = Database.GetNewOpenConnection())
+                using (var cmd = new MySqlCommand(@"SELECT rows_written
+                                                   FROM SyncRuns
+                                                   WHERE source = 'GOOGLE' AND ok = 1
+                                                   ORDER BY started_at DESC
+                                                   LIMIT 1", con))
                 {
-                    // API dostępne — pobierz stamtąd
-                    await PollSyncStatusFromApi();
+                    var result = await cmd.ExecuteScalarAsync();
+                    if (result != null && result != DBNull.Value)
+                        count = Convert.ToInt32(result);
                 }
-                else
-                {
-                    // API niedostępne — fallback z bazy dla zwrotów
-                    await PollReturnsCountFromDb();
-                }
+
+                SafeInvoke(() => { btnNewGoogle.Text = $"🟢 Nowe Google ({count})"; });
             }
-            catch { }
+            catch
+            {
+                SafeInvoke(() => { btnNewGoogle.Text = "🟢 Nowe Google (0)"; });
+            }
+        }
+
+        private async Task PollLocalSyncStatusAndCounters()
+        {
+            await PollLocalSyncStatusFromDb();
+            await PollCountersFromDb();
         }
 
         private async Task PollReturnsCountFromDb()
@@ -435,7 +480,7 @@ namespace Reklamacje_Dane
         }
 
         // =====================================================================
-        // EMAIL — TYMCZASOWO LOKALNIE (docelowo do API)
+        // EMAIL — LOKALNIE (licznik i synchronizacja skrzynki)
         // =====================================================================
 
         private async Task RunEmailSync()
@@ -611,6 +656,32 @@ namespace Reklamacje_Dane
             }
         }
 
+        private async Task UpdateReminderNotificationsCountAsync()
+        {
+            try
+            {
+                string sql = @"SELECT COUNT(*) FROM Przypomnienia
+                               WHERE (Status = 'Nowe' OR Status = 'Active' OR Status IS NULL OR Status = '')
+                               AND DataPrzypomnienia <= NOW()
+                               AND (PrzypisanyUzytkownik = @user OR PrzypisanyUzytkownik IS NULL OR PrzypisanyUzytkownik = '')";
+
+                int count = 0;
+                using (var con = Database.GetNewOpenConnection())
+                using (var cmd = new MySqlCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("@user", _fullName);
+                    count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                }
+
+                SafeInvoke(() =>
+                {
+                    btnReminders.Text = $"⏰ Przypomnienia ({count})";
+                    btnReminders.ForeColor = count > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
+                });
+            }
+            catch { }
+        }
+
         private static string ClassifyCategoryForCard(string t)
         {
             if (string.IsNullOrEmpty(t)) return "Ręczne";
@@ -627,41 +698,8 @@ namespace Reklamacje_Dane
         }
 
         // =====================================================================
-        // HELPERY API
+        // HELPERY DB-ONLY DASHBOARDU
         // =====================================================================
-
-        private bool IsApiAuthenticated()
-        {
-            try
-            {
-                return ApiSyncService.Instance != null
-                    && ApiSyncService.Instance.IsInitialized
-                    && ApiSyncService.Instance.IsAuthenticated;
-            }
-            catch { return false; }
-        }
-
-        private ReklamacjeApiClient CreateApiClient()
-        {
-            var client = new ReklamacjeApiClient(ApiSyncService.Instance.BaseUrl);
-            client.SetToken(Properties.Settings.Default.ApiToken);
-            return client;
-        }
-
-        /// <summary>
-        /// Pobiera status Operations Sync z API (Google + DPD).
-        /// Dodane do ReklamacjeApiClient — patrz niżej w pliku.
-        /// </summary>
-        private async Task<OperationsSyncSnapshotApi> GetOperationsSyncStatusAsync()
-        {
-            try
-            {
-                if (!IsApiAuthenticated()) return null;
-                var apiClient = CreateApiClient();
-                return await apiClient.GetOperationsSyncStatusAsync();
-            }
-            catch { return null; }
-        }
 
         // =====================================================================
         // UI HELPERS
@@ -689,13 +727,28 @@ namespace Reklamacje_Dane
                 string[] lines;
                 lock (_syncStatus) { lines = _syncStatus.Values.OrderBy(v => v).ToArray(); }
 
-                bool anyError = lines.Any(l => l.Contains("Błąd"));
-                lblSyncStatus.Text = anyError ? "Synchronizacja: BŁĄD" : "Synchronizacja: OK";
-                lblSyncStatus.ForeColor = anyError ? Color.Red : Color.ForestGreen;
+                bool anyProblem = lines.Any(l =>
+                    l.IndexOf("Błąd", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    l.IndexOf("Brak autoryzacji", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                lblSyncStatus.Text = anyProblem ? "Synchronizacja: BŁĄD" : "Synchronizacja: OK";
+                lblSyncStatus.ForeColor = anyProblem ? Color.Red : Color.ForestGreen;
 
                 string fullText = "Status usług:\n\n" + string.Join("\n", lines);
                 if (_statusTooltip.GetToolTip(lblSyncStatus) != fullText)
                     _statusTooltip.SetToolTip(lblSyncStatus, fullText);
+            });
+        }
+
+        private void InitializeMenuCounters()
+        {
+            SafeInvoke(() =>
+            {
+                btnNewGoogle.Text = "🟢 Nowe Google (0)";
+                btnNewAllegro.Text = "🟠 Nowe Allegro (0)";
+                btnNewReturn.Text = "↩️ Nowe Zwroty (0)";
+                btnChat.Text = "💬 Czat Allegro (0)";
+                btnReminders.Text = "⏰ Przypomnienia (0)";
             });
         }
 
@@ -833,8 +886,12 @@ namespace Reklamacje_Dane
                 int id = 0;
                 using (var c = Database.GetNewOpenConnection())
                 {
-                    var s = await new MySqlCommand("SELECT Id FROM Zgloszenia WHERE NrZgloszenia='" + nr + "'", c).ExecuteScalarAsync();
-                    if (s != null) id = Convert.ToInt32(s);
+                    using (var cmd = new MySqlCommand("SELECT Id FROM Zgloszenia WHERE NrZgloszenia = @nr", c))
+                    {
+                        cmd.Parameters.AddWithValue("@nr", nr);
+                        var s = await cmd.ExecuteScalarAsync();
+                        if (s != null) id = Convert.ToInt32(s);
+                    }
                 }
                 if (id > 0) new FormDodajPrzypomnienie(id).Show();
             }
