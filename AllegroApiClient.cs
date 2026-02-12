@@ -240,7 +240,13 @@ namespace Reklamacje_Dane
         public async Task<List<Reklamacje_Dane.Allegro.Issues.ChatMessage>> GetChatAsync(string issueId)
         {
             var response = await GetAsync<Reklamacje_Dane.Allegro.Issues.ChatMessageResponse>($"/sale/issues/{issueId}/chat", ApiBetaV1);
-            return response?.Chat ?? new List<Reklamacje_Dane.Allegro.Issues.ChatMessage>();
+            // API nie gwarantuje kolejności wiadomości. W wielu dyskusjach zwraca je rosnąco
+            // (od najstarszej), a logika synchronizacji zakłada, że pierwszy element to najnowsza.
+            // Wymuszamy sortowanie malejąco po CreatedAt, aby detekcja nowych wiadomości była stabilna.
+            return (response?.Chat ?? new List<Reklamacje_Dane.Allegro.Issues.ChatMessage>())
+                .OrderByDescending(m => m.CreatedAt)
+                .ThenByDescending(m => m.Id)
+                .ToList();
         }
         public async Task SendMessageAsync(string issueId, NewMessageRequest message)
         {
