@@ -419,7 +419,9 @@ namespace Reklamacje_Dane
                 }
                 else
                 {
-                    await UpdateCountersFromDatabaseFallbackAsync();
+                    // API niedostępne — fallback z bazy
+                    await UpdateAllegroChatUnreadCountAsync();
+                    await PollReturnsCountFromDb();
                 }
 
                 // Powiadomienia o przypomnieniach są lokalne i niezależne od API
@@ -464,6 +466,8 @@ namespace Reklamacje_Dane
             await PollSyncStatusFromApi();
             await PollCountersFromApi();
         }
+
+     
 
         private async Task PollReturnsCountFromDb()
         {
