@@ -21,7 +21,7 @@
     
     <!-- Ustawienia dla REST API -->
     <Setting Name="ApiBaseUrl" Type="System.String" Scope="User">
-      <Value Profile="(Default)">https://localhost:5001</Value>
+      <Value Profile="(Default)">http://localhost:5000</Value>
     </Setting>
     <Setting Name="ApiLogin" Type="System.String" Scope="User">
       <Value Profile="(Default)" />

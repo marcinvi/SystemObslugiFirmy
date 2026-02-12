@@ -61,7 +61,7 @@ namespace Reklamacje_Dane.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("https://localhost:5001")]
+        [global::System.Configuration.DefaultSettingValueAttribute("http://localhost:5000")]
         public string ApiBaseUrl {
             get {
                 return ((string)(this["ApiBaseUrl"]));

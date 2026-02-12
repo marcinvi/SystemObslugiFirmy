@@ -236,7 +236,7 @@ namespace Reklamacje_Dane
         {
             try
             {
-                txtApiUrl.Text = Properties.Settings.Default.ApiBaseUrl ?? "https://192.168.1.100:5001";
+                txtApiUrl.Text = Properties.Settings.Default.ApiBaseUrl ?? "http://192.168.1.100:5000";
                 txtLogin.Text = Properties.Settings.Default.ApiLogin ?? "";
                 chkAutoSync.Checked = Properties.Settings.Default.ApiAutoSync;
 
