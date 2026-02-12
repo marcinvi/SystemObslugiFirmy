@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using MySql.Data.MySqlClient;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -345,6 +346,7 @@ namespace Reklamacje_Dane
             catch
             {
                 await UpdateCountersFromDatabaseFallbackAsync();
+                await UpdateGoogleCountFromSyncRunsAsync();
                 await UpdateReminderNotificationsCountAsync();
             }
         }
@@ -465,10 +467,20 @@ namespace Reklamacje_Dane
             }
         }
 
-        private async Task UpdateGoogleCountFromSyncRunsAsync()
+        private async Task UpdateGoogleCountFromSyncRunsAsync(bool keepCurrentIfSheetsUnavailable = false)
         {
             try
             {
+                if (await TryUpdateGoogleCountFromSheetsAsync())
+                {
+                    return;
+                }
+
+                if (keepCurrentIfSheetsUnavailable)
+                {
+                    return;
+                }
+
                 int googleCount = 0;
                 using (var con = Database.GetNewOpenConnection())
                 {
@@ -485,15 +497,63 @@ namespace Reklamacje_Dane
                 }
 
                 SafeInvoke(() => { btnNewGoogle.Text = $"🟢 Nowe Google ({googleCount})"; });
-
-                // Powiadomienia o przypomnieniach są lokalne i niezależne od API
-                await UpdateReminderNotificationsCountAsync();
             }
             catch
             {
-                await UpdateCountersFromDatabaseFallbackAsync();
-                await UpdateReminderNotificationsCountAsync();
+                // Nie nadpisuj liczników Allegro/czat/zwroty jeśli padł tylko odczyt Google.
+                SafeInvoke(() => { btnNewGoogle.Text = "🟢 Nowe Google (0)"; });
             }
+        }
+
+        private async Task<bool> TryUpdateGoogleCountFromSheetsAsync()
+        {
+            try
+            {
+                const string spreadsheetId = "1VXGP4Cckt6NmSHtiv-Um7nqg-itLMczAGd-5a_Tc4Ds";
+                var credentialsPath = ResolveGoogleCredentialsPath();
+                if (string.IsNullOrWhiteSpace(credentialsPath) || !File.Exists(credentialsPath))
+                    return false;
+
+                var sheets = new[] { "B", "Z" };
+                int total = 0;
+
+                foreach (var sheet in sheets)
+                {
+                    var values = await GoogleSheetsDataService.GetSheetValuesAsync(credentialsPath, spreadsheetId, $"{sheet}!A:A");
+                    if (values == null || values.Count == 0)
+                        continue;
+
+                    // Pomijamy nagłówek arkusza (wiersz 1), zliczamy niepuste wiersze danych.
+                    for (int i = 1; i < values.Count; i++)
+                    {
+                        var row = values[i];
+                        if (row != null && row.Any(cell => !string.IsNullOrWhiteSpace(Convert.ToString(cell))))
+                            total++;
+                    }
+                }
+
+                SafeInvoke(() => { btnNewGoogle.Text = $"🟢 Nowe Google ({Math.Max(0, total)})"; });
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static string ResolveGoogleCredentialsPath()
+        {
+            var candidates = new[]
+            {
+                Path.Combine(Application.StartupPath, "reklamacje-baza-c36d05b0ffdb.json"),
+                Path.Combine(Application.StartupPath, "reklamacje-baza-ed853b4e33f7.json"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reklamacje-baza-c36d05b0ffdb.json"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reklamacje-baza-ed853b4e33f7.json"),
+                Path.Combine(Environment.CurrentDirectory, "reklamacje-baza-c36d05b0ffdb.json"),
+                Path.Combine(Environment.CurrentDirectory, "reklamacje-baza-ed853b4e33f7.json")
+            };
+
+            return candidates.FirstOrDefault(File.Exists);
         }
 
         private async Task PollSyncStatusAndCounters()
