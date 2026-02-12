@@ -467,11 +467,7 @@ namespace Reklamacje_Dane
             await PollCountersFromApi();
         }
 
-        private async Task PollSyncStatusAndCounters()
-        {
-            await PollSyncStatusFromApi();
-            await PollCountersFromApi();
-        }
+     
 
         private async Task PollReturnsCountFromDb()
         {
