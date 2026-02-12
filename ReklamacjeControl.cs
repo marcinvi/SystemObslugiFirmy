@@ -331,17 +331,14 @@ namespace Reklamacje_Dane
         {
             try
             {
-                // Priorytet: API sync-dashboard (aktualne liczniki Allegro/czat/zwroty).
+                // Priorytet: API sync-dashboard (aktualne liczniki niezarejestrowanych zgłoszeń).
                 // Fallback: bezpośrednie zapytania SQL (tryb DB-only).
                 var updatedFromApi = await TryUpdateCountersFromApiAsync();
                 if (!updatedFromApi)
                 {
                     await UpdateCountersFromDatabaseFallbackAsync();
+                    await UpdateGoogleCountFromSyncRunsAsync();
                 }
-
-                // Google liczony po liczbie wierszy (arkusze B + Z),
-                // a dopiero przy błędzie fallback do SyncRuns.
-                await UpdateGoogleCountFromSyncRunsAsync(updatedFromApi);
 
                 // Powiadomienia o przypomnieniach są lokalne i niezależne od backendu sync
                 await UpdateReminderNotificationsCountAsync();
