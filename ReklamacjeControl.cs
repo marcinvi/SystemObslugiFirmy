@@ -181,8 +181,8 @@ namespace Reklamacje_Dane
             _popupCheckTimer = NewTimer(60000, async () => await CheckForDueRemindersAndPopup());
             _emailSyncTimer = NewTimer(120000, async () => await RunEmailSync());
 
-            // Statusy i liczniki z DB — niezależnie od autoryzacji API na stacji
-            _syncStatusTimer = NewTimer(30000, async () => await PollLocalSyncStatusAndCounters());
+            // Statusy i liczniki z API — gdy API dostępne
+            _syncStatusTimer = NewTimer(30000, async () => await PollSyncStatusAndCounters());
         }
 
         private static System.Timers.Timer NewTimer(double interval, Func<Task> callback)
@@ -432,32 +432,72 @@ namespace Reklamacje_Dane
         {
             try
             {
-                int count = 0;
-                using (var con = Database.GetNewOpenConnection())
-                using (var cmd = new MySqlCommand(@"SELECT rows_written
-                                                   FROM SyncRuns
-                                                   WHERE source = 'GOOGLE' AND ok = 1
-                                                   ORDER BY started_at DESC
-                                                   LIMIT 1", con))
+                if (IsApiAuthenticated())
                 {
-                    var result = await cmd.ExecuteScalarAsync();
-                    if (result != null && result != DBNull.Value)
-                        count = Convert.ToInt32(result);
+                    // API dostępne — pobierz lekkie liczniki z jednego endpointu
+                    var apiClient = CreateApiClient();
+                    var counters = await apiClient.GetSyncDashboardCountersAsync();
+
+                    SafeInvoke(() =>
+                    {
+                        btnNewAllegro.Text = $"🟠 Nowe Allegro ({counters.UnregisteredAllegroCount})";
+                        btnChat.Text = $"💬 Czat Allegro ({counters.AllegroNewMessages})";
+                        btnChat.ForeColor = counters.AllegroNewMessages > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
+                        btnNewGoogle.Text = $"🟢 Nowe Google ({counters.UnregisteredGoogleCount})";
+                        btnNewReturn.Text = $"↩️ Nowe Zwroty ({counters.UnregisteredReturnsCount})";
+                    });
+                }
+                else
+                {
+                    // API niedostępne — fallback z bazy
+                    await UpdateAllegroChatUnreadCountAsync();
+                    await PollReturnsCountFromDb();
                 }
 
-                SafeInvoke(() => { btnNewGoogle.Text = $"🟢 Nowe Google ({count})"; });
+                // Powiadomienia o przypomnieniach są lokalne i niezależne od API
+                await UpdateReminderNotificationsCountAsync();
             }
             catch
             {
-                SafeInvoke(() => { btnNewGoogle.Text = "🟢 Nowe Google (0)"; });
+                await UpdateCountersFromDatabaseFallbackAsync();
+                await UpdateReminderNotificationsCountAsync();
             }
         }
 
-        private async Task PollLocalSyncStatusAndCounters()
+        private async Task UpdateCountersFromDatabaseFallbackAsync()
         {
-            await PollLocalSyncStatusFromDb();
-            await PollCountersFromDb();
+            await UpdateAllegroUnregisteredCountFromDbAsync();
+            await UpdateAllegroChatUnreadCountAsync();
+            await PollReturnsCountFromDb();
         }
+
+        private async Task UpdateAllegroUnregisteredCountFromDbAsync()
+        {
+            try
+            {
+                int count = 0;
+                using (var con = Database.GetNewOpenConnection())
+                {
+                    var sql = @"SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(CzyZarejestrowane, 0) = 0";
+                    using (var cmd = new MySqlCommand(sql, con))
+                        count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                }
+
+                SafeInvoke(() => { btnNewAllegro.Text = $"🟠 Nowe Allegro ({count})"; });
+            }
+            catch
+            {
+                SafeInvoke(() => { btnNewAllegro.Text = "🟠 Nowe Allegro (0)"; });
+            }
+        }
+
+        private async Task PollSyncStatusAndCounters()
+        {
+            await PollSyncStatusFromApi();
+            await PollCountersFromApi();
+        }
+
+     
 
         private async Task PollReturnsCountFromDb()
         {
@@ -729,7 +769,7 @@ namespace Reklamacje_Dane
 
                 bool anyProblem = lines.Any(l =>
                     l.IndexOf("Błąd", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    l.IndexOf("Brak danych", StringComparison.OrdinalIgnoreCase) >= 0);
+                    l.IndexOf("Brak autoryzacji", StringComparison.OrdinalIgnoreCase) >= 0);
 
                 lblSyncStatus.Text = anyProblem ? "Synchronizacja: BŁĄD" : "Synchronizacja: OK";
                 lblSyncStatus.ForeColor = anyProblem ? Color.Red : Color.ForestGreen;

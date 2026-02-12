@@ -34,66 +34,79 @@ namespace Reklamacje_Dane
         {
             try
             {
-                UpdateStatus("Weryfikacja dostępu do bazy danych...");
-                AddLogEntry("Dashboard działa w trybie DB-only: API synchronizuje dane do bazy, a formularz czyta bazę.", Color.Black);
+                UpdateStatus("Weryfikacja połączenia API...");
+                AddLogEntry("Start kontroli połączenia i autoryzacji API", Color.Black);
 
                 string apiUrl = (Properties.Settings.Default.ApiBaseUrl ?? string.Empty).Trim();
-                if (!string.IsNullOrWhiteSpace(apiUrl))
+                if (string.IsNullOrWhiteSpace(apiUrl))
                 {
-                    AddLogEntry($"Info: skonfigurowany URL API = {apiUrl} (http/https zależnie od serwera)", Color.DarkSlateBlue);
+                    AddLogEntry("❌ Brak skonfigurowanego URL API (Ustawienia -> API).", Color.Red);
+                    AddLogEntry("Ustaw adres serwera API w sieci, np. https://192.168.x.x:5001", Color.DarkOrange);
+                    UpdateStatus("Brak konfiguracji API.");
+                    return;
                 }
 
-                using (var con = Database.GetNewOpenConnection())
+                AddLogEntry($"API URL: {apiUrl}", Color.Black);
+
+                try
                 {
-                    AddLogEntry("✓ Połączenie z bazą OK", Color.ForestGreen);
-
-                    int unregisteredAllegro = 0;
-                    using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(CzyZarejestrowane,0)=0", con))
-                        unregisteredAllegro = Convert.ToInt32(await cmd.ExecuteScalarAsync());
-
-                    int newChat = 0;
-                    using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(HasNewMessages,0)=1", con))
-                        newChat = Convert.ToInt32(await cmd.ExecuteScalarAsync());
-
-                    int newReturns = 0;
-                    using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM NiezarejestrowaneZwrotyReklamacyjne WHERE IFNULL(CzyZarejestrowane,0)=0", con))
-                        newReturns = Convert.ToInt32(await cmd.ExecuteScalarAsync());
-
-                    AddLogEntry($"✓ DB liczniki: Allegro={unregisteredAllegro}, Czat={newChat}, Zwroty={newReturns}", Color.ForestGreen);
-
-                    try
-                    {
-                        using (var cmd = new MySqlCommand(@"SELECT source, started_at, finished_at, ok, rows_written
-                                                           FROM SyncRuns
-                                                           ORDER BY started_at DESC
-                                                           LIMIT 3", con))
-                        using (var rd = await cmd.ExecuteReaderAsync())
-                        {
-                            int i = 0;
-                            while (await rd.ReadAsync())
-                            {
-                                i++;
-                                var source = rd.IsDBNull(0) ? "?" : rd.GetString(0);
-                                var started = rd.IsDBNull(1) ? "?" : rd.GetDateTime(1).ToString("yyyy-MM-dd HH:mm");
-                                var ok = !rd.IsDBNull(3) && rd.GetInt32(3) == 1;
-                                var written = rd.IsDBNull(4) ? 0 : rd.GetInt32(4);
-                                AddLogEntry($"SyncRuns[{i}]: {source} {started} status={(ok ? "OK" : "Błąd")} zapisano={written}", ok ? Color.Black : Color.OrangeRed);
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        AddLogEntry("⚠️ Brak tabeli/rekordów SyncRuns - statusy synchronizacji mogą być ograniczone.", Color.DarkOrange);
-                    }
+                    // Zawsze inicjalizujemy bieżącym URL ze settings, żeby uniknąć pracy na starym adresie.
+                    ApiSyncService.Initialize(apiUrl);
+                    AddLogEntry("✓ API service zainicjalizowany", Color.ForestGreen);
+                }
+                catch (Exception ex)
+                {
+                    AddLogEntry("❌ Błąd inicjalizacji API service: " + ex.Message, Color.Red);
+                    UpdateStatus("Błąd inicjalizacji API.");
+                    return;
                 }
 
-                UpdateStatus("Weryfikacja zakończona.");
-                AddLogEntry("✓ Dashboard może działać wyłącznie na danych z bazy.", Color.ForestGreen);
+                bool apiReachable = await ApiSyncService.TestConnectionAsync(apiUrl);
+                if (!apiReachable)
+                {
+                    AddLogEntry("❌ API nieosiągalne pod skonfigurowanym adresem.", Color.Red);
+                    AddLogEntry("Sprawdź: czy serwer działa, port/firewall i certyfikat HTTPS.", Color.DarkOrange);
+                    UpdateStatus("API nieosiągalne.");
+                    return;
+                }
+
+                AddLogEntry("✓ API odpowiada (health check)", Color.ForestGreen);
+
+                var tokenExpiry = Properties.Settings.Default.ApiTokenExpiry;
+                var hasToken = !string.IsNullOrWhiteSpace(Properties.Settings.Default.ApiToken);
+
+                if (!hasToken)
+                {
+                    AddLogEntry("⚠️ Brak zapisanego tokenu API. Wymagane logowanie w Konfiguracji API.", Color.DarkOrange);
+                    UpdateStatus("Brak tokenu API.");
+                    return;
+                }
+
+                if (tokenExpiry <= DateTime.Now)
+                {
+                    AddLogEntry($"⚠️ Token API wygasł ({tokenExpiry:yyyy-MM-dd HH:mm}).", Color.DarkOrange);
+                    AddLogEntry("Zaloguj się ponownie w Konfiguracji API.", Color.DarkOrange);
+                    UpdateStatus("Token API wygasł.");
+                    return;
+                }
+
+                bool autoLoginOk = await ApiSyncService.Instance.AutoLoginAsync();
+                if (autoLoginOk)
+                {
+                    AddLogEntry("✓ Auto-logowanie API zakończone powodzeniem", Color.ForestGreen);
+                    UpdateStatus("API gotowe.");
+                }
+                else
+                {
+                    AddLogEntry("❌ Auto-logowanie API nie powiodło się (token odrzucony przez API).", Color.Red);
+                    AddLogEntry("Zaloguj się ponownie w Konfiguracji API.", Color.DarkOrange);
+                    UpdateStatus("Błąd autoryzacji API.");
+                }
             }
             catch (Exception ex)
             {
                 _hasErrorOccurred = true;
-                UpdateStatus("Błąd dostępu do bazy danych.");
+                UpdateStatus("Błąd weryfikacji API.");
                 AddLogEntry("Błąd: " + ex.Message, Color.Red);
             }
             finally
