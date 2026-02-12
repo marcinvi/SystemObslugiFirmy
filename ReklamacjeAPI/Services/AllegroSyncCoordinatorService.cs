@@ -71,14 +71,11 @@ public class AllegroSyncCoordinatorService
                 const int pageSize = 100;
                 var offset = 0;
 
-                _logger.LogInformation("[Allegro][Czat] Start konta {AccountName} ({AccountId})", account.Name, account.Id);
-
                 while (true)
                 {
                     var issues = await _allegroApiClient.GetIssuesAsync(account.Id, pageSize, offset);
                     if (issues.Count == 0)
                     {
-                        _logger.LogInformation("[Allegro][Czat] Konto {AccountName} ({AccountId}) - brak kolejnych issues przy offset={Offset}", account.Name, account.Id, offset);
                         break;
                     }
 
@@ -103,7 +100,6 @@ public class AllegroSyncCoordinatorService
 
                     if (issues.Count < pageSize)
                     {
-                        _logger.LogInformation("[Allegro][Czat] Konto {AccountName} ({AccountId}) - pobrano {Count} issues przy offset={Offset}, koniec paginacji", account.Name, account.Id, issues.Count, offset);
                         break;
                     }
 
