@@ -1,13 +1,9 @@
-﻿using Google.Apis.Auth.OAuth2;
-using Google.Apis.Services;
-using Google.Apis.Sheets.v4;
-using Microsoft.Web.WebView2.WinForms;
+﻿using Microsoft.Web.WebView2.WinForms;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using MySql.Data.MySqlClient;
 using System.Drawing;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -16,50 +12,50 @@ using System.Windows.Forms;
 
 namespace Reklamacje_Dane
 {
+    /// <summary>
+    /// ReklamacjeControl v2.1 — HYBRYDOWY
+    /// 
+    /// DANE (zgłoszenia, przypomnienia, dziennik) → bezpośrednio z MySQL (szybko, niezawodnie)
+    /// SYNCHRONIZACJA (Allegro, Google, DPD) → TYLKO przez API (BackgroundServices)
+    /// LICZNIKI (nowe Allegro, nowe Google, zwroty) → z API gdy dostępne, fallback MySQL
+    /// 
+    /// Dzięki temu 50 użytkowników nie zapycha API Google/Allegro/DPD,
+    /// ale dashboard ZAWSZE działa nawet gdy API jest wyłączone.
+    /// </summary>
     public partial class ReklamacjeControl : UserControl
     {
-        // Pola Timerów
+        // === TIMERY ===
         private readonly ToolTip _statusTooltip = new ToolTip();
         private System.Timers.Timer _popupCheckTimer;
         private System.Timers.Timer _logCheckTimer;
-        private System.Timers.Timer _googleSheetSyncTimer;
-        private System.Timers.Timer _allegroSyncTimer;
-        private System.Timers.Timer _emailSyncTimer; // Timer Maili
+        private System.Timers.Timer _syncStatusTimer;      // Odpytuje API o statusy sync (Allegro/Google/DPD)
+        private System.Timers.Timer _emailSyncTimer;
         private System.Timers.Timer _remindersCheckTimer;
-        private System.Timers.Timer _shipmentCheckTimer;
         private System.Timers.Timer _returnsSyncTimer;
 
-        // Flagi blokujące
+        // === FLAGI ===
         private volatile bool _isCheckingPopups = false;
         private volatile bool _isCheckingLogs = false;
-        private volatile bool _isCheckingGoogleSheets = false;
-        private volatile bool _isCheckingAllegro = false;
-        private volatile bool _isCheckingEmails = false; // Flaga Maili
+        private volatile bool _isCheckingSyncStatus = false;
+        private volatile bool _isCheckingEmails = false;
         private volatile bool _isCheckingReminders = false;
-        private volatile bool _isCheckingShipments = false;
         private volatile bool _isCheckingReturns = false;
-
-        // Dane
-        private long _lastLogId = 0;
-        private int _lastGoogleSheetRows = -1;
-        private int _lastUnregisteredReturns = -1;
-        private readonly HashSet<int> _shownReminders = new HashSet<int>();
-        private readonly Dictionary<string, string> _syncStatus = new Dictionary<string, string>();
         private int _isLoadingData;
         private int _pendingLoad;
 
-        // Serwisy
-        private readonly EmailService _emailService; // Serwis Maili
+        // === DANE ===
+        private long _lastLogId = 0;
+        private readonly HashSet<int> _shownReminders = new HashSet<int>();
+        private readonly Dictionary<string, string> _syncStatus = new Dictionary<string, string>();
+
+        // === SERWISY ===
+        private readonly EmailService _emailService;
         private ShipmentNotificationService _shipmentNotificationService;
         private readonly string _fullName;
         private readonly string _userRole;
         private WebView2 _privateWebView;
 
-        // Google Config
-        private const string GoogleSpreadsheetId = "1VXGP4Cckt6NmSHtiv-Um7nqg-itLMczAGd-5a_Tc4Ds";
-        private static readonly string[] GoogleSheetsToRead = new[] { "B", "Z" };
-
-        // UI Helpers
+        // === UI ===
         private Button _tabDecyzjaBtn, _tabKurierBtn, _tabReczneBtn;
         private string _remindersActiveCategory = "Czas na decyzję";
         private ContextMenuStrip _reminderCardCtx;
@@ -70,8 +66,6 @@ namespace Reklamacje_Dane
 
             _fullName = fullName;
             _userRole = userRole;
-
-            // Inicjalizacja serwisów
             _emailService = new EmailService();
 
             EnsureProcessingGridScrollable();
@@ -106,7 +100,7 @@ namespace Reklamacje_Dane
             btnEmail.Click += (s, e) => new FormSkrzynka().Show();
             btnContactCenter.Click += (s, e) =>
             {
-                HighlightMenuButton(s); // Jeśli używasz podświetlania aktywnego przycisku
+                HighlightMenuButton(s);
                 new FormHistoria().Show();
             };
             btnRefresh.Click += refreshIcon_Click;
@@ -125,10 +119,14 @@ namespace Reklamacje_Dane
             _statusTooltip.ReshowDelay = 500;
         }
 
+        // =====================================================================
+        // INICJALIZACJA
+        // =====================================================================
+
         private void InitializeSyncStatuses()
         {
             UpdateSyncStatus("Allegro", "Oczekiwanie...", "");
-            UpdateSyncStatus("E-mail", "Oczekiwanie...", ""); // Dodano E-mail
+            UpdateSyncStatus("E-mail", "Oczekiwanie...", "");
             UpdateSyncStatus("Google Sheets", "Oczekiwanie...", "");
             UpdateSyncStatus("Przesyłki DPD", "Oczekiwanie...", "");
             UpdateSyncStatus("Magazyn Zwrotów", "Oczekiwanie...", "");
@@ -138,7 +136,8 @@ namespace Reklamacje_Dane
 
         private void SetActivity(string text)
         {
-            SafeInvoke(() => {
+            SafeInvoke(() =>
+            {
                 if (lblSyncActivity != null)
                 {
                     lblSyncActivity.Text = text;
@@ -149,10 +148,8 @@ namespace Reklamacje_Dane
 
         private async void ReklamacjeControl_Load(object sender, EventArgs e)
         {
-            // 1. Inicjalizacja lekkich rzeczy (WebView, Serwisy)
             _privateWebView = new WebView2 { Visible = false };
             this.Controls.Add(_privateWebView);
-            // WebView inicjujemy w tle, nie czekamy na niego
             _ = _privateWebView.EnsureCoreWebView2Async(null);
 
             _shipmentNotificationService = new ShipmentNotificationService(this.FindForm(), _privateWebView);
@@ -161,21 +158,43 @@ namespace Reklamacje_Dane
 
             ReklamacjeControl_Resize(null, null);
 
-            // 2. Startujemy ładowanie danych (nie blokujemy UI)
-            // Używamy FireAndForgetSafe, żeby formularz się pokazał od razu, a dane "wskoczyły" za chwilę
+            // Ładowanie danych z MySQL — ZAWSZE działa
             RequestDataReload();
 
-            // 3. Timery startujemy z lekkim opóźnieniem, żeby nie zamulać startu
+            // Timery
             InitializeTimers();
 
-            // Zadania tła uruchamiamy z opóźnieniem 2-5 sekund, żeby najpierw załadowało się UI
+            // Zadania tła z opóźnieniem
             Task.Delay(2000).ContinueWith(_ => RunEmailSync().FireAndForgetSafe(this));
-            Task.Delay(3000).ContinueWith(_ => CheckShipmentsAndNotify().FireAndForgetSafe(this));
-            Task.Delay(4000).ContinueWith(_ => RunAllegroSync().FireAndForgetSafe(this));
+            Task.Delay(3000).ContinueWith(_ => PollSyncStatusFromApi().FireAndForgetSafe(this));
+            Task.Delay(4000).ContinueWith(_ => PollCountersFromApi().FireAndForgetSafe(this));
             Task.Delay(5000).ContinueWith(_ => GenerateAutomaticRemindersAsync().FireAndForgetSafe(this));
-            Task.Delay(6000).ContinueWith(_ => RunReturnsSync().FireAndForgetSafe(this));
-            Task.Delay(7000).ContinueWith(_ => RunGoogleSheetsSync().FireAndForgetSafe(this));
         }
+
+        private void InitializeTimers()
+        {
+            // Dane z MySQL — niezawodne, zawsze działają
+            _logCheckTimer = NewTimer(10000, async () => await CheckForLogChanges());
+            _remindersCheckTimer = NewTimer(3600000, async () => await GenerateAutomaticRemindersAsync());
+            _returnsSyncTimer = NewTimer(60000, async () => await PollReturnsCountFromDb());
+            _popupCheckTimer = NewTimer(60000, async () => await CheckForDueRemindersAndPopup());
+            _emailSyncTimer = NewTimer(120000, async () => await RunEmailSync());
+
+            // Statusy i liczniki z API — gdy API dostępne
+            _syncStatusTimer = NewTimer(30000, async () => await PollSyncStatusFromApi());
+        }
+
+        private static System.Timers.Timer NewTimer(double interval, Func<Task> callback)
+        {
+            var t = new System.Timers.Timer(interval) { AutoReset = true };
+            t.Elapsed += async (s, ev) => await callback();
+            t.Start();
+            return t;
+        }
+
+        // =====================================================================
+        // ŁADOWANIE DANYCH — BEZPOŚREDNIO Z MySQL (NIEZAWODNE)
+        // =====================================================================
 
         private async Task LoadDataAsync()
         {
@@ -189,20 +208,17 @@ namespace Reklamacje_Dane
             {
                 SetActivity("Odświeżanie danych...");
 
-                // Uruchamiamy wszystkie 3 ładowania równolegle
                 var task1 = LoadProcessingCasesAsync();
                 var task2 = RebuildRemindersCardsAsync();
                 var task3 = LoadChangeLogAsync();
                 var task4 = UpdateAllegroChatUnreadCountAsync();
 
-                // Czekamy na wszystkie (ale asynchronicznie, UI nie zamarznie)
                 await Task.WhenAll(task1, task2, task3, task4);
 
                 SafeInvoke(() => lblLastRefresh.Text = "Odświeżono: " + DateTime.Now.ToString("HH:mm"));
             }
             catch (Exception ex)
             {
-                // Logujemy błąd, ale nie pokazujemy MessageBoxa przy każdym odświeżeniu, bo to irytujące
                 Console.WriteLine("Błąd ładowania danych: " + ex.Message);
             }
             finally
@@ -215,37 +231,6 @@ namespace Reklamacje_Dane
                 }
             }
         }
-
-        private async Task UpdateAllegroChatUnreadCountAsync()
-        {
-            try
-            {
-                int count = 0;
-                using (var con = DatabaseHelper.GetConnection())
-                {
-                    await con.OpenAsync();
-                    var cmd = new MySqlCommand("SELECT COUNT(*) FROM AllegroDisputes WHERE HasNewMessages = 1", con);
-                    count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
-                }
-
-                SafeInvoke(() =>
-                {
-                    btnChat.Text = $"💬 Czat Allegro ({count})";
-                    btnChat.ForeColor = count > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
-                });
-            }
-            catch
-            {
-                // ignoruj błąd odświeżania licznika
-            }
-        }
-
-        private void ReklamacjeControl_Resize(object sender, EventArgs e)
-        {
-            if (splitContainerBottom.Width > 0) splitContainerBottom.SplitterDistance = splitContainerBottom.Width / 2;
-        }
-
-        // --- LOGIKA BIZNESOWA I ŁADOWANIE DANYCH ---
 
         private async Task LoadProcessingCasesAsync()
         {
@@ -282,51 +267,189 @@ namespace Reklamacje_Dane
             });
         }
 
-      
-
-        // --- TIMERY ---
-
-        private void InitializeTimers()
+        private async Task UpdateAllegroChatUnreadCountAsync()
         {
-            _logCheckTimer = NewTimer(10000, async () => await CheckForLogChanges());
-            _emailSyncTimer = NewTimer(120000, async () => await RunEmailSync()); // Co 2 minuty
-            _googleSheetSyncTimer = NewTimer(60000, async () => await RunGoogleSheetsSync());
-            _allegroSyncTimer = NewTimer(60000, async () => await RunAllegroSync());
-            _remindersCheckTimer = NewTimer(3600000, async () => await GenerateAutomaticRemindersAsync());
-            _shipmentCheckTimer = NewTimer(300000, async () => await CheckShipmentsAndNotify());
-            _returnsSyncTimer = NewTimer(60000, async () => await RunReturnsSync());
-            _popupCheckTimer = NewTimer(60000, async () => await CheckForDueRemindersAndPopup());
+            try
+            {
+                int count = 0;
+                using (var con = DatabaseHelper.GetConnection())
+                {
+                    await con.OpenAsync();
+                    var cmd = new MySqlCommand("SELECT COUNT(*) FROM AllegroDisputes WHERE HasNewMessages = 1", con);
+                    count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                }
+
+                SafeInvoke(() =>
+                {
+                    btnChat.Text = $"💬 Czat Allegro ({count})";
+                    btnChat.ForeColor = count > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
+                });
+            }
+            catch { }
         }
 
-        private static System.Timers.Timer NewTimer(double interval, Func<Task> callback)
+        private async Task LoadChangeLogAsync()
         {
-            var t = new System.Timers.Timer(interval) { AutoReset = true };
-            t.Elapsed += async (s, ev) => await callback();
-            t.Start();
-            return t;
+            string q = "SELECT DATE_FORMAT(Data, '%d-%m %H:%i') AS Kiedy, Akcja AS Zdarzenie, Uzytkownik, DotyczyZgloszenia AS NrZgloszenia FROM Dziennik ORDER BY Id DESC LIMIT 100";
+            await LoadTableDataAsync(dataGridViewChangeLog, q);
+            SafeInvoke(() =>
+            {
+                if (dataGridViewChangeLog.Columns.Contains("NrZgloszenia")) dataGridViewChangeLog.Columns["NrZgloszenia"].Visible = false;
+                if (dataGridViewChangeLog.Columns.Contains("Kiedy")) dataGridViewChangeLog.Columns["Kiedy"].Width = 90;
+                if (dataGridViewChangeLog.Columns.Contains("Uzytkownik")) dataGridViewChangeLog.Columns["Uzytkownik"].Width = 80;
+                if (dataGridViewChangeLog.Columns.Contains("Zdarzenie")) dataGridViewChangeLog.Columns["Zdarzenie"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            });
         }
 
-        // --- ZADANIA TŁA ---
+        private async Task LoadTableDataAsync(DataGridView dgv, string q)
+        {
+            var t = new DataTable();
+            try
+            {
+                using (var c = Database.GetNewOpenConnection())
+                using (var a = new MySqlDataAdapter(q, c))
+                    await Task.Run(() => a.Fill(t));
+                SafeInvoke(() => dgv.DataSource = t);
+            }
+            catch { }
+        }
+
+        // =====================================================================
+        // SYNC STATUS I LICZNIKI — PRZEZ API (nie blokuje gdy API niedostępne)
+        // Tutaj jest sedno: zamiast 50 userów odpytujących Google/Allegro/DPD,
+        // odpytujemy TYLKO nasze API, które robi sync w BackgroundServices.
+        // =====================================================================
+
+        /// <summary>
+        /// Pobiera statusy synchronizacji z API (Allegro, Google, DPD).
+        /// Gdy API niedostępne — po prostu nie aktualizuje, dashboard dalej działa.
+        /// </summary>
+        private async Task PollSyncStatusFromApi()
+        {
+            if (_isCheckingSyncStatus) return;
+            _isCheckingSyncStatus = true;
+            try
+            {
+                if (!IsApiAuthenticated()) return;
+
+                var apiClient = CreateApiClient();
+
+                // Allegro sync status
+                try
+                {
+                    var allegroStatus = await apiClient.GetAllegroSyncStatusAsync();
+                    SafeInvoke(() =>
+                    {
+                        btnNewAllegro.Text = $"🟠 Nowe Allegro ({allegroStatus.UnregisteredDisputesCount})";
+                        btnChat.Text = $"💬 Czat Allegro ({allegroStatus.DisputesWithNewMessages})";
+                        btnChat.ForeColor = allegroStatus.DisputesWithNewMessages > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
+                        if (allegroStatus.NewDisputesFoundLastRun > 0) UpdateManager.NotifySubscribers();
+                    });
+                    UpdateSyncStatus("Allegro", allegroStatus.LastRunSuccess ? "OK" : "Błąd",
+                        allegroStatus.LastError ?? $"Nowe: {allegroStatus.UnregisteredDisputesCount}");
+                }
+                catch (Exception ex)
+                {
+                    UpdateSyncStatus("Allegro", "Błąd", ex.Message);
+                }
+
+                // Operations sync status (Google + DPD)
+                try
+                {
+                    var opsStatus = await apiClient.GetOperationsSyncStatusAsync();
+                    if (opsStatus != null)
+                    {
+                        var google = opsStatus.Google;
+                        if (google != null)
+                        {
+                            SafeInvoke(() => btnNewGoogle.Text = $"🟢 Nowe Google ({google.MetricValue})");
+                            UpdateSyncStatus("Google Sheets", google.LastSuccess ? "OK" : (google.LastError != null ? "Błąd" : "Oczekiwanie..."),
+                                google.LastError ?? $"Wiersze: {google.MetricValue}");
+                        }
+
+                        var dpd = opsStatus.Dpd;
+                        if (dpd != null)
+                        {
+                            UpdateSyncStatus("Przesyłki DPD", dpd.LastSuccess ? "OK" : (dpd.LastError != null ? "Błąd" : "Oczekiwanie..."),
+                                dpd.LastError ?? $"Zmiany: {dpd.MetricValue}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    UpdateSyncStatus("Google Sheets", "Błąd API", ex.Message);
+                    UpdateSyncStatus("Przesyłki DPD", "Błąd API", ex.Message);
+                }
+            }
+            catch { }
+            finally { _isCheckingSyncStatus = false; }
+        }
+
+        /// <summary>
+        /// Pobiera liczniki z API (gdy dostępne) lub z bazy (fallback).
+        /// Wywoływane raz przy starcie z opóźnieniem.
+        /// Potem aktualizowane przez PollSyncStatusFromApi co 30s.
+        /// </summary>
+        private async Task PollCountersFromApi()
+        {
+            try
+            {
+                if (IsApiAuthenticated())
+                {
+                    // API dostępne — pobierz stamtąd
+                    await PollSyncStatusFromApi();
+                }
+                else
+                {
+                    // API niedostępne — fallback z bazy dla zwrotów
+                    await PollReturnsCountFromDb();
+                }
+            }
+            catch { }
+        }
+
+        private async Task PollReturnsCountFromDb()
+        {
+            if (_isCheckingReturns) return;
+            _isCheckingReturns = true;
+            try
+            {
+                int count = 0;
+                using (var c = Database.GetNewOpenConnection())
+                {
+                    count = Convert.ToInt32(await new MySqlCommand(
+                        "SELECT COUNT(*) FROM NiezarejestrowaneZwrotyReklamacyjne WHERE IFNULL(CzyZarejestrowane,0)=0", c)
+                        .ExecuteScalarAsync());
+                }
+                SafeInvoke(() => { btnNewReturn.Text = $"↩️ Nowe Zwroty ({count})"; });
+                UpdateSyncStatus("Magazyn Zwrotów", "OK", $"Znaleziono {count} nowych");
+            }
+            catch (Exception ex) { UpdateSyncStatus("Magazyn Zwrotów", "Błąd", ex.Message); }
+            finally { _isCheckingReturns = false; }
+        }
+
+        // =====================================================================
+        // EMAIL — TYMCZASOWO LOKALNIE (docelowo do API)
+        // =====================================================================
 
         private async Task RunEmailSync()
         {
-            if (_isCheckingEmails) return; _isCheckingEmails = true;
+            if (_isCheckingEmails) return;
+            _isCheckingEmails = true;
             try
             {
                 SetActivity("E-mail: Pobieranie...");
-                // 1. Pobieranie z serwera do bazy
                 await _emailService.PobierzPoczteDlaWszystkichKontAsync();
 
-                // 2. Liczenie nieprzeczytanych (zakładam, że nowe to te z ostatnich 24h)
                 int count = 0;
                 using (var con = Database.GetNewOpenConnection())
                 {
-                    // Liczba maili przychodzących z ostatnich 24h
                     string sql = "SELECT COUNT(*) FROM CentrumKontaktu WHERE Typ='Mail' AND Kierunek='IN' AND DataWyslania > DATE_SUB(NOW(), INTERVAL 1 DAY)";
                     count = Convert.ToInt32(await new MySqlCommand(sql, con).ExecuteScalarAsync());
                 }
 
-                SafeInvoke(() => {
+                SafeInvoke(() =>
+                {
                     btnEmail.Text = $"📧 Skrzynka Email ({count})";
                     if (count > 0)
                     {
@@ -342,104 +465,14 @@ namespace Reklamacje_Dane
             finally { _isCheckingEmails = false; SetActivity(""); }
         }
 
-        private async Task CheckShipmentsAndNotify()
-        {
-            if (_isCheckingShipments) return; _isCheckingShipments = true;
-            try
-            {
-                SetActivity("DPD: Pobieranie statusów...");
-                await _shipmentNotificationService.CheckAndNotifyAsync();
-                UpdateSyncStatus("Przesyłki DPD", "OK", "Sprawdzono pomyślnie");
-            }
-            catch (Exception ex) { UpdateSyncStatus("Przesyłki DPD", "Błąd", ex.Message); }
-            finally { _isCheckingShipments = false; SetActivity(""); }
-        }
-
-        private async Task RunAllegroSync()
-        {
-            if (_isCheckingAllegro) return; _isCheckingAllegro = true;
-            try
-            {
-                SetActivity("Allegro: Pobieranie statusu z API...");
-                var status = await GetServerAllegroSyncStatusAsync();
-                SafeInvoke(() => {
-                    btnNewAllegro.Text = $"🟠 Nowe Allegro ({status.UnregisteredDisputesCount})";
-                    btnChat.Text = $"💬 Czat Allegro ({status.DisputesWithNewMessages})";
-                    if (status.NewDisputesFoundLastRun > 0) UpdateManager.NotifySubscribers();
-                });
-                UpdateSyncStatus("Allegro", status.LastRunSuccess ? "OK" : "Błąd", status.LastError ?? $"Nowe: {status.UnregisteredDisputesCount}");
-            }
-            catch (Exception ex) { UpdateSyncStatus("Allegro", "Błąd", ex.Message); }
-            finally { _isCheckingAllegro = false; SetActivity(""); }
-        }
-
-
-
-        private bool IsApiAuthenticated()
-        {
-            try
-            {
-                return ApiSyncService.Instance != null && ApiSyncService.Instance.IsInitialized && ApiSyncService.Instance.IsAuthenticated;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private async Task<AllegroSyncStatusApi> GetServerAllegroSyncStatusAsync()
-        {
-            try
-            {
-                if (!IsApiAuthenticated())
-                {
-                    return new AllegroSyncStatusApi();
-                }
-
-                var apiClient = new ReklamacjeApiClient(ApiSyncService.Instance.BaseUrl);
-                apiClient.SetToken(Properties.Settings.Default.ApiToken);
-                return await apiClient.GetAllegroSyncStatusAsync();
-            }
-            catch
-            {
-                return new AllegroSyncStatusApi();
-            }
-        }
-
-        private async Task RunGoogleSheetsSync()
-        {
-            if (_isCheckingGoogleSheets) return; _isCheckingGoogleSheets = true;
-            try
-            {
-                SetActivity("Google: Pobieranie arkuszy...");
-                await UpdateGoogleSheetRowCountAsync();
-                UpdateSyncStatus("Google Sheets", "OK", "Synchronizacja zakończona");
-            }
-            catch (Exception ex) { UpdateSyncStatus("Google Sheets", "Błąd", ex.Message); }
-            finally { _isCheckingGoogleSheets = false; SetActivity(""); }
-        }
-
-        private async Task RunReturnsSync()
-        {
-            if (_isCheckingReturns) return; _isCheckingReturns = true;
-            try
-            {
-                SetActivity("Zwroty: Sprawdzanie bazy...");
-                int count = 0;
-                using (var c = Database.GetNewOpenConnection())
-                {
-                    count = Convert.ToInt32(await new MySqlCommand("SELECT COUNT(*) FROM NiezarejestrowaneZwrotyReklamacyjne WHERE IFNULL(CzyZarejestrowane,0)=0", c).ExecuteScalarAsync());
-                }
-                SafeInvoke(() => { btnNewReturn.Text = $"↩️ Nowe Zwroty ({count})"; });
-                UpdateSyncStatus("Magazyn Zwrotów", "OK", $"Znaleziono {count} nowych");
-            }
-            catch (Exception ex) { UpdateSyncStatus("Magazyn Zwrotów", "Błąd", ex.Message); }
-            finally { _isCheckingReturns = false; SetActivity(""); }
-        }
+        // =====================================================================
+        // PRZYPOMNIENIA
+        // =====================================================================
 
         private async Task GenerateAutomaticRemindersAsync()
         {
-            if (_isCheckingReminders) return; _isCheckingReminders = true;
+            if (_isCheckingReminders) return;
+            _isCheckingReminders = true;
             try
             {
                 SetActivity("Przypomnienia: Analiza terminów...");
@@ -453,53 +486,18 @@ namespace Reklamacje_Dane
 
         private async Task CheckForLogChanges()
         {
-            if (_isCheckingLogs) return; _isCheckingLogs = true;
+            if (_isCheckingLogs) return;
+            _isCheckingLogs = true;
             try
             {
                 long maxId = 0;
-                using (var c = Database.GetNewOpenConnection()) maxId = Convert.ToInt64(await new MySqlCommand("SELECT MAX(Id) FROM Dziennik", c).ExecuteScalarAsync());
+                using (var c = Database.GetNewOpenConnection())
+                    maxId = Convert.ToInt64(await new MySqlCommand("SELECT MAX(Id) FROM Dziennik", c).ExecuteScalarAsync());
                 if (maxId > _lastLogId) { _lastLogId = maxId; HandleUpdateNeeded(); }
                 UpdateSyncStatus("Dziennik", "OK", "Bieżący");
             }
             catch { }
             finally { _isCheckingLogs = false; }
-        }
-
-        // --- DANE POMOCNICZE ---
-
-        private async Task UpdateGoogleSheetRowCountAsync()
-        {
-            try
-            {
-                GoogleCredential credential;
-                using (var stream = new FileStream("reklamacje-baza-c36d05b0ffdb.json", FileMode.Open, FileAccess.Read))
-                    credential = GoogleCredential.FromStream(stream).CreateScoped(SheetsService.Scope.SpreadsheetsReadonly);
-                var service = new SheetsService(new BaseClientService.Initializer() { HttpClientInitializer = credential });
-                int total = 0;
-                foreach (var s in GoogleSheetsToRead)
-                {
-                    var r = await service.Spreadsheets.Values.Get(GoogleSpreadsheetId, s + "!A:A").ExecuteAsync();
-                    if (r.Values != null) total += r.Values.Count;
-                }
-                int count = Math.Max(0, total - 2);
-                SafeInvoke(() => {
-                    btnNewGoogle.Text = $"🟢 Nowe Google ({count})";
-                    _lastGoogleSheetRows = count;
-                });
-            }
-            catch { throw; }
-        }
-
-        private async Task LoadChangeLogAsync()
-        {
-            string q = "SELECT DATE_FORMAT(Data, '%d-%m %H:%i') AS Kiedy, Akcja AS Zdarzenie, Uzytkownik, DotyczyZgloszenia AS NrZgloszenia FROM Dziennik ORDER BY Id DESC LIMIT 100";
-            await LoadTableDataAsync(dataGridViewChangeLog, q);
-            SafeInvoke(() => {
-                if (dataGridViewChangeLog.Columns.Contains("NrZgloszenia")) dataGridViewChangeLog.Columns["NrZgloszenia"].Visible = false;
-                if (dataGridViewChangeLog.Columns.Contains("Kiedy")) dataGridViewChangeLog.Columns["Kiedy"].Width = 90;
-                if (dataGridViewChangeLog.Columns.Contains("Uzytkownik")) dataGridViewChangeLog.Columns["Uzytkownik"].Width = 80;
-                if (dataGridViewChangeLog.Columns.Contains("Zdarzenie")) dataGridViewChangeLog.Columns["Zdarzenie"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            });
         }
 
         private async Task CheckForDueRemindersAndPopup()
@@ -508,13 +506,21 @@ namespace Reklamacje_Dane
             _isCheckingPopups = true;
             try
             {
-                string sql = @"SELECT * FROM Przypomnienia WHERE (Status = 'Nowe' OR Status = 'Active' OR Status IS NULL OR Status = '') AND DataPrzypomnienia <= NOW() AND (PrzypisanyUzytkownik = @user OR PrzypisanyUzytkownik IS NULL OR PrzypisanyUzytkownik = '')";
+                string sql = @"SELECT * FROM Przypomnienia 
+                    WHERE (Status = 'Nowe' OR Status = 'Active' OR Status IS NULL OR Status = '') 
+                    AND DataPrzypomnienia <= NOW() 
+                    AND (PrzypisanyUzytkownik = @user OR PrzypisanyUzytkownik IS NULL OR PrzypisanyUzytkownik = '')";
+
                 DataTable dt;
                 using (var con = Database.GetNewOpenConnection())
                 using (var cmd = new MySqlCommand(sql, con))
                 {
                     cmd.Parameters.AddWithValue("@user", _fullName);
-                    using (var adapter = new MySqlDataAdapter(cmd)) { dt = new DataTable(); adapter.Fill(dt); }
+                    using (var adapter = new MySqlDataAdapter(cmd))
+                    {
+                        dt = new DataTable();
+                        adapter.Fill(dt);
+                    }
                 }
 
                 var dueReminders = new List<DataRow>();
@@ -545,15 +551,127 @@ namespace Reklamacje_Dane
             finally { _isCheckingPopups = false; }
         }
 
-        // --- UI HELPERS ---
+        private async Task RebuildRemindersCardsAsync()
+        {
+            try
+            {
+                flowLayoutPanelReminders.SuspendLayout();
 
-        private void SafeInvoke(MethodInvoker action) { if (!this.IsDisposed && this.IsHandleCreated) this.BeginInvoke(action); }
+                foreach (Control ctrl in flowLayoutPanelReminders.Controls) ctrl.Dispose();
+                flowLayoutPanelReminders.Controls.Clear();
+
+                var reminders = await ReminderService.GetActiveRemindersAsync();
+
+                foreach (var r in reminders)
+                {
+                    if (ClassifyCategoryForCard(r.Tresc) != _remindersActiveCategory) continue;
+
+                    var c = new StandardReminderCard
+                    {
+                        ReminderId = r.Id,
+                        ReminderText = r.Tresc,
+                        ComplaintNumber = r.DotyczyZgloszenia ?? ""
+                    };
+
+                    string textUpper = r.Tresc.ToUpper();
+                    if (textUpper.Contains("[PROBLEM]") || textUpper.Contains("[ZWROT]") || textUpper.Contains("[ZGUBIONA]"))
+                        c.IndicatorColor = Color.IndianRed;
+                    else if (textUpper.Contains("[PRZESYŁKA]") || textUpper.Contains("[W DORĘCZENIU]") || textUpper.Contains("DORĘCZENIU"))
+                        c.IndicatorColor = Color.CornflowerBlue;
+                    else if (textUpper.StartsWith("[AUTO]") || textUpper.Contains("PILNE") || textUpper.Contains("TERMIN"))
+                        c.IndicatorColor = Color.Orange;
+                    else
+                        c.IndicatorColor = Color.LightGray;
+
+                    c.ContextMenuStrip = _reminderCardCtx;
+                    c.Tag = r.Id;
+
+                    c.GoToComplaintClicked += (s, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(c.ComplaintNumber))
+                            new Form2(c.ComplaintNumber).Show();
+                    };
+
+                    flowLayoutPanelReminders.Controls.Add(c);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Błąd odświeżania przypomnień: " + ex.Message);
+            }
+            finally
+            {
+                flowLayoutPanelReminders.ResumeLayout();
+            }
+        }
+
+        private static string ClassifyCategoryForCard(string t)
+        {
+            if (string.IsNullOrEmpty(t)) return "Ręczne";
+            t = t.ToUpper();
+
+            if (t.Contains("[PROBLEM]") || t.Contains("[ZWROT]") || t.Contains("[ZGUBIONA]") ||
+                t.Contains("[PRZESYŁKA]") || t.Contains("[W DORĘCZENIU]") || t.Contains("DPD") || t.Contains("KURIER"))
+                return "Kurier";
+
+            if (t.StartsWith("[AUTO]") || t.Contains("PILNE") || t.Contains("TERMIN") || t.Contains("DECYZJ"))
+                return "Czas na decyzję";
+
+            return "Ręczne";
+        }
+
+        // =====================================================================
+        // HELPERY API
+        // =====================================================================
+
+        private bool IsApiAuthenticated()
+        {
+            try
+            {
+                return ApiSyncService.Instance != null
+                    && ApiSyncService.Instance.IsInitialized
+                    && ApiSyncService.Instance.IsAuthenticated;
+            }
+            catch { return false; }
+        }
+
+        private ReklamacjeApiClient CreateApiClient()
+        {
+            var client = new ReklamacjeApiClient(ApiSyncService.Instance.BaseUrl);
+            client.SetToken(Properties.Settings.Default.ApiToken);
+            return client;
+        }
+
+        /// <summary>
+        /// Pobiera status Operations Sync z API (Google + DPD).
+        /// Dodane do ReklamacjeApiClient — patrz niżej w pliku.
+        /// </summary>
+        private async Task<OperationsSyncSnapshotApi> GetOperationsSyncStatusAsync()
+        {
+            try
+            {
+                if (!IsApiAuthenticated()) return null;
+                var apiClient = CreateApiClient();
+                return await apiClient.GetOperationsSyncStatusAsync();
+            }
+            catch { return null; }
+        }
+
+        // =====================================================================
+        // UI HELPERS
+        // =====================================================================
+
+        private void SafeInvoke(MethodInvoker action)
+        {
+            if (!this.IsDisposed && this.IsHandleCreated) this.BeginInvoke(action);
+        }
 
         private void UpdateSyncStatus(string service, string status, string details)
         {
             lock (_syncStatus)
             {
-                _syncStatus[service] = $"{service}: {status} ({DateTime.Now:HH:mm})" + (string.IsNullOrEmpty(details) ? "" : $" -> {details}");
+                _syncStatus[service] = $"{service}: {status} ({DateTime.Now:HH:mm})" +
+                    (string.IsNullOrEmpty(details) ? "" : $" → {details}");
             }
             ApplySyncStatusTooltip();
         }
@@ -578,10 +696,7 @@ namespace Reklamacje_Dane
         private void RequestDataReload()
         {
             IWin32Window owner = this.FindForm();
-            if (owner == null)
-            {
-                owner = this;
-            }
+            if (owner == null) owner = this;
             LoadDataAsync().FireAndForgetSafe(owner);
         }
 
@@ -589,40 +704,27 @@ namespace Reklamacje_Dane
         private void refreshIcon_Click(object sender, EventArgs e) => RequestDataReload();
         private void lblLastRefresh_Click(object sender, EventArgs e) => RequestDataReload();
 
-        // --- ZAKŁADKI PRZYPOMNIEŃ ---
+        // =====================================================================
+        // ZAKŁADKI PRZYPOMNIEŃ
+        // =====================================================================
 
         private void BuildRemindersTabsBar()
         {
-            // 1. Czyścimy panel
             remindersTabsBar.Controls.Clear();
 
-            // 2. Tworzymy przyciski
             _tabDecyzjaBtn = CreateTabButton("Czas na decyzję", (s, e) => SetActiveReminderTab("Czas na decyzję"));
             _tabKurierBtn = CreateTabButton("Kurier", (s, e) => SetActiveReminderTab("Kurier"));
             _tabReczneBtn = CreateTabButton("Ręczne", (s, e) => SetActiveReminderTab("Ręczne"));
 
-            // 3. Dodajemy je do panelu (KLUCZOWE: najpierw dodaj, żeby system policzył rozmiar)
             remindersTabsBar.Controls.Add(_tabDecyzjaBtn);
             remindersTabsBar.Controls.Add(_tabKurierBtn);
             remindersTabsBar.Controls.Add(_tabReczneBtn);
 
-            // 4. Układamy je obok siebie (teraz Width będzie poprawny)
-            int currentX = 5;  // Margines od lewej krawędzi
-            int gap = 10;      // Odstęp między przyciskami
-            int topY = 3;      // Odstęp od góry
-
-            // Przycisk 1
-            _tabDecyzjaBtn.Location = new Point(currentX, topY);
-            currentX += _tabDecyzjaBtn.Width + gap;
-
-            // Przycisk 2
-            _tabKurierBtn.Location = new Point(currentX, topY);
-            currentX += _tabKurierBtn.Width + gap;
-
-            // Przycisk 3
+            int currentX = 5, gap = 10, topY = 3;
+            _tabDecyzjaBtn.Location = new Point(currentX, topY); currentX += _tabDecyzjaBtn.Width + gap;
+            _tabKurierBtn.Location = new Point(currentX, topY); currentX += _tabKurierBtn.Width + gap;
             _tabReczneBtn.Location = new Point(currentX, topY);
 
-            // 5. Inicjalizacja menu kontekstowego i domyślnej zakładki
             _reminderCardCtx = new ContextMenuStrip();
             _reminderCardCtx.Items.Add("✅ Oznacz jako wykonane", null, async (s, e) => await MarkSelectedCardDoneAsync());
 
@@ -635,8 +737,8 @@ namespace Reklamacje_Dane
             {
                 Text = t,
                 AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink, // Przycisk dopasuje się do treści + Paddingu
-                Padding = new Padding(12, 5, 12, 5),       // Wewnętrzny margines (żeby tekst nie dotykał krawędzi)
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Padding = new Padding(12, 5, 12, 5),
                 FlatStyle = FlatStyle.Flat,
                 FlatAppearance = { BorderSize = 0 },
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold),
@@ -653,155 +755,30 @@ namespace Reklamacje_Dane
         private void SetActiveReminderTab(string cat)
         {
             _remindersActiveCategory = cat;
-
-            // Aktualizacja wyglądu przycisków (Podświetlenie aktywnego)
             HighlightTab(_tabDecyzjaBtn, cat == "Czas na decyzję");
             HighlightTab(_tabKurierBtn, cat == "Kurier");
             HighlightTab(_tabReczneBtn, cat == "Ręczne");
-
             RebuildRemindersCardsAsync();
         }
 
         private void HighlightTab(Button b, bool isActive)
         {
-            if (isActive)
-            {
-                b.BackColor = Color.FromArgb(21, 101, 192); // Niebieski aktywny
-                b.ForeColor = Color.White;
-            }
-            else
-            {
-                b.BackColor = Color.WhiteSmoke; // Szary nieaktywny
-                b.ForeColor = Color.Gray;
-            }
+            b.BackColor = isActive ? Color.FromArgb(21, 101, 192) : Color.WhiteSmoke;
+            b.ForeColor = isActive ? Color.White : Color.Gray;
         }
 
-       
-
-        private async Task RebuildRemindersCardsAsync()
+        private async Task MarkSelectedCardDoneAsync()
         {
-            try
+            if (_reminderCardCtx.SourceControl is Control c)
             {
-                // Zatrzymujemy rysowanie, żeby nie migało przy odświeżaniu
-                flowLayoutPanelReminders.SuspendLayout();
-
-                // Usuwamy stare karty (ważne, żeby wyczyścić listę przed dodaniem nowych)
-                // Uwaga: W WinForms przy dużej liczbie kontrolek warto je też Dispose(), 
-                // ale przy kilkunastu przypomnieniach Clear() wystarczy.
-                foreach (Control ctrl in flowLayoutPanelReminders.Controls) ctrl.Dispose();
-                flowLayoutPanelReminders.Controls.Clear();
-
-                // Pobieramy dane z bazy
-                var reminders = await ReminderService.GetActiveRemindersAsync();
-
-                foreach (var r in reminders)
-                {
-                    // 1. FILTROWANIE ZAKŁADEK
-                    // Sprawdzamy, czy przypomnienie pasuje do aktualnie wybranej zakładki (np. "Kurier")
-                    if (ClassifyCategoryForCard(r.Tresc) != _remindersActiveCategory) continue;
-
-                    // 2. TWORZENIE KARTY
-                    var c = new StandardReminderCard
-                    {
-                        ReminderId = r.Id,
-                        ReminderText = r.Tresc,
-                        ComplaintNumber = r.DotyczyZgloszenia ?? ""
-                    };
-
-                    // 3. KOLORYZACJA (LOGIKA BIZNESOWA)
-                    string textUpper = r.Tresc.ToUpper();
-
-                    if (textUpper.Contains("[PROBLEM]") ||
-                        textUpper.Contains("[ZWROT]") ||
-                        textUpper.Contains("[ZGUBIONA]"))
-                    {
-                        c.IndicatorColor = Color.IndianRed; // Czerwony (Problemy krytyczne)
-                    }
-                    else if (textUpper.Contains("[PRZESYŁKA]") ||
-                             textUpper.Contains("[W DORĘCZENIU]") ||
-                             textUpper.Contains("DORĘCZENIU"))
-                    {
-                        c.IndicatorColor = Color.CornflowerBlue; // Niebieski (Info logistyczne)
-                    }
-                    else if (textUpper.StartsWith("[AUTO]") ||
-                             textUpper.Contains("PILNE") ||
-                             textUpper.Contains("TERMIN"))
-                    {
-                        c.IndicatorColor = Color.Orange; // Pomarańczowy (Terminy / Auto)
-                    }
-                    else
-                    {
-                        c.IndicatorColor = Color.LightGray; // Szary (Zwykłe ręczne)
-                    }
-
-                    // 4. PODPIĘCIE ZDARZEŃ
-                    c.ContextMenuStrip = _reminderCardCtx; // Menu pod prawym przyciskiem
-                    c.Tag = r.Id; // Przechowujemy ID, żeby wiedzieć co usunąć
-
-                    // Kliknięcie w "ZOBACZ" otwiera Form2 ze zgłoszeniem
-                    c.GoToComplaintClicked += (s, e) =>
-                    {
-                        if (!string.IsNullOrEmpty(c.ComplaintNumber))
-                            new Form2(c.ComplaintNumber).Show();
-                    };
-
-                    // Dodajemy kartę do panelu
-                    flowLayoutPanelReminders.Controls.Add(c);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Błąd odświeżania przypomnień: " + ex.Message);
-            }
-            finally
-            {
-                // Wznawiamy rysowanie
-                flowLayoutPanelReminders.ResumeLayout();
+                await ReminderService.MarkAsDoneAsync(Convert.ToInt64(c.Tag));
+                await RebuildRemindersCardsAsync();
             }
         }
 
-        // Metoda pomocnicza decydująca, do której zakładki trafi przypomnienie
-
-
-        private static string ClassifyCategoryForCard(string t)
-        {
-            if (string.IsNullOrEmpty(t)) return "Ręczne";
-            t = t.ToUpper();
-
-            // 1. Kategoria: KURIER (Priorytet dla problemów transportowych)
-            if (t.Contains("[PROBLEM]") ||
-                t.Contains("[ZWROT]") ||
-                t.Contains("[ZGUBIONA]") ||
-                t.Contains("[PRZESYŁKA]") ||
-                t.Contains("[W DORĘCZENIU]") ||
-                t.Contains("DPD") ||
-                t.Contains("KURIER"))
-            {
-                return "Kurier";
-            }
-
-            // 2. Kategoria: CZAS NA DECYZJĘ (Automaty terminowe)
-            if (t.StartsWith("[AUTO]") ||
-                t.Contains("PILNE") ||
-                t.Contains("TERMIN") ||
-                t.Contains("DECYZJ"))
-            {
-                return "Czas na decyzję";
-            }
-
-            // 3. Reszta to RĘCZNE
-            return "Ręczne";
-        }
-
-        private async Task MarkSelectedCardDoneAsync() { if (_reminderCardCtx.SourceControl is Control c) { await ReminderService.MarkAsDoneAsync(Convert.ToInt64(c.Tag)); await RebuildRemindersCardsAsync(); } }
-
-        // --- GRID EVENTS ---
-
-        private async Task LoadTableDataAsync(DataGridView dgv, string q)
-        {
-            var t = new DataTable();
-            try { using (var c = Database.GetNewOpenConnection()) using (var a = new MySqlDataAdapter(q, c)) await Task.Run(() => a.Fill(t)); SafeInvoke(() => dgv.DataSource = t); } catch { }
-        }
+        // =====================================================================
+        // GRID EVENTS
+        // =====================================================================
 
         private void anyDataGridView_CellClick(object sender, DataGridViewCellEventArgs e)
         {
@@ -812,19 +789,34 @@ namespace Reklamacje_Dane
             }
         }
 
-        // --- MENU CONTEXT ACTIONS ---
+        // =====================================================================
+        // MENU CONTEXT ACTIONS
+        // =====================================================================
 
-        private void otwórzZgłoszenieToolStripMenuItem_Click(object sender, EventArgs e) { if (dataGridViewProcessing.CurrentRow != null) anyDataGridView_CellClick(dataGridViewProcessing, new DataGridViewCellEventArgs(0, dataGridViewProcessing.CurrentRow.Index)); }
+        private void otwórzZgłoszenieToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (dataGridViewProcessing.CurrentRow != null)
+                anyDataGridView_CellClick(dataGridViewProcessing, new DataGridViewCellEventArgs(0, dataGridViewProcessing.CurrentRow.Index));
+        }
 
         private async void usunZgloszenieToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (dataGridViewProcessing.CurrentRow == null) return;
             string nrZgloszenia = dataGridViewProcessing.CurrentRow.Cells["NrZgloszenia"].Value.ToString();
-            var result = MessageBox.Show($"Czy na pewno chcesz przenieść zgłoszenie {nrZgloszenia} do archiwum?", "Potwierdzenie", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-            if (result == DialogResult.Yes) { await ArchiveComplaintAsync(nrZgloszenia); RequestDataReload(); }
+            var result = MessageBox.Show($"Czy na pewno chcesz przenieść zgłoszenie {nrZgloszenia} do archiwum?",
+                "Potwierdzenie", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            if (result == DialogResult.Yes)
+            {
+                await ArchiveComplaintAsync(nrZgloszenia);
+                RequestDataReload();
+            }
         }
 
-        private void kopiujNumerZgłoszeniaToolStripMenuItem_Click(object sender, EventArgs e) { if (dataGridViewProcessing.CurrentRow != null) Clipboard.SetText(dataGridViewProcessing.CurrentRow.Cells["NrZgloszenia"].Value.ToString()); }
+        private void kopiujNumerZgłoszeniaToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (dataGridViewProcessing.CurrentRow != null)
+                Clipboard.SetText(dataGridViewProcessing.CurrentRow.Cells["NrZgloszenia"].Value.ToString());
+        }
 
         private async void dodajPrzypomnienieToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -845,12 +837,15 @@ namespace Reklamacje_Dane
 
         private async Task ArchiveComplaintAsync(string complaintNumber)
         {
-            using (var c = Database.GetNewOpenConnection()) using (var t = c.BeginTransaction())
+            using (var c = Database.GetNewOpenConnection())
+            using (var t = c.BeginTransaction())
             {
                 try
                 {
-                    using (var cmd = new MySqlCommand("INSERT INTO ZgloszeniaArchiwum SELECT * FROM Zgloszenia WHERE NrZgloszenia=@n", c, t)) { cmd.Parameters.AddWithValue("@n", complaintNumber); await cmd.ExecuteNonQueryAsync(); }
-                    using (var cmd = new MySqlCommand("DELETE FROM Zgloszenia WHERE NrZgloszenia=@n", c, t)) { cmd.Parameters.AddWithValue("@n", complaintNumber); await cmd.ExecuteNonQueryAsync(); }
+                    using (var cmd = new MySqlCommand("INSERT INTO ZgloszeniaArchiwum SELECT * FROM Zgloszenia WHERE NrZgloszenia=@n", c, t))
+                    { cmd.Parameters.AddWithValue("@n", complaintNumber); await cmd.ExecuteNonQueryAsync(); }
+                    using (var cmd = new MySqlCommand("DELETE FROM Zgloszenia WHERE NrZgloszenia=@n", c, t))
+                    { cmd.Parameters.AddWithValue("@n", complaintNumber); await cmd.ExecuteNonQueryAsync(); }
                     t.Commit();
                     ToastManager.ShowToast("Sukces", "Zarchiwizowano.", NotificationType.Success);
                 }
@@ -858,30 +853,81 @@ namespace Reklamacje_Dane
             }
         }
 
+        // =====================================================================
+        // RESIZE / DISPOSE
+        // =====================================================================
+
+        private void ReklamacjeControl_Resize(object sender, EventArgs e)
+        {
+            if (splitContainerBottom.Width > 0) splitContainerBottom.SplitterDistance = splitContainerBottom.Width / 2;
+        }
+
         private void ReklamacjeControl_Disposed(object sender, EventArgs e)
         {
-            StopAndDisposeTimer(_logCheckTimer); StopAndDisposeTimer(_googleSheetSyncTimer); StopAndDisposeTimer(_allegroSyncTimer);
-            StopAndDisposeTimer(_remindersCheckTimer); StopAndDisposeTimer(_shipmentCheckTimer); StopAndDisposeTimer(_returnsSyncTimer); StopAndDisposeTimer(_popupCheckTimer); StopAndDisposeTimer(_emailSyncTimer);
+            StopAndDisposeTimer(_logCheckTimer);
+            StopAndDisposeTimer(_syncStatusTimer);
+            StopAndDisposeTimer(_remindersCheckTimer);
+            StopAndDisposeTimer(_returnsSyncTimer);
+            StopAndDisposeTimer(_popupCheckTimer);
+            StopAndDisposeTimer(_emailSyncTimer);
             if (_privateWebView != null) _privateWebView.Dispose();
         }
-        private static void StopAndDisposeTimer(System.Timers.Timer t) { if (t != null) { t.Stop(); t.Dispose(); } }
-        private void EnsureProcessingGridScrollable() { try { dataGridViewProcessing.ScrollBars = ScrollBars.Both; typeof(DataGridView).GetProperty("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(dataGridViewProcessing, true, null); } catch { } }
-        private void txtFilterProcessing_TextChanged(object sender, EventArgs e) { if (dataGridViewProcessing.DataSource is DataTable dt) { string f = txtFilterProcessing.Text.Replace("'", "''"); dt.DefaultView.RowFilter = string.IsNullOrWhiteSpace(f) ? "" : $"NrZgloszenia LIKE '%{f}%' OR Klient LIKE '%{f}%'"; } }
-        private void HighlightMenuButton(object sender) { foreach (Control c in pnlMenuButtons.Controls) if (c is Button b) { b.BackColor = Color.FromArgb(21, 32, 54); b.ForeColor = Color.FromArgb(180, 190, 210); } if (sender is Button btn) { btn.BackColor = Color.FromArgb(30, 41, 59); btn.ForeColor = Color.White; } }
+
+        private static void StopAndDisposeTimer(System.Timers.Timer t)
+        {
+            if (t != null) { t.Stop(); t.Dispose(); }
+        }
+
+        private void EnsureProcessingGridScrollable()
+        {
+            try
+            {
+                dataGridViewProcessing.ScrollBars = ScrollBars.Both;
+                typeof(DataGridView).GetProperty("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.SetValue(dataGridViewProcessing, true, null);
+            }
+            catch { }
+        }
+
+        private void txtFilterProcessing_TextChanged(object sender, EventArgs e)
+        {
+            if (dataGridViewProcessing.DataSource is DataTable dt)
+            {
+                string f = txtFilterProcessing.Text.Replace("'", "''");
+                dt.DefaultView.RowFilter = string.IsNullOrWhiteSpace(f) ? ""
+                    : $"NrZgloszenia LIKE '%{f}%' OR Klient LIKE '%{f}%'";
+            }
+        }
+
+        // =====================================================================
+        // NAWIGACJA MENU
+        // =====================================================================
+
+        private void HighlightMenuButton(object sender)
+        {
+            foreach (Control c in pnlMenuButtons.Controls)
+                if (c is Button b) { b.BackColor = Color.FromArgb(21, 32, 54); b.ForeColor = Color.FromArgb(180, 190, 210); }
+            if (sender is Button btn) { btn.BackColor = Color.FromArgb(30, 41, 59); btn.ForeColor = Color.White; }
+        }
+
         private void menuStronaGlowna_Click(object sender, EventArgs e) { HighlightMenuButton(sender); RequestDataReload(); }
         private void menuNiezarejestrowaneGoogle_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUniversalWizardV2(WizardSource.GoogleSheet).Show(); }
         private void menuNiezarejestrowaneAllegro_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUniversalWizardV2(WizardSource.Allegro).Show(); }
         private void menuDodajNowe_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUniversalWizardV2(WizardSource.Manual).Show(); }
         private void menuWszystkieZgloszenia_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new WyszukiwarkaZgloszenForm().Show(); }
         private void menuCzatAllegro_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormWiadomosci().Show(); }
-        private void btnContactCenter_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormHistoria().Show();  }
-       
-    private void menuPrzypomnienia_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormPrzypomnienia().Show(); }
+        private void btnContactCenter_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormHistoria().Show(); }
+        private void menuPrzypomnienia_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormPrzypomnienia().Show(); }
         private void menuKlienci_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new Form3().Show(); }
         private void menuProdukty_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new Form15("1").Show(); }
         private void menuProducenci_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new Form16().Show(); }
         private void menuUstawienia_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUstawienia().Show(); }
         private void menuSledzeniePrzesylek_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormDpdTracking().Show(); }
-        private void menuNiezarejestrowaneZwroty_Click(object sender, EventArgs e) { HighlightMenuButton(sender); try { new FormUniversalWizardV2(WizardSource.Zwroty).Show(); } catch (Exception ex) { MessageBox.Show("Błąd: " + ex.Message); } }
+        private void menuNiezarejestrowaneZwroty_Click(object sender, EventArgs e)
+        {
+            HighlightMenuButton(sender);
+            try { new FormUniversalWizardV2(WizardSource.Zwroty).Show(); }
+            catch (Exception ex) { MessageBox.Show("Błąd: " + ex.Message); }
+        }
     }
 }

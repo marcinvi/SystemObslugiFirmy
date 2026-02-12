@@ -366,4 +366,149 @@ namespace Reklamacje_Dane
         [JsonProperty("status")]
         public AllegroSyncStatusApi Status { get; set; }
     }
+
+    // ===== SYNC DASHBOARD — jeden endpoint, wszystkie dane =====
+
+    public class SyncDashboardApi
+    {
+        [JsonProperty("unregisteredAllegroCount")]
+        public int UnregisteredAllegroCount { get; set; }
+
+        [JsonProperty("allegroNewMessages")]
+        public int AllegroNewMessages { get; set; }
+
+        [JsonProperty("unregisteredGoogleCount")]
+        public int UnregisteredGoogleCount { get; set; }
+
+        [JsonProperty("unregisteredReturnsCount")]
+        public int UnregisteredReturnsCount { get; set; }
+
+        [JsonProperty("emailUnreadCount")]
+        public int EmailUnreadCount { get; set; }
+
+        [JsonProperty("services")]
+        public List<SyncServiceInfoApi> Services { get; set; } = new List<SyncServiceInfoApi>();
+
+        [JsonProperty("processingComplaints")]
+        public List<DashboardComplaintApi> ProcessingComplaints { get; set; } = new List<DashboardComplaintApi>();
+
+        [JsonProperty("reminders")]
+        public List<DashboardReminderApi> Reminders { get; set; } = new List<DashboardReminderApi>();
+
+        [JsonProperty("changeLog")]
+        public List<ChangeLogEntryApi> ChangeLog { get; set; } = new List<ChangeLogEntryApi>();
+
+        [JsonProperty("generatedAt")]
+        public DateTime GeneratedAt { get; set; }
+    }
+
+    public class SyncServiceInfoApi
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; } = "";
+
+        [JsonProperty("status")]
+        public string Status { get; set; } = "Oczekiwanie...";
+
+        [JsonProperty("details")]
+        public string Details { get; set; } = "";
+
+        [JsonProperty("isRunning")]
+        public bool IsRunning { get; set; }
+
+        [JsonProperty("lastRunAt")]
+        public DateTime? LastRunAt { get; set; }
+
+        [JsonProperty("lastRunSuccess")]
+        public bool LastRunSuccess { get; set; }
+    }
+
+    public class DashboardComplaintApi
+    {
+        [JsonProperty("nrZgloszenia")]
+        public string NrZgloszenia { get; set; } = "";
+
+        [JsonProperty("klient")]
+        public string Klient { get; set; } = "";
+
+        [JsonProperty("produkt")]
+        public string Produkt { get; set; } = "";
+
+        [JsonProperty("opisUsterki")]
+        public string OpisUsterki { get; set; } = "";
+
+        [JsonProperty("dniPoZgloszeniu")]
+        public int DniPoZgloszeniu { get; set; }
+    }
+
+    public class DashboardReminderApi
+    {
+        [JsonProperty("id")]
+        public int Id { get; set; }
+
+        [JsonProperty("tresc")]
+        public string Tresc { get; set; } = "";
+
+        [JsonProperty("dotyczyZgloszenia")]
+        public string DotyczyZgloszenia { get; set; } = "";
+
+        [JsonProperty("kategoria")]
+        public string Kategoria { get; set; } = "";
+
+        [JsonProperty("kolor")]
+        public string Kolor { get; set; } = "";
+    }
+
+    public class ChangeLogEntryApi
+    {
+        [JsonProperty("kiedy")]
+        public string Kiedy { get; set; } = "";
+
+        [JsonProperty("zdarzenie")]
+        public string Zdarzenie { get; set; } = "";
+
+        [JsonProperty("uzytkownik")]
+        public string Uzytkownik { get; set; } = "";
+
+        [JsonProperty("nrZgloszenia")]
+        public string NrZgloszenia { get; set; } = "";
+    }
+
+    // ===== OPERATIONS SYNC STATUS (dla ops-sync endpoint) =====
+
+    public class OperationsSyncSnapshotApi
+    {
+        [JsonProperty("dpd")]
+        public SyncServiceStatusApi Dpd { get; set; } = new SyncServiceStatusApi();
+
+        [JsonProperty("google")]
+        public SyncServiceStatusApi Google { get; set; } = new SyncServiceStatusApi();
+    }
+
+    public class SyncServiceStatusApi
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; } = "";
+
+        [JsonProperty("isRunning")]
+        public bool IsRunning { get; set; }
+
+        [JsonProperty("lastSuccess")]
+        public bool LastSuccess { get; set; }
+
+        [JsonProperty("lastStartedAt")]
+        public DateTime? LastStartedAt { get; set; }
+
+        [JsonProperty("lastFinishedAt")]
+        public DateTime? LastFinishedAt { get; set; }
+
+        [JsonProperty("lastError")]
+        public string LastError { get; set; }
+
+        [JsonProperty("metricValue")]
+        public int MetricValue { get; set; }
+
+        [JsonProperty("metricLabel")]
+        public string MetricLabel { get; set; } = "";
+    }
 }

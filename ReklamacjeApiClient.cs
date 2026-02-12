@@ -429,6 +429,84 @@ namespace Reklamacje_Dane
             return apiResponse?.Data;
         }
 
+        // ===== OPERATIONS SYNC STATUS =====
+
+        /// <summary>
+        /// Pobiera status synchronizacji operacji (Google + DPD) z API.
+        /// </summary>
+        public async Task<OperationsSyncSnapshotApi> GetOperationsSyncStatusAsync()
+        {
+            CheckAuthentication();
+
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_baseUrl}/api/ops-sync/status");
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception($"Błąd pobierania ops-sync: {response.StatusCode}");
+
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<OperationsSyncSnapshotApi>>(body);
+                return apiResponse?.Data;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Błąd ops-sync: {ex.Message}", ex);
+            }
+        }
+
+        // ===== SYNC DASHBOARD (UNIFIED) =====
+
+        /// <summary>
+        /// Pobiera PEŁNY dashboard — liczniki, statusy sync, listy zgłoszeń,
+        /// przypomnienia, changelog. Jedno wywołanie zamiast wielu.
+        /// </summary>
+        public async Task<SyncDashboardApi> GetSyncDashboardAsync()
+        {
+            CheckAuthentication();
+
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_baseUrl}/api/sync-dashboard");
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception($"Błąd pobierania dashboard: {response.StatusCode} - {body}");
+
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<SyncDashboardApi>>(body);
+                return apiResponse?.Data ?? new SyncDashboardApi();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Błąd sync-dashboard: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Pobiera TYLKO liczniki i statusy synchronizacji (bez list).
+        /// Lekki endpoint — używać co 30 sekund.
+        /// </summary>
+        public async Task<SyncDashboardApi> GetSyncDashboardCountersAsync()
+        {
+            CheckAuthentication();
+
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_baseUrl}/api/sync-dashboard/counters");
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception($"Błąd pobierania counters: {response.StatusCode} - {body}");
+
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<SyncDashboardApi>>(body);
+                return apiResponse?.Data ?? new SyncDashboardApi();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Błąd sync-dashboard/counters: {ex.Message}", ex);
+            }
+        }
+
         // ===== HEALTH CHECK =====
 
         /// <summary>
