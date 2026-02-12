@@ -181,7 +181,7 @@ namespace Reklamacje_Dane
             _emailSyncTimer = NewTimer(120000, async () => await RunEmailSync());
 
             // Statusy i liczniki z API — gdy API dostępne
-            _syncStatusTimer = NewTimer(30000, async () => await PollSyncStatusFromApi());
+            _syncStatusTimer = NewTimer(30000, async () => await PollSyncStatusAndCounters());
         }
 
         private static System.Timers.Timer NewTimer(double interval, Func<Task> callback)
@@ -212,8 +212,9 @@ namespace Reklamacje_Dane
                 var task2 = RebuildRemindersCardsAsync();
                 var task3 = LoadChangeLogAsync();
                 var task4 = UpdateAllegroChatUnreadCountAsync();
+                var task5 = UpdateReminderNotificationsCountAsync();
 
-                await Task.WhenAll(task1, task2, task3, task4);
+                await Task.WhenAll(task1, task2, task3, task4, task5);
 
                 SafeInvoke(() => lblLastRefresh.Text = "Odświeżono: " + DateTime.Now.ToString("HH:mm"));
             }
@@ -402,16 +403,36 @@ namespace Reklamacje_Dane
             {
                 if (IsApiAuthenticated())
                 {
-                    // API dostępne — pobierz stamtąd
-                    await PollSyncStatusFromApi();
+                    // API dostępne — pobierz lekkie liczniki z jednego endpointu
+                    var apiClient = CreateApiClient();
+                    var counters = await apiClient.GetSyncDashboardCountersAsync();
+
+                    SafeInvoke(() =>
+                    {
+                        btnNewAllegro.Text = $"🟠 Nowe Allegro ({counters.UnregisteredAllegroCount})";
+                        btnChat.Text = $"💬 Czat Allegro ({counters.AllegroNewMessages})";
+                        btnChat.ForeColor = counters.AllegroNewMessages > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
+                        btnNewGoogle.Text = $"🟢 Nowe Google ({counters.UnregisteredGoogleCount})";
+                        btnNewReturn.Text = $"↩️ Nowe Zwroty ({counters.UnregisteredReturnsCount})";
+                    });
                 }
                 else
                 {
-                    // API niedostępne — fallback z bazy dla zwrotów
+                    // API niedostępne — fallback z bazy
+                    await UpdateAllegroChatUnreadCountAsync();
                     await PollReturnsCountFromDb();
                 }
+
+                // Powiadomienia o przypomnieniach są lokalne i niezależne od API
+                await UpdateReminderNotificationsCountAsync();
             }
             catch { }
+        }
+
+        private async Task PollSyncStatusAndCounters()
+        {
+            await PollSyncStatusFromApi();
+            await PollCountersFromApi();
         }
 
         private async Task PollReturnsCountFromDb()
@@ -609,6 +630,32 @@ namespace Reklamacje_Dane
             {
                 flowLayoutPanelReminders.ResumeLayout();
             }
+        }
+
+        private async Task UpdateReminderNotificationsCountAsync()
+        {
+            try
+            {
+                string sql = @"SELECT COUNT(*) FROM Przypomnienia
+                               WHERE (Status = 'Nowe' OR Status = 'Active' OR Status IS NULL OR Status = '')
+                               AND DataPrzypomnienia <= NOW()
+                               AND (PrzypisanyUzytkownik = @user OR PrzypisanyUzytkownik IS NULL OR PrzypisanyUzytkownik = '')";
+
+                int count = 0;
+                using (var con = Database.GetNewOpenConnection())
+                using (var cmd = new MySqlCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("@user", _fullName);
+                    count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                }
+
+                SafeInvoke(() =>
+                {
+                    btnReminders.Text = $"⏰ Przypomnienia ({count})";
+                    btnReminders.ForeColor = count > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
+                });
+            }
+            catch { }
         }
 
         private static string ClassifyCategoryForCard(string t)
