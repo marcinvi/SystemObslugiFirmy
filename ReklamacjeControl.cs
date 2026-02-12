@@ -274,9 +274,8 @@ namespace Reklamacje_Dane
             try
             {
                 int count = 0;
-                using (var con = DatabaseHelper.GetConnection())
+                using (var con = Database.GetNewOpenConnection())
                 {
-                    await con.OpenAsync();
                     var cmd = new MySqlCommand("SELECT COUNT(*) FROM AllegroDisputes WHERE HasNewMessages = 1", con);
                     count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
                 }
@@ -927,8 +926,12 @@ namespace Reklamacje_Dane
                 int id = 0;
                 using (var c = Database.GetNewOpenConnection())
                 {
-                    var s = await new MySqlCommand("SELECT Id FROM Zgloszenia WHERE NrZgloszenia='" + nr + "'", c).ExecuteScalarAsync();
-                    if (s != null) id = Convert.ToInt32(s);
+                    using (var cmd = new MySqlCommand("SELECT Id FROM Zgloszenia WHERE NrZgloszenia = @nr", c))
+                    {
+                        cmd.Parameters.AddWithValue("@nr", nr);
+                        var s = await cmd.ExecuteScalarAsync();
+                        if (s != null) id = Convert.ToInt32(s);
+                    }
                 }
                 if (id > 0) new FormDodajPrzypomnienie(id).Show();
             }
