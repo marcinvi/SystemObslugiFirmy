@@ -419,7 +419,9 @@ namespace Reklamacje_Dane
                 }
                 else
                 {
-                    await UpdateCountersFromDatabaseFallbackAsync();
+                    // API niedostępne — fallback z bazy
+                    await UpdateAllegroChatUnreadCountAsync();
+                    await PollReturnsCountFromDb();
                 }
 
                 // Powiadomienia o przypomnieniach są lokalne i niezależne od API
@@ -457,6 +459,12 @@ namespace Reklamacje_Dane
             {
                 SafeInvoke(() => { btnNewAllegro.Text = "🟠 Nowe Allegro (0)"; });
             }
+        }
+
+        private async Task PollSyncStatusAndCounters()
+        {
+            await PollSyncStatusFromApi();
+            await PollCountersFromApi();
         }
 
         private async Task PollSyncStatusAndCounters()
