@@ -313,7 +313,9 @@ namespace Reklamacje_Dane
                     try
                     {
                         ApiSyncService.Initialize(result.ApiUrl);
-                        progressCallback?.Invoke("✅ REST API skonfigurowane!");
+                        Properties.Settings.Default.ApiBaseUrl = result.ApiUrl;
+                        Properties.Settings.Default.Save();
+                        progressCallback?.Invoke("✅ REST API skonfigurowane i zapisane!");
                     }
                     catch (Exception ex)
                     {
