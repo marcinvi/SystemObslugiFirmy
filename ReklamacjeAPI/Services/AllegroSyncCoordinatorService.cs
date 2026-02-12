@@ -58,7 +58,7 @@ public class AllegroSyncCoordinatorService
             _status.LastStartedAt = DateTime.Now;
             _status.LastError = null;
 
-            _logger.LogInformation("[AllegroSync] Start synchronizacji. Source={Source}", source);
+            _logger.LogInformation("[Allegro][Czat] Start synchronizacji. Source={Source}", source);
 
             var accounts = await _credentialsService.GetAuthorizedAccountsAsync();
             var newCounter = 0;
@@ -68,24 +68,46 @@ public class AllegroSyncCoordinatorService
 
             foreach (var account in accounts)
             {
-                var issues = await _allegroApiClient.GetIssuesAsync(account.Id, 100, 0);
-                foreach (var issue in issues)
+                const int pageSize = 100;
+                var offset = 0;
+
+                _logger.LogInformation("[Allegro][Czat] Start konta {AccountName} ({AccountId})", account.Name, account.Id);
+
+                while (true)
                 {
-                    if (string.IsNullOrWhiteSpace(issue.Id))
+                    var issues = await _allegroApiClient.GetIssuesAsync(account.Id, pageSize, offset);
+                    if (issues.Count == 0)
                     {
-                        continue;
+                        _logger.LogInformation("[Allegro][Czat] Konto {AccountName} ({AccountId}) - brak kolejnych issues przy offset={Offset}", account.Name, account.Id, offset);
+                        break;
                     }
 
-                    var exists = await ExistsDisputeAsync(conn, issue.Id!);
-                    if (!exists)
+                    foreach (var issue in issues)
                     {
-                        await InsertBasicDisputeAsync(conn, account.Id, issue);
-                        newCounter++;
+                        if (string.IsNullOrWhiteSpace(issue.Id))
+                        {
+                            continue;
+                        }
+
+                        var exists = await ExistsDisputeAsync(conn, issue.Id!);
+                        if (!exists)
+                        {
+                            await InsertBasicDisputeAsync(conn, account.Id, issue);
+                            newCounter++;
+                        }
+                        else
+                        {
+                            await UpdateBasicDisputeAsync(conn, issue);
+                        }
                     }
-                    else
+
+                    if (issues.Count < pageSize)
                     {
-                        await UpdateBasicDisputeAsync(conn, issue);
+                        _logger.LogInformation("[Allegro][Czat] Konto {AccountName} ({AccountId}) - pobrano {Count} issues przy offset={Offset}, koniec paginacji", account.Name, account.Id, issues.Count, offset);
+                        break;
                     }
+
+                    offset += pageSize;
                 }
             }
 
@@ -95,7 +117,7 @@ public class AllegroSyncCoordinatorService
             _status.LastRunSuccess = true;
             _status.LastCompletedAt = DateTime.Now;
 
-            _logger.LogInformation("[AllegroSync] Koniec synchronizacji. New={New}, Unregistered={Unregistered}, Unread={Unread}",
+            _logger.LogInformation("[Allegro][Czat] Koniec synchronizacji. New={New}, Unregistered={Unregistered}, Unread={Unread}",
                 _status.NewDisputesFoundLastRun,
                 _status.UnregisteredDisputesCount,
                 _status.DisputesWithNewMessages);
@@ -112,7 +134,7 @@ public class AllegroSyncCoordinatorService
             _status.LastRunSuccess = false;
             _status.LastError = ex.Message;
             _status.LastCompletedAt = DateTime.Now;
-            _logger.LogError(ex, "[AllegroSync] Błąd synchronizacji Allegro");
+            _logger.LogError(ex, "[Allegro][Czat] Błąd synchronizacji Allegro");
 
             return new AllegroSyncRunResultDto
             {

@@ -72,7 +72,7 @@ public class GoogleSyncCoordinatorService
             _status.MetricValue = Math.Max(0, total - 2);
             _status.LastSuccess = true;
             _status.LastFinishedAt = DateTime.Now;
-            _logger.LogInformation("[GoogleSync] source={Source}, rows={Rows}", source, _status.MetricValue);
+            _logger.LogInformation("[Google] source={Source}, rows={Rows}", source, _status.MetricValue);
 
             return GetStatusSnapshot();
         }
@@ -81,7 +81,7 @@ public class GoogleSyncCoordinatorService
             _status.LastSuccess = false;
             _status.LastError = ex.Message;
             _status.LastFinishedAt = DateTime.Now;
-            _logger.LogError(ex, "[GoogleSync] błąd synchronizacji");
+            _logger.LogError(ex, "[Google] błąd synchronizacji");
             return GetStatusSnapshot();
         }
         finally

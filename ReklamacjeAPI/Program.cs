@@ -107,9 +107,12 @@ builder.Services.AddScoped<MessagesService>();
 builder.Services.AddHttpClient<AllegroApiClient>();
 builder.Services.AddScoped<AllegroCredentialsService>();
 builder.Services.AddScoped<AllegroSyncCoordinatorService>();
+builder.Services.AddScoped<DpdSyncCoordinatorService>();
+builder.Services.AddScoped<GoogleSyncCoordinatorService>();
 builder.Services.AddHostedService<AllegroSyncBackgroundService>();
 builder.Services.AddHostedService<AllegroTokenRefreshBackgroundService>();
 builder.Services.AddHostedService<ReturnsSyncBackgroundService>();
+builder.Services.AddHostedService<OperationsSyncBackgroundService>();
 builder.Services.AddScoped<ModulesService>();    // <--- TEGO BRAKUJE dla modułów
 builder.Services.AddScoped<MessagesService>();   // <--- To będzie potrzebne dla Wiadomości
 builder.Services.AddScoped<FileService>();
@@ -142,7 +145,10 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowAll");
 
@@ -153,6 +159,9 @@ if (!string.IsNullOrWhiteSpace(jwtSecret))
 }
 
 app.MapControllers();
+
+// Lightweight root endpoint (also serves HEAD) for uptime probes
+app.MapMethods("/", new[] { "GET", "HEAD" }, () => Results.Ok(new { status = "ok" }));
 
 // Health check endpoint
 app.MapGet("/health", () => Results.Ok(new { 
