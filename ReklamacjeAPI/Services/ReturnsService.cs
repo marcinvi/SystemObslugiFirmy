@@ -110,6 +110,8 @@ public class ReturnsService
                 var processedInAccount = 0;
                 int? totalInAccount = null;
                 var dateFrom = await GetReturnsSyncDateFromAsync(account.Id, daysBack);
+                var orderDetailsCache = new Dictionary<string, AllegroApiClient.OrderDetailsDto?>(StringComparer.Ordinal);
+                var invoiceNumberCache = new Dictionary<string, string?>(StringComparer.Ordinal);
 
                 while (true)
                 {
@@ -152,13 +154,22 @@ public class ReturnsService
                             {
                                 try
                                 {
-                                    orderDetails = await _allegroApiClient.GetOrderDetailsAsync(account.Id, ret.OrderId);
-                                    var invoices = await _allegroApiClient.GetInvoicesForOrderAsync(account.Id, ret.OrderId);
-                                    invoiceNumber = invoices.FirstOrDefault()?.InvoiceNumber;
+                                    if (!orderDetailsCache.TryGetValue(ret.OrderId, out orderDetails))
+                                    {
+                                        orderDetails = await _allegroApiClient.GetOrderDetailsAsync(account.Id, ret.OrderId);
+                                        orderDetailsCache[ret.OrderId] = orderDetails;
+                                    }
+
+                                    if (!invoiceNumberCache.TryGetValue(ret.OrderId, out invoiceNumber))
+                                    {
+                                        var invoices = await _allegroApiClient.GetInvoicesForOrderAsync(account.Id, ret.OrderId);
+                                        invoiceNumber = invoices.FirstOrDefault()?.InvoiceNumber;
+                                        invoiceNumberCache[ret.OrderId] = invoiceNumber;
+                                    }
                                 }
                                 catch (Exception apiEx)
                                 {
-                                    Console.WriteLine($"[SYNC WARN] Brak szczegółów zamówienia {ret.OrderId}: {apiEx.Message}");
+                                    Console.WriteLine($"[Allegro][Zwroty][WARN] Brak szczegółów zamówienia {ret.OrderId}: {apiEx.Message}");
                                 }
                             }
 

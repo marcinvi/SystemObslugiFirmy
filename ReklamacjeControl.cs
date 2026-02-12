@@ -330,7 +330,13 @@ namespace Reklamacje_Dane
             _isCheckingSyncStatus = true;
             try
             {
-                if (!IsApiAuthenticated()) return;
+                if (!IsApiAuthenticated())
+                {
+                    UpdateSyncStatus("Allegro", "Brak autoryzacji API", "Zaloguj ponownie aplikację");
+                    UpdateSyncStatus("Google Sheets", "Brak autoryzacji API", "Zaloguj ponownie aplikację");
+                    UpdateSyncStatus("Przesyłki DPD", "Brak autoryzacji API", "Zaloguj ponownie aplikację");
+                    return;
+                }
 
                 var apiClient = CreateApiClient();
 

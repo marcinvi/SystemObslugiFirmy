@@ -53,7 +53,7 @@ public class DpdSyncCoordinatorService
             _status.LastSuccess = true;
             _status.LastFinishedAt = DateTime.Now;
 
-            _logger.LogInformation("[DpdSync] source={Source}, pending-changes={Count}", source, _status.MetricValue);
+            _logger.LogInformation("[DPD] source={Source}, pending-changes={Count}", source, _status.MetricValue);
             return GetStatusSnapshot();
         }
         catch (Exception ex)
@@ -61,7 +61,7 @@ public class DpdSyncCoordinatorService
             _status.LastSuccess = false;
             _status.LastError = ex.Message;
             _status.LastFinishedAt = DateTime.Now;
-            _logger.LogError(ex, "[DpdSync] błąd synchronizacji");
+            _logger.LogError(ex, "[DPD] błąd synchronizacji");
             return GetStatusSnapshot();
         }
         finally
