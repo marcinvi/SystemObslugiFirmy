@@ -106,33 +106,60 @@ public class SyncDashboardController : ControllerBase
 
     private async Task FillCountersAsync(MySqlConnection conn, SyncDashboardDto dto)
     {
-        const string sql = @"
-            SELECT
-                (SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(IsRegistered, 0) = 0) AS UnregAllegro,
-                (SELECT COUNT(*) FROM AllegroDisputes WHERE HasNewMessages = 1) AS AllegroNewMsg,
-                (SELECT COUNT(*) FROM NiezarejestrowaneZwrotyReklamacyjne WHERE IFNULL(CzyZarejestrowane, 0) = 0) AS UnregReturns,
-                (SELECT COUNT(*) FROM CentrumKontaktu WHERE Typ = 'Mail' AND Kierunek = 'IN' AND DataWyslania > DATE_SUB(NOW(), INTERVAL 1 DAY)) AS EmailUnread
-        ";
-
-        try
-        {
-            await using var cmd = new MySqlCommand(sql, conn);
-            await using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                dto.UnregisteredAllegroCount = SafeInt(reader, "UnregAllegro");
-                dto.AllegroNewMessages = SafeInt(reader, "AllegroNewMsg");
-                dto.UnregisteredReturnsCount = SafeInt(reader, "UnregReturns");
-                dto.EmailUnreadCount = SafeInt(reader, "EmailUnread");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Błąd pobierania liczników - niektóre tabele mogą nie istnieć");
-        }
+        // Bazowe wartości z pamięci usług sync (działają nawet gdy DB ma starszy schemat).
+        var allegroStatus = _allegroSync.GetStatusSnapshot();
+        dto.UnregisteredAllegroCount = allegroStatus.UnregisteredDisputesCount;
+        dto.AllegroNewMessages = allegroStatus.DisputesWithNewMessages;
 
         var googleStatus = _googleSync.GetStatusSnapshot();
         dto.UnregisteredGoogleCount = googleStatus.MetricValue;
+
+        // Zwroty + email + ewentualna korekta Allegro z DB.
+        try
+        {
+            dto.UnregisteredAllegroCount = await GetUnregisteredAllegroCountAsync(conn, dto.UnregisteredAllegroCount);
+
+            await using var returnsCmd = new MySqlCommand(
+                "SELECT COUNT(*) FROM NiezarejestrowaneZwrotyReklamacyjne WHERE IFNULL(CzyZarejestrowane, 0) = 0", conn);
+            dto.UnregisteredReturnsCount = Convert.ToInt32(await returnsCmd.ExecuteScalarAsync());
+
+            await using var emailCmd = new MySqlCommand(
+                "SELECT COUNT(*) FROM CentrumKontaktu WHERE Typ = 'Mail' AND Kierunek = 'IN' AND DataWyslania > DATE_SUB(NOW(), INTERVAL 1 DAY)", conn);
+            dto.EmailUnreadCount = Convert.ToInt32(await emailCmd.ExecuteScalarAsync());
+
+            await using var newMsgCmd = new MySqlCommand(
+                "SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(HasNewMessages,0) = 1", conn);
+            dto.AllegroNewMessages = Convert.ToInt32(await newMsgCmd.ExecuteScalarAsync());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Błąd pobierania liczników z DB - użyto fallbacku z usług synchronizacji");
+        }
+    }
+
+    private async Task<int> GetUnregisteredAllegroCountAsync(MySqlConnection conn, int fallback)
+    {
+        try
+        {
+            await using var cmd = new MySqlCommand(@"
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'AllegroDisputes'
+                  AND COLUMN_NAME = 'CzyZarejestrowane'", conn);
+
+            var hasCzy = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+            var sql = hasCzy
+                ? "SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(CzyZarejestrowane, 0) = 0"
+                : "SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(IsRegistered, 0) = 0";
+
+            await using var countCmd = new MySqlCommand(sql, conn);
+            return Convert.ToInt32(await countCmd.ExecuteScalarAsync());
+        }
+        catch
+        {
+            return fallback;
+        }
     }
 
     private async Task FillProcessingComplaintsAsync(MySqlConnection conn, SyncDashboardDto dto)
