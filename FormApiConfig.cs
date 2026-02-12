@@ -246,10 +246,7 @@ namespace Reklamacje_Dane
                 {
                     try
                     {
-                        if (!IsApiInitialized())
-                        {
-                            ApiSyncService.Initialize(savedUrl);
-                        }
+                        ApiSyncService.Initialize(savedUrl);
                         
                         // Spróbuj auto-login
                         _ = TryAutoLoginAsync();
@@ -306,11 +303,8 @@ namespace Reklamacje_Dane
                 {
                     UpdateStatus("✅ Połączenie udane! API działa poprawnie.", Color.Green);
                     
-                    // Inicjalizuj service jeśli jeszcze nie
-                    if (!IsApiInitialized())
-                    {
-                        ApiSyncService.Initialize(url);
-                    }
+                    // Zawsze przeładuj service bieżącym URL (może się zmienić względem poprzedniej sesji)
+                    ApiSyncService.Initialize(url);
 
                     SaveSettings();
                 }
@@ -352,11 +346,8 @@ namespace Reklamacje_Dane
 
             try
             {
-                // Inicjalizuj service jeśli jeszcze nie
-                if (!IsApiInitialized())
-                {
-                    ApiSyncService.Initialize(url);
-                }
+                // Zawsze przeładuj service bieżącym URL (może się zmienić względem poprzedniej sesji)
+                ApiSyncService.Initialize(url);
 
                 bool success = await ApiSyncService.Instance.LoginAsync(login, password);
 

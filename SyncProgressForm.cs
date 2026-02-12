@@ -33,24 +33,79 @@ namespace Reklamacje_Dane
         {
             try
             {
-                UpdateStatus("Odświeżanie tokenów Allegro...");
-                AddLogEntry("Rozpoczynam odświeżanie tokenów...", Color.Black);
+                UpdateStatus("Weryfikacja połączenia API...");
+                AddLogEntry("Start kontroli połączenia i autoryzacji API", Color.Black);
 
-                var progress = new Progress<(string message, Color color)>(t =>
+                string apiUrl = (Properties.Settings.Default.ApiBaseUrl ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(apiUrl))
                 {
-                    AddLogEntry(t.message, t.color);
-                });
+                    AddLogEntry("❌ Brak skonfigurowanego URL API (Ustawienia -> API).", Color.Red);
+                    AddLogEntry("Ustaw adres serwera API w sieci, np. https://192.168.x.x:5001", Color.DarkOrange);
+                    UpdateStatus("Brak konfiguracji API.");
+                    return;
+                }
 
-                AddLogEntry("Odświeżanie tokenów po stronie WinForms zostało wyłączone.", Color.DarkOrange);
-                AddLogEntry("Tokeny są odświeżane centralnie po stronie API (background service).", Color.Black);
+                AddLogEntry($"API URL: {apiUrl}", Color.Black);
 
-                UpdateStatus("Weryfikacja zakończona.");
-                AddLogEntry("✓ Zakończono", Color.ForestGreen);
+                try
+                {
+                    // Zawsze inicjalizujemy bieżącym URL ze settings, żeby uniknąć pracy na starym adresie.
+                    ApiSyncService.Initialize(apiUrl);
+                    AddLogEntry("✓ API service zainicjalizowany", Color.ForestGreen);
+                }
+                catch (Exception ex)
+                {
+                    AddLogEntry("❌ Błąd inicjalizacji API service: " + ex.Message, Color.Red);
+                    UpdateStatus("Błąd inicjalizacji API.");
+                    return;
+                }
+
+                bool apiReachable = await ApiSyncService.TestConnectionAsync(apiUrl);
+                if (!apiReachable)
+                {
+                    AddLogEntry("❌ API nieosiągalne pod skonfigurowanym adresem.", Color.Red);
+                    AddLogEntry("Sprawdź: czy serwer działa, port/firewall i certyfikat HTTPS.", Color.DarkOrange);
+                    UpdateStatus("API nieosiągalne.");
+                    return;
+                }
+
+                AddLogEntry("✓ API odpowiada (health check)", Color.ForestGreen);
+
+                var tokenExpiry = Properties.Settings.Default.ApiTokenExpiry;
+                var hasToken = !string.IsNullOrWhiteSpace(Properties.Settings.Default.ApiToken);
+
+                if (!hasToken)
+                {
+                    AddLogEntry("⚠️ Brak zapisanego tokenu API. Wymagane logowanie w Konfiguracji API.", Color.DarkOrange);
+                    UpdateStatus("Brak tokenu API.");
+                    return;
+                }
+
+                if (tokenExpiry <= DateTime.Now)
+                {
+                    AddLogEntry($"⚠️ Token API wygasł ({tokenExpiry:yyyy-MM-dd HH:mm}).", Color.DarkOrange);
+                    AddLogEntry("Zaloguj się ponownie w Konfiguracji API.", Color.DarkOrange);
+                    UpdateStatus("Token API wygasł.");
+                    return;
+                }
+
+                bool autoLoginOk = await ApiSyncService.Instance.AutoLoginAsync();
+                if (autoLoginOk)
+                {
+                    AddLogEntry("✓ Auto-logowanie API zakończone powodzeniem", Color.ForestGreen);
+                    UpdateStatus("API gotowe.");
+                }
+                else
+                {
+                    AddLogEntry("❌ Auto-logowanie API nie powiodło się (token odrzucony przez API).", Color.Red);
+                    AddLogEntry("Zaloguj się ponownie w Konfiguracji API.", Color.DarkOrange);
+                    UpdateStatus("Błąd autoryzacji API.");
+                }
             }
             catch (Exception ex)
             {
                 _hasErrorOccurred = true;
-                UpdateStatus("Błąd odświeżania tokenów.");
+                UpdateStatus("Błąd weryfikacji API.");
                 AddLogEntry("Błąd: " + ex.Message, Color.Red);
             }
             finally
