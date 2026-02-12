@@ -17,7 +17,7 @@ public sealed class ReturnsSyncBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Uruchomiono background service synchronizacji zwrotów Allegro.");
+        _logger.LogInformation("[Allegro][Zwroty] Uruchomiono background service synchronizacji zwrotów Allegro.");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -33,7 +33,7 @@ public sealed class ReturnsSyncBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Błąd podczas cyklu synchronizacji zwrotów.");
+                _logger.LogError(ex, "[Allegro][Zwroty] Błąd podczas cyklu synchronizacji zwrotów.");
             }
 
             await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
