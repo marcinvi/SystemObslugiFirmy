@@ -55,7 +55,7 @@ public class AllegroApiClient
         };
         var query = BuildQueryString(queryParams);
         var endpoint = $"{ApiBaseUrl}/order/customer-returns?{query}";
-        return await SendAsync<CustomerReturnListDto>(accountId, HttpMethod.Get, endpoint, null, AcceptBetaV1);
+        return await SendAsync<CustomerReturnListDto>(accountId, HttpMethod.Get, endpoint, null, AcceptPublicV1, AcceptBetaV1);
     }
 
     public async Task<List<InvoiceDto>> GetInvoicesForOrderAsync(int accountId, string checkoutFormId)
@@ -100,25 +100,7 @@ public class AllegroApiClient
     public async Task<List<AllegroIssueSummaryDto>> GetIssuesAsync(int accountId, int limit = 100, int offset = 0)
     {
         var endpoint = $"{ApiBaseUrl}/sale/issues?limit={limit}&offset={offset}";
-        var token = await GetAccessTokenAsync(accountId);
-        var request = BuildRequest(HttpMethod.Get, endpoint, null, token, AcceptBetaV1);
-        var response = await _httpClient.SendAsync(request);
-
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            _logger.LogWarning("Token Allegro wygasł podczas pobierania issues dla konta {AccountId}.", accountId);
-            token = await RefreshTokenAsync(accountId);
-            request = BuildRequest(HttpMethod.Get, endpoint, null, token, AcceptBetaV1);
-            response = await _httpClient.SendAsync(request);
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync();
-            throw new HttpRequestException($"Błąd Allegro API ({response.StatusCode}): {errorBody}", null, response.StatusCode);
-        }
-
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await SendRawAsync(accountId, HttpMethod.Get, endpoint, null, AcceptPublicV1, AcceptBetaV1);
         if (string.IsNullOrWhiteSpace(body))
         {
             return new List<AllegroIssueSummaryDto>();
@@ -164,41 +146,83 @@ public class AllegroApiClient
 
     private async Task SendAsync(int accountId, HttpMethod method, string endpoint, object? payload, string acceptHeader)
     {
-        _ = await SendAsync<object>(accountId, method, endpoint, payload, acceptHeader);
+        _ = await SendAsync<object>(accountId, method, endpoint, payload, acceptHeader, null);
     }
 
     private async Task<T?> SendAsync<T>(int accountId, HttpMethod method, string endpoint, object? payload, string acceptHeader)
     {
-        var token = await GetAccessTokenAsync(accountId);
-        var request = BuildRequest(method, endpoint, payload, token, acceptHeader);
-        var response = await _httpClient.SendAsync(request);
+        return await SendAsync<T>(accountId, method, endpoint, payload, acceptHeader, null);
+    }
 
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            _logger.LogWarning("Token Allegro wygasł lub jest nieprawidłowy dla konta {AccountId}. Odświeżam.", accountId);
-            token = await RefreshTokenAsync(accountId);
-            request = BuildRequest(method, endpoint, payload, token, acceptHeader);
-            response = await _httpClient.SendAsync(request);
-        }
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorBody = await response.Content.ReadAsStringAsync();
-            throw new HttpRequestException($"Błąd Allegro API ({response.StatusCode}): {errorBody}", null, response.StatusCode);
-        }
-
+    private async Task<T?> SendAsync<T>(
+        int accountId,
+        HttpMethod method,
+        string endpoint,
+        object? payload,
+        string acceptHeader,
+        string? fallbackAcceptHeader)
+    {
+        var body = await SendRawAsync(accountId, method, endpoint, payload, acceptHeader, fallbackAcceptHeader);
         if (typeof(T) == typeof(object))
         {
             return default;
         }
 
-        var body = await response.Content.ReadAsStringAsync();
         if (string.IsNullOrWhiteSpace(body))
         {
             return default;
         }
 
         return JsonSerializer.Deserialize<T>(body, JsonOptions);
+    }
+
+    private async Task<string> SendRawAsync(
+        int accountId,
+        HttpMethod method,
+        string endpoint,
+        object? payload,
+        string acceptHeader,
+        string? fallbackAcceptHeader)
+    {
+        var token = await GetAccessTokenAsync(accountId);
+        string? lastNotAcceptableBody = null;
+
+        foreach (var currentAccept in ResolveAcceptHeaders(endpoint, acceptHeader, fallbackAcceptHeader))
+        {
+            var request = BuildRequest(method, endpoint, payload, token, currentAccept);
+            var response = await _httpClient.SendAsync(request);
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                _logger.LogWarning("Token Allegro wygasł lub jest nieprawidłowy dla konta {AccountId}. Odświeżam.", accountId);
+                token = await RefreshTokenAsync(accountId);
+                request = BuildRequest(method, endpoint, payload, token, currentAccept);
+                response = await _httpClient.SendAsync(request);
+            }
+
+            if (response.StatusCode == HttpStatusCode.NotAcceptable)
+            {
+                var preview = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning(
+                    "Allegro zwróciło 406 dla endpointu {Endpoint} i nagłówka Accept={AcceptHeader}. Odpowiedź: {Preview}",
+                    endpoint,
+                    currentAccept,
+                    preview);
+                lastNotAcceptableBody = preview;
+                continue;
+            }
+
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"Błąd Allegro API ({response.StatusCode}): {body}", null, response.StatusCode);
+            }
+
+            return body;
+        }
+
+        var lastBody = string.IsNullOrWhiteSpace(lastNotAcceptableBody) ? "Brak odpowiedzi z Allegro API." : lastNotAcceptableBody;
+        throw new HttpRequestException($"Błąd Allegro API (406): {lastBody}", null, HttpStatusCode.NotAcceptable);
     }
 
     private static string BuildQueryString(IDictionary<string, string> parameters)
@@ -222,6 +246,32 @@ public class AllegroApiClient
         }
 
         return request;
+    }
+
+    private static IEnumerable<string> ResolveAcceptHeaders(string endpoint, string acceptHeader, string? fallbackAcceptHeader)
+    {
+        var headers = new List<string>();
+
+        if (endpoint.Contains("/sale/issues", StringComparison.OrdinalIgnoreCase)
+            || endpoint.Contains("/order/customer-returns", StringComparison.OrdinalIgnoreCase))
+        {
+            headers.Add(AcceptBetaV1);
+            headers.Add(AcceptPublicV1);
+        }
+        else
+        {
+            headers.Add(acceptHeader);
+            if (!string.IsNullOrWhiteSpace(fallbackAcceptHeader))
+            {
+                headers.Add(fallbackAcceptHeader);
+            }
+        }
+
+        headers.Add("application/json");
+
+        return headers
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
     private async Task<string> GetAccessTokenAsync(int accountId)
