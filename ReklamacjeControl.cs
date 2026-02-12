@@ -729,7 +729,7 @@ namespace Reklamacje_Dane
 
                 bool anyProblem = lines.Any(l =>
                     l.IndexOf("Błąd", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    l.IndexOf("Brak autoryzacji", StringComparison.OrdinalIgnoreCase) >= 0);
+                    l.IndexOf("Brak danych", StringComparison.OrdinalIgnoreCase) >= 0);
 
                 lblSyncStatus.Text = anyProblem ? "Synchronizacja: BŁĄD" : "Synchronizacja: OK";
                 lblSyncStatus.ForeColor = anyProblem ? Color.Red : Color.ForestGreen;
