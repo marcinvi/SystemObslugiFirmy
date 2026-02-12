@@ -330,8 +330,14 @@ namespace Reklamacje_Dane
         {
             try
             {
-                await UpdateCountersFromDatabaseFallbackAsync();
-                await UpdateGoogleCountFromSyncRunsAsync();
+                // Priorytet: API sync-dashboard (aktualne liczniki niezarejestrowanych zgłoszeń).
+                // Fallback: bezpośrednie zapytania SQL (tryb DB-only).
+                var updatedFromApi = await TryUpdateCountersFromApiAsync();
+                if (!updatedFromApi)
+                {
+                    await UpdateCountersFromDatabaseFallbackAsync();
+                    await UpdateGoogleCountFromSyncRunsAsync();
+                }
 
                 // Powiadomienia o przypomnieniach są lokalne i niezależne od backendu sync
                 await UpdateReminderNotificationsCountAsync();
@@ -340,6 +346,37 @@ namespace Reklamacje_Dane
             {
                 await UpdateCountersFromDatabaseFallbackAsync();
                 await UpdateReminderNotificationsCountAsync();
+            }
+        }
+
+        private async Task<bool> TryUpdateCountersFromApiAsync()
+        {
+            try
+            {
+                var baseUrl = (Properties.Settings.Default.ApiBaseUrl ?? string.Empty).Trim();
+                var token = (Properties.Settings.Default.ApiToken ?? string.Empty).Trim();
+
+                if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(token))
+                    return false;
+
+                var client = new ReklamacjeApiClient(baseUrl);
+                client.SetToken(token);
+                var counters = await client.GetSyncDashboardCountersAsync();
+
+                SafeInvoke(() =>
+                {
+                    btnNewGoogle.Text = $"🟢 Nowe Google ({Math.Max(0, counters.UnregisteredGoogleCount)})";
+                    btnNewAllegro.Text = $"🟠 Nowe Allegro ({Math.Max(0, counters.UnregisteredAllegroCount)})";
+                    btnChat.Text = $"💬 Czat Allegro ({Math.Max(0, counters.AllegroNewMessages)})";
+                    btnChat.ForeColor = counters.AllegroNewMessages > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
+                    btnNewReturn.Text = $"↩️ Nowe Zwroty ({Math.Max(0, counters.UnregisteredReturnsCount)})";
+                });
+
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
 
