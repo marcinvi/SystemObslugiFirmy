@@ -1,7 +1,7 @@
 ### Reklamacje API - Test Requests
 ### Use with REST Client extension in VS Code
 
-@baseUrl = https://localhost:5001/api
+@baseUrl = http://localhost:5001/api
 @token = YOUR_TOKEN_HERE
 
 ### ============================================
@@ -134,4 +134,4 @@ Content-Type: application/json
 ### 14. HEALTH CHECK
 ### ============================================
 
-GET https://localhost:5001/health
+GET http://localhost:5001/health

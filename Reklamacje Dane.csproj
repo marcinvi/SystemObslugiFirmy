@@ -1112,6 +1112,7 @@
     </Compile>
     <EmbeddedResource Include="AddActionControl.resx">
       <DependentUpon>AddActionControl.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="AdminControl.resx">
       <DependentUpon>AdminControl.cs</DependentUpon>

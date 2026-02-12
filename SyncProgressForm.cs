@@ -41,7 +41,7 @@ namespace Reklamacje_Dane
                 if (string.IsNullOrWhiteSpace(apiUrl))
                 {
                     AddLogEntry("❌ Brak skonfigurowanego URL API (Ustawienia -> API).", Color.Red);
-                    AddLogEntry("Ustaw adres serwera API w sieci, np. https://192.168.x.x:5001", Color.DarkOrange);
+                    AddLogEntry("Ustaw adres serwera API w sieci, np. http://192.168.x.x:5001", Color.DarkOrange);
                     UpdateStatus("Brak konfiguracji API.");
                     return;
                 }
