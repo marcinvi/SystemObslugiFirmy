@@ -432,27 +432,22 @@ namespace Reklamacje_Dane
         {
             try
             {
-                if (IsApiAuthenticated())
+                int googleCount = 0;
+                using (var con = Database.GetNewOpenConnection())
                 {
-                    // API dostępne — pobierz lekkie liczniki z jednego endpointu
-                    var apiClient = CreateApiClient();
-                    var counters = await apiClient.GetSyncDashboardCountersAsync();
-
-                    SafeInvoke(() =>
+                    const string sql = @"SELECT IFNULL(rows_written, 0)
+                                         FROM SyncRuns
+                                         WHERE source = 'GOOGLE' AND IFNULL(ok, 0) = 1
+                                         ORDER BY started_at DESC
+                                         LIMIT 1";
+                    using (var cmd = new MySqlCommand(sql, con))
                     {
-                        btnNewAllegro.Text = $"🟠 Nowe Allegro ({counters.UnregisteredAllegroCount})";
-                        btnChat.Text = $"💬 Czat Allegro ({counters.AllegroNewMessages})";
-                        btnChat.ForeColor = counters.AllegroNewMessages > 0 ? Color.Orange : Color.FromArgb(180, 190, 210);
-                        btnNewGoogle.Text = $"🟢 Nowe Google ({counters.UnregisteredGoogleCount})";
-                        btnNewReturn.Text = $"↩️ Nowe Zwroty ({counters.UnregisteredReturnsCount})";
-                    });
+                        var scalar = await cmd.ExecuteScalarAsync();
+                        googleCount = scalar == null || scalar == DBNull.Value ? 0 : Convert.ToInt32(scalar);
+                    }
                 }
-                else
-                {
-                    // API niedostępne — fallback z bazy
-                    await UpdateAllegroChatUnreadCountAsync();
-                    await PollReturnsCountFromDb();
-                }
+
+                SafeInvoke(() => { btnNewGoogle.Text = $"🟢 Nowe Google ({googleCount})"; });
 
                 // Powiadomienia o przypomnieniach są lokalne i niezależne od API
                 await UpdateReminderNotificationsCountAsync();
@@ -464,37 +459,10 @@ namespace Reklamacje_Dane
             }
         }
 
-        private async Task UpdateCountersFromDatabaseFallbackAsync()
-        {
-            await UpdateAllegroUnregisteredCountFromDbAsync();
-            await UpdateAllegroChatUnreadCountAsync();
-            await PollReturnsCountFromDb();
-        }
-
-        private async Task UpdateAllegroUnregisteredCountFromDbAsync()
-        {
-            try
-            {
-                int count = 0;
-                using (var con = Database.GetNewOpenConnection())
-                {
-                    var sql = @"SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(CzyZarejestrowane, 0) = 0";
-                    using (var cmd = new MySqlCommand(sql, con))
-                        count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
-                }
-
-                SafeInvoke(() => { btnNewAllegro.Text = $"🟠 Nowe Allegro ({count})"; });
-            }
-            catch
-            {
-                SafeInvoke(() => { btnNewAllegro.Text = "🟠 Nowe Allegro (0)"; });
-            }
-        }
-
         private async Task PollSyncStatusAndCounters()
         {
-            await PollSyncStatusFromApi();
-            await PollCountersFromApi();
+            await PollLocalSyncStatusFromDb();
+            await PollCountersFromDb();
         }
 
      
