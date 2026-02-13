@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReklamacjeAPI.DTOs;
 using ReklamacjeAPI.Services;
 
 namespace ReklamacjeAPI.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/ops-sync")]
 public class OperationsSyncController : ControllerBase

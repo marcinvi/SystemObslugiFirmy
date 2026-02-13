@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReklamacjeAPI.DTOs;
 using ReklamacjeAPI.Services;
 
 namespace ReklamacjeAPI.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/allegro-sync")]
 public class AllegroSyncController : ControllerBase

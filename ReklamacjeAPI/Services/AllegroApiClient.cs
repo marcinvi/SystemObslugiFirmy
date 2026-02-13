@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace ReklamacjeAPI.Services;
 
-public class AllegroApiClient
+public partial class AllegroApiClient
 {
     private const string ApiBaseUrl = "https://api.allegro.pl";
     private const string TokenUrl = "https://allegro.pl/auth/oauth/token";

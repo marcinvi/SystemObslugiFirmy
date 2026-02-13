@@ -1,6 +1,7 @@
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
+using MySqlConnector;
 using ReklamacjeAPI.DTOs;
 
 namespace ReklamacjeAPI.Services;
@@ -13,9 +14,10 @@ public class GoogleSyncCoordinatorService
     private readonly ILogger<GoogleSyncCoordinatorService> _logger;
     private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _environment;
-    private readonly SemaphoreSlim _gate = new(1, 1);
 
-    private readonly SyncServiceStatusDto _status = new()
+    // STATIC — stan współdzielony między instancjami Scoped
+    private static readonly SemaphoreSlim _gate = new(1, 1);
+    private static readonly SyncServiceStatusDto _status = new()
     {
         Name = "Google",
         MetricLabel = "Wiersze"
@@ -72,8 +74,10 @@ public class GoogleSyncCoordinatorService
             _status.MetricValue = Math.Max(0, total - 2);
             _status.LastSuccess = true;
             _status.LastFinishedAt = DateTime.Now;
-            _logger.LogInformation("[Google] source={Source}, rows={Rows}", source, _status.MetricValue);
 
+            await WriteSyncRunAsync("GOOGLE", _status.LastStartedAt ?? DateTime.Now, true, _status.MetricValue);
+
+            _logger.LogInformation("[Google] source={Source}, rows={Rows}", source, _status.MetricValue);
             return GetStatusSnapshot();
         }
         catch (Exception ex)
@@ -82,6 +86,10 @@ public class GoogleSyncCoordinatorService
             _status.LastError = ex.Message;
             _status.LastFinishedAt = DateTime.Now;
             _logger.LogError(ex, "[Google] błąd synchronizacji");
+
+            try { await WriteSyncRunAsync("GOOGLE", _status.LastStartedAt ?? DateTime.Now, false, 0, ex.Message); }
+            catch { /* best-effort */ }
+
             return GetStatusSnapshot();
         }
         finally
@@ -108,6 +116,30 @@ public class GoogleSyncCoordinatorService
         candidates.Add(Path.Combine(_environment.ContentRootPath, "..", "reklamacje-baza-ed853b4e33f7.json"));
 
         return candidates.FirstOrDefault(File.Exists);
+    }
+
+    private async Task WriteSyncRunAsync(string serviceName, DateTime startedAt,
+        bool success, int itemsProcessed, string? errorMessage = null)
+    {
+        try
+        {
+            await using var conn = DbConnectionFactory.CreateDefaultConnection(_configuration);
+            await conn.OpenAsync();
+
+            await using var cmd = new MySqlCommand(@"
+                INSERT INTO SyncRuns (source, started_at, finished_at, ok, rows_written, error_message)
+                VALUES (@src, @started, NOW(), @ok, @rows, @err)", conn);
+            cmd.Parameters.AddWithValue("@src", serviceName);
+            cmd.Parameters.AddWithValue("@started", startedAt);
+            cmd.Parameters.AddWithValue("@ok", success ? 1 : 0);
+            cmd.Parameters.AddWithValue("@rows", itemsProcessed);
+            cmd.Parameters.AddWithValue("@err", (object?)errorMessage ?? DBNull.Value);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "WriteSyncRunAsync failed for {Service}", serviceName);
+        }
     }
 
     private static SyncServiceStatusDto Clone(SyncServiceStatusDto source)

@@ -50,15 +50,13 @@ public class SyncDashboardController : ControllerBase
             await using var conn = DbConnectionFactory.CreateDefaultConnection(_configuration);
             await conn.OpenAsync();
 
-            // === RÓWNOLEGŁE POBIERANIE DANYCH Z BAZY ===
-            var tasksDb = new List<Task>
-            {
-                FillCountersAsync(conn, dto),
-                FillProcessingComplaintsAsync(conn, dto),
-                FillRemindersAsync(conn, dto),
-                FillChangeLogAsync(conn, dto)
-            };
-            await Task.WhenAll(tasksDb);
+            // === SEKWENCYJNE POBIERANIE DANYCH Z BAZY ===
+            // MySQL nie wspiera wielu równoczesnych poleceń na jednym połączeniu,
+            // dlatego wykonujemy zapytania jedno po drugim.
+            await FillCountersAsync(conn, dto);
+            await FillProcessingComplaintsAsync(conn, dto);
+            await FillRemindersAsync(conn, dto);
+            await FillChangeLogAsync(conn, dto);
 
             // === STATUSY SYNC Z PAMIĘCI (zero kosztu) ===
             FillSyncStatuses(dto);

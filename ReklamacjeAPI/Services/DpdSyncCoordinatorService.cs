@@ -7,9 +7,10 @@ public class DpdSyncCoordinatorService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<DpdSyncCoordinatorService> _logger;
-    private readonly SemaphoreSlim _gate = new(1, 1);
 
-    private readonly SyncServiceStatusDto _status = new()
+    // STATIC — stan współdzielony między instancjami Scoped
+    private static readonly SemaphoreSlim _gate = new(1, 1);
+    private static readonly SyncServiceStatusDto _status = new()
     {
         Name = "DPD",
         MetricLabel = "Zmiany"
@@ -39,8 +40,6 @@ public class DpdSyncCoordinatorService
             await using var connection = DbConnectionFactory.CreateDefaultConnection(_configuration);
             await connection.OpenAsync();
 
-            // Synchronizacja DPD po stronie API: centralna analiza zmian w przesyłkach
-            // (statusy ustawiane przez integrację DPD), liczba zmian wymagających reakcji użytkownika.
             const string sql = @"
                 SELECT COUNT(*)
                 FROM Przesylki p
@@ -53,6 +52,8 @@ public class DpdSyncCoordinatorService
             _status.LastSuccess = true;
             _status.LastFinishedAt = DateTime.Now;
 
+            await WriteSyncRunAsync(connection, "DPD", _status.LastStartedAt ?? DateTime.Now, true, _status.MetricValue);
+
             _logger.LogInformation("[DPD] source={Source}, pending-changes={Count}", source, _status.MetricValue);
             return GetStatusSnapshot();
         }
@@ -62,12 +63,42 @@ public class DpdSyncCoordinatorService
             _status.LastError = ex.Message;
             _status.LastFinishedAt = DateTime.Now;
             _logger.LogError(ex, "[DPD] błąd synchronizacji");
+
+            try
+            {
+                await using var errConn = DbConnectionFactory.CreateDefaultConnection(_configuration);
+                await errConn.OpenAsync();
+                await WriteSyncRunAsync(errConn, "DPD", _status.LastStartedAt ?? DateTime.Now, false, 0, ex.Message);
+            }
+            catch { /* best-effort */ }
+
             return GetStatusSnapshot();
         }
         finally
         {
             _status.IsRunning = false;
             _gate.Release();
+        }
+    }
+
+    private async Task WriteSyncRunAsync(MySqlConnection conn, string serviceName, DateTime startedAt,
+        bool success, int itemsProcessed, string? errorMessage = null)
+    {
+        try
+        {
+            await using var cmd = new MySqlCommand(@"
+                INSERT INTO SyncRuns (source, started_at, finished_at, ok, rows_written, error_message)
+                VALUES (@src, @started, NOW(), @ok, @rows, @err)", conn);
+            cmd.Parameters.AddWithValue("@src", serviceName);
+            cmd.Parameters.AddWithValue("@started", startedAt);
+            cmd.Parameters.AddWithValue("@ok", success ? 1 : 0);
+            cmd.Parameters.AddWithValue("@rows", itemsProcessed);
+            cmd.Parameters.AddWithValue("@err", (object?)errorMessage ?? DBNull.Value);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "WriteSyncRunAsync failed for {Service}", serviceName);
         }
     }
 

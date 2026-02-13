@@ -8,6 +8,8 @@ public class AllegroSyncStatusDto
     public bool LastRunSuccess { get; set; }
     public string? LastError { get; set; }
     public int NewDisputesFoundLastRun { get; set; }
+    public int UpdatedDisputesLastRun { get; set; }
+    public int ChatsSyncedLastRun { get; set; }
     public int UnregisteredDisputesCount { get; set; }
     public int DisputesWithNewMessages { get; set; }
 }
