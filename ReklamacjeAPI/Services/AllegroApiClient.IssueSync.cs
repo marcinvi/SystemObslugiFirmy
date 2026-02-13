@@ -125,6 +125,7 @@ public partial class AllegroApiClient
             Subject = item.GetStringProp("subject"),
             Description = item.GetStringProp("description"),
             OpenedDate = item.GetDateTimeProp("openedDate"),
+            ClosedAt = item.GetDateTimeProp("closedAt"),
             DecisionDueDate = item.GetDateTimeProp("decisionDueDate"),
             RawJson = item.GetRawText()
         };
@@ -257,6 +258,7 @@ public partial class AllegroApiClient
 
         // Daty
         public DateTime? OpenedDate { get; set; }
+        public DateTime? ClosedAt { get; set; }
         public DateTime? DecisionDueDate { get; set; }
 
         // Status

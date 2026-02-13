@@ -15,8 +15,29 @@ namespace Reklamacje_Dane
     {
         public static async Task PerformSyncAsync(IProgress<(string message, Color color)> progress)
         {
-            var allegroSyncService = new AllegroSyncService();
-            await allegroSyncService.SynchronizeDisputesAsync(new Progress<string>(s => progress.Report((s, Color.Black))));
+            progress?.Report(("Uruchamianie synchronizacji Allegro przez ReklamacjeAPI...", Color.Black));
+
+            try
+            {
+                var apiSync = ApiSyncService.Instance;
+                if (!apiSync.IsInitialized || !apiSync.IsAuthenticated)
+                {
+                    throw new InvalidOperationException("Synchronizacja Allegro wymaga aktywnego połączenia i logowania do ReklamacjeAPI.");
+                }
+
+                var run = await apiSync.TriggerAllegroSyncAsync();
+                if (!run.Success)
+                {
+                    throw new Exception(run.Message ?? "Nie udało się uruchomić synchronizacji Allegro przez API.");
+                }
+
+                progress?.Report((run.Message ?? "Synchronizacja Allegro została uruchomiona przez API.", Color.ForestGreen));
+            }
+            catch (Exception ex)
+            {
+                progress?.Report(($"Błąd synchronizacji Allegro przez API: {ex.Message}", Color.Red));
+                throw;
+            }
         }
 
         public static async Task PerformTokenRefreshAsync(IProgress<(string message, Color color)> progress)
