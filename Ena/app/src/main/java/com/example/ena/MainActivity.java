@@ -31,6 +31,7 @@ import com.example.ena.ui.UserProfileActivity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -225,22 +226,22 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupMenu(List<String> modules) {
         ModulesAdapter adapter = new ModulesAdapter(modules, moduleName -> {
-            String key = moduleName.toLowerCase();
+            String key = normalizeModuleKey(moduleName);
 
-            if (key.contains("magazyn")) {
+            if (key.contains("magazyn") || key.contains("warehouse")) {
                 openReturns("warehouse");
-            } else if (key.contains("handlowiec") || key.contains("sprzedaż")) {
+            } else if (key.contains("handlowiec") || key.contains("sprzedaz") || key.contains("sales")) {
                 openReturns("sales");
-            } else if (key.contains("zwroty") || key.contains("podsumowanie")) {
+            } else if (key.contains("zwroty") || key.contains("podsumowanie") || key.contains("returns") || key.contains("summary")) {
                 startActivity(new Intent(MainActivity.this, SummaryActivity.class));
-            } else if (key.contains("wiadomości") || key.contains("wiadomosci")) {
+            } else if (key.contains("wiadomosci") || key.contains("messages")) {
                 startActivity(new Intent(MainActivity.this, MessagesActivity.class));
-            } else if (key.contains("ustawienia")) {
+            } else if (key.contains("ustawienia") || key.contains("settings") || key.contains("profil")) {
                 startActivity(new Intent(MainActivity.this, UserProfileActivity.class));
-            }else if (key.contains("admin") || key.contains("zarządzanie")) {
+            }else if (key.contains("admin") || key.contains("zarzadzanie") || key.contains("management")) {
                     // Otwieramy ekran listy użytkowników
                     startActivity(new Intent(MainActivity.this, com.example.ena.ui.AdminUsersActivity.class));
-                } else if (key.contains("reklamacje")) {
+                } else if (key.contains("reklamacje") || key.contains("complaint")) {
                 startActivity(new Intent(MainActivity.this, com.example.ena.ui.ComplaintsDashboardActivity.class));
             }
 
@@ -250,6 +251,24 @@ public class MainActivity extends AppCompatActivity {
         });
 
         recyclerModules.setAdapter(adapter);
+    }
+
+    private String normalizeModuleKey(String moduleName) {
+        if (moduleName == null) {
+            return "";
+        }
+
+        String lower = moduleName.toLowerCase(Locale.ROOT);
+        return lower
+                .replace('ą', 'a')
+                .replace('ć', 'c')
+                .replace('ę', 'e')
+                .replace('ł', 'l')
+                .replace('ń', 'n')
+                .replace('ó', 'o')
+                .replace('ś', 's')
+                .replace('ż', 'z')
+                .replace('ź', 'z');
     }
 
     private void openReturns(String mode) {
