@@ -275,8 +275,30 @@ public class AllegroSyncCoordinatorService
                 else
                 {
                     // ── ISTNIEJĄCY ISSUE ────────────────────────────
-                    // 1. UPDATE statusu i metadanych z danych listy (BEZ dodatkowego API call)
+                    bool requiresBackfill = await RequiresIssueBackfillAsync(conn, issue.Id);
+
+                    // 1. UPDATE statusu i metadanych z danych listy
                     await UpdateDisputeFromListDataAsync(conn, issue);
+
+                    // 1b. Jeśli rekord ma puste kluczowe kolumny, dociągnij orderDetails i zrób pełny backfill
+                    if (requiresBackfill && !string.IsNullOrWhiteSpace(issue.CheckoutFormId))
+                    {
+                        try
+                        {
+                            var orderDetails = await _allegroApiClient.GetFullOrderDetailsAsync(accountId, issue.CheckoutFormId);
+                            if (orderDetails != null)
+                            {
+                                await BackfillDisputeFromOrderAsync(conn, issue, orderDetails);
+                                await UpsertOrderDetailsAsync(conn, accountId, issue.CheckoutFormId, orderDetails);
+                                await UpsertOrderItemsAsync(conn, issue.CheckoutFormId, orderDetails);
+                                _logger.LogInformation("[Allegro][Sync][BACKFILL] Uzupełniono puste pola relacyjne dla issue {Id}", issue.Id);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "[Allegro][Sync][BACKFILL] Nie udało się pobrać/zapisać OrderDetails dla issue {Id}", issue.Id);
+                        }
+                    }
 
                     // 2. Sprawdź czy są nowe wiadomości (smart check po MessagesCount)
                     int lastMessageCountInDb = existingState.LastMessageCount;
@@ -373,12 +395,13 @@ public class AllegroSyncCoordinatorService
         const string sql = @"
 INSERT INTO AllegroDisputes (
     DisputeId, AllegroAccountId, Type, ReferenceNumber, Subject, Description,
-    StatusAllegro, OpenedAt, DecisionDueDate, ClosedAt, LastCheckedAt,
+    StatusAllegro, OpenedAt, DecisionDueDate, ClosedAt, LastCheckedAt, CreatedAt, Status,
     OrderId, BuyerLogin, BuyerEmail,
     BuyerFirstName, BuyerLastName,
-    DeliveryStreet, DeliveryZipCode, DeliveryCity, DeliveryPhoneNumber, DeliveryCompanyName,
+    DeliveryStreet, DeliveryZipCode, DeliveryCity, DeliveryPhoneNumber, DeliveryCompanyName, DeliveryCompany,
     ProductId, OfferId, ProductName, ProductEAN, ProductSKU,
     InvoiceNumber,
+    Expectations, InitialMessageText, InitialMessageCount,
     ExpectationType, ExpectationRefundAmount, ExpectationRefundCurrency,
     ReasonType, ReasonDescription,
     BoughtAt, NeedsDecision,
@@ -387,12 +410,13 @@ INSERT INTO AllegroDisputes (
     JsonDetails, OrderJsonDetails
 ) VALUES (
     @DisputeId, @AccountId, @Type, @ReferenceNumber, @Subject, @Description,
-    @StatusAllegro, @OpenedAt, @DecisionDueDate, NULL, NOW(),
+    @StatusAllegro, @OpenedAt, @DecisionDueDate, @ClosedAt, NOW(), @CreatedAt, @Status,
     @OrderId, @BuyerLogin, @BuyerEmail,
     @BuyerFirstName, @BuyerLastName,
-    @DeliveryStreet, @DeliveryZipCode, @DeliveryCity, @DeliveryPhoneNumber, @DeliveryCompanyName,
+    @DeliveryStreet, @DeliveryZipCode, @DeliveryCity, @DeliveryPhoneNumber, @DeliveryCompanyName, @DeliveryCompany,
     @ProductId, @OfferId, @ProductName, @ProductEAN, @ProductSKU,
     @InvoiceNumber,
+    @Expectations, @InitialMessageText, @InitialMessageCount,
     @ExpectationType, @ExpectationRefundAmount, @ExpectationRefundCurrency,
     @ReasonType, @ReasonDescription,
     @BoughtAt, @NeedsDecision,
@@ -413,6 +437,9 @@ INSERT INTO AllegroDisputes (
         cmd.Parameters.AddWithValue("@StatusAllegro", (object?)issue.Status ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@OpenedAt", issue.OpenedDate ?? DateTime.Now);
         cmd.Parameters.AddWithValue("@DecisionDueDate", (object?)issue.DecisionDueDate ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@ClosedAt", (object?)issue.ClosedAt ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@CreatedAt", (object?)issue.OpenedDate ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Status", (object?)issue.Status ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@OrderId", (object?)issue.CheckoutFormId ?? DBNull.Value);
 
         // --- Buyer data z OrderDetails (issue.Buyer ma tylko login, brak email/imion) ---
@@ -435,6 +462,8 @@ INSERT INTO AllegroDisputes (
         cmd.Parameters.AddWithValue("@DeliveryPhoneNumber",
             (object?)order?.Delivery?.Address?.PhoneNumber ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@DeliveryCompanyName",
+            (object?)order?.Delivery?.Address?.CompanyName ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@DeliveryCompany",
             (object?)order?.Delivery?.Address?.CompanyName ?? DBNull.Value);
 
         // --- Product data ---
@@ -459,6 +488,9 @@ INSERT INTO AllegroDisputes (
 
         // --- Expectations ---
         var firstExp = issue.Expectations.FirstOrDefault();
+        cmd.Parameters.AddWithValue("@Expectations", (object?)firstExp?.Name ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@InitialMessageText", (object?)issue.InitialMessageText ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@InitialMessageCount", issue.ChatMessagesCount);
         cmd.Parameters.AddWithValue("@ExpectationType", (object?)firstExp?.Name ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@ExpectationRefundAmount",
             SafeParseDecimal(firstExp?.RefundAmount) ?? (object)DBNull.Value);
@@ -494,11 +526,22 @@ INSERT INTO AllegroDisputes (
         const string sql = @"
 UPDATE AllegroDisputes SET
     StatusAllegro = @StatusAllegro,
+    Status = COALESCE(@Status, Status),
     Subject = COALESCE(@Subject, Subject),
     Description = COALESCE(@Description, Description),
+    OpenedAt = COALESCE(@OpenedAt, OpenedAt),
+    CreatedAt = COALESCE(@CreatedAt, CreatedAt),
+    ClosedAt = COALESCE(@ClosedAt, ClosedAt),
     DecisionDueDate = COALESCE(@DecisionDueDate, DecisionDueDate),
     ReferenceNumber = COALESCE(@ReferenceNumber, ReferenceNumber),
     Type = COALESCE(@Type, Type),
+    BuyerLogin = COALESCE(@BuyerLogin, BuyerLogin),
+    Expectations = COALESCE(@Expectations, Expectations),
+    InitialMessageText = COALESCE(@InitialMessageText, InitialMessageText),
+    InitialMessageCount = COALESCE(@InitialMessageCount, InitialMessageCount),
+    ExpectationType = COALESCE(@ExpectationType, ExpectationType),
+    ExpectationRefundAmount = COALESCE(@ExpectationRefundAmount, ExpectationRefundAmount),
+    ExpectationRefundCurrency = COALESCE(@ExpectationRefundCurrency, ExpectationRefundCurrency),
     ReasonType = COALESCE(@ReasonType, ReasonType),
     ReasonDescription = COALESCE(@ReasonDescription, ReasonDescription),
     NeedsDecision = @NeedsDecision,
@@ -509,11 +552,23 @@ WHERE DisputeId = @DisputeId";
         await using var cmd = new MySqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@DisputeId", issue.Id);
         cmd.Parameters.AddWithValue("@StatusAllegro", (object?)issue.Status ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Status", (object?)issue.Status ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Subject", (object?)issue.Subject ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Description", (object?)issue.Description ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@OpenedAt", (object?)issue.OpenedDate ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@CreatedAt", (object?)issue.OpenedDate ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@ClosedAt", (object?)issue.ClosedAt ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@DecisionDueDate", (object?)issue.DecisionDueDate ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@ReferenceNumber", (object?)issue.ReferenceNumber ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@Type", (object?)issue.Type ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@BuyerLogin", (object?)issue.BuyerLogin ?? DBNull.Value);
+        var firstExp = issue.Expectations.FirstOrDefault();
+        cmd.Parameters.AddWithValue("@Expectations", (object?)firstExp?.Name ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@InitialMessageText", (object?)issue.InitialMessageText ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@InitialMessageCount", issue.ChatMessagesCount);
+        cmd.Parameters.AddWithValue("@ExpectationType", (object?)firstExp?.Name ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@ExpectationRefundAmount", SafeParseDecimal(firstExp?.RefundAmount) ?? (object)DBNull.Value);
+        cmd.Parameters.AddWithValue("@ExpectationRefundCurrency", (object?)firstExp?.RefundCurrency ?? "PLN");
         cmd.Parameters.AddWithValue("@ReasonType", (object?)issue.ReasonType ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@ReasonDescription", (object?)issue.ReasonDescription ?? DBNull.Value);
 
@@ -523,6 +578,111 @@ WHERE DisputeId = @DisputeId";
         cmd.Parameters.AddWithValue("@NeedsDecision", needsDecision ? 1 : 0);
 
         cmd.Parameters.AddWithValue("@JsonDetails", (object?)issue.RawJson ?? DBNull.Value);
+
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    private static async Task<bool> RequiresIssueBackfillAsync(MySqlConnection conn, string? disputeId)
+    {
+        if (string.IsNullOrWhiteSpace(disputeId))
+            return false;
+
+        const string sql = @"
+SELECT 1
+FROM AllegroDisputes
+WHERE DisputeId = @DisputeId
+  AND (
+        BuyerFirstName IS NULL
+        OR BuyerLastName IS NULL
+        OR BuyerEmail IS NULL
+        OR DeliveryCompanyName IS NULL
+        OR DeliveryStreet IS NULL
+        OR DeliveryZipCode IS NULL
+        OR DeliveryCity IS NULL
+        OR DeliveryPhoneNumber IS NULL
+        OR Expectations IS NULL
+        OR InitialMessageText IS NULL
+        OR InitialMessageCount IS NULL
+        OR CreatedAt IS NULL
+        OR Status IS NULL
+        OR ProductName IS NULL
+        OR BoughtAt IS NULL
+        OR OrderJsonDetails IS NULL
+      )
+LIMIT 1";
+
+        await using var cmd = new MySqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@DisputeId", disputeId);
+        var result = await cmd.ExecuteScalarAsync();
+        return result != null && result != DBNull.Value;
+    }
+
+    private static async Task BackfillDisputeFromOrderAsync(
+        MySqlConnection conn,
+        AllegroApiClient.AllegroIssueFullDto issue,
+        AllegroApiClient.AllegroFullOrderDetailsDto order)
+    {
+        const string sql = @"
+UPDATE AllegroDisputes SET
+    BuyerLogin = COALESCE(@BuyerLogin, BuyerLogin),
+    BuyerEmail = COALESCE(@BuyerEmail, BuyerEmail),
+    BuyerFirstName = COALESCE(@BuyerFirstName, BuyerFirstName),
+    BuyerLastName = COALESCE(@BuyerLastName, BuyerLastName),
+    DeliveryCompanyName = COALESCE(@DeliveryCompanyName, DeliveryCompanyName),
+    DeliveryCompany = COALESCE(@DeliveryCompany, DeliveryCompany),
+    DeliveryStreet = COALESCE(@DeliveryStreet, DeliveryStreet),
+    DeliveryZipCode = COALESCE(@DeliveryZipCode, DeliveryZipCode),
+    DeliveryCity = COALESCE(@DeliveryCity, DeliveryCity),
+    DeliveryPhoneNumber = COALESCE(@DeliveryPhoneNumber, DeliveryPhoneNumber),
+    Expectations = COALESCE(@Expectations, Expectations),
+    InitialMessageText = COALESCE(@InitialMessageText, InitialMessageText),
+    InitialMessageCount = COALESCE(@InitialMessageCount, InitialMessageCount),
+    CreatedAt = COALESCE(@CreatedAt, CreatedAt),
+    Status = COALESCE(@Status, Status),
+    ProductName = COALESCE(@ProductName, ProductName),
+    BoughtAt = COALESCE(@BoughtAt, BoughtAt),
+    InvoiceNumber = COALESCE(@InvoiceNumber, InvoiceNumber),
+    ProductSKU = COALESCE(@ProductSKU, ProductSKU),
+    OrderJsonDetails = COALESCE(@OrderJsonDetails, OrderJsonDetails),
+    LastCheckedAt = NOW()
+WHERE DisputeId = @DisputeId";
+
+        await using var cmd = new MySqlCommand(sql, conn);
+        var firstExp = issue.Expectations.FirstOrDefault();
+        string? productName = issue.OfferName;
+        string? productSku = null;
+
+        if (order.LineItems != null && order.LineItems.Count > 0)
+        {
+            var matching = !string.IsNullOrWhiteSpace(issue.OfferId)
+                ? order.LineItems.FirstOrDefault(li => li.Offer?.Id == issue.OfferId)
+                : order.LineItems.FirstOrDefault();
+
+            productName = matching?.Offer?.Name ?? productName;
+            productSku = matching?.Offer?.External?.Id;
+        }
+
+        cmd.Parameters.AddWithValue("@DisputeId", issue.Id);
+        cmd.Parameters.AddWithValue("@BuyerLogin", (object?)order.Buyer?.Login ?? (object?)issue.BuyerLogin ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@BuyerEmail", (object?)order.Buyer?.Email ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@BuyerFirstName", (object?)order.Buyer?.FirstName ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@BuyerLastName", (object?)order.Buyer?.LastName ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@DeliveryCompanyName", (object?)order.Delivery?.Address?.CompanyName ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@DeliveryCompany", (object?)order.Delivery?.Address?.CompanyName ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@DeliveryStreet", (object?)order.Delivery?.Address?.Street ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@DeliveryZipCode", (object?)order.Delivery?.Address?.ResolvedZipCode ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@DeliveryCity", (object?)order.Delivery?.Address?.City ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@DeliveryPhoneNumber", (object?)order.Delivery?.Address?.PhoneNumber ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Expectations", (object?)firstExp?.Name ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@InitialMessageText", (object?)issue.InitialMessageText ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@InitialMessageCount", issue.ChatMessagesCount);
+        cmd.Parameters.AddWithValue("@CreatedAt", (object?)issue.OpenedDate ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@Status", (object?)issue.Status ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@ProductName", (object?)productName ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@BoughtAt", (object?)order.BoughtAt ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@InvoiceNumber", DBNull.Value);
+        cmd.Parameters.AddWithValue("@ProductSKU", (object?)productSku ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@OrderJsonDetails", (object?)order.RawJson ?? DBNull.Value);
 
         await cmd.ExecuteNonQueryAsync();
     }
