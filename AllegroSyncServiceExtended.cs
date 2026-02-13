@@ -634,7 +634,9 @@ namespace Reklamacje_Dane
                         int apiMessagesCount = issueShort.Chat?.MessagesCount ?? 0;
                         bool hasNewMessagesByCount = isNewIssue || apiMessagesCount > dbState.LastMessageCount;
 
-                        if (isNewIssue)
+                        bool requiresBackfill = !isNewIssue && await RequiresIssueBackfillAsync(issueShort.Id, con);
+
+                        if (isNewIssue || requiresBackfill)
                         {
                             var fullIssue = await apiClient.GetIssueDetailsAsync(issueShort.Id);
                             if (fullIssue == null)
@@ -653,6 +655,11 @@ namespace Reklamacje_Dane
                             if (inserted)
                             {
                                 result.NewIssues++;
+                            }
+
+                            if (requiresBackfill)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[BACKFILL] Issue {issueShort.Id}: uzupełniono brakujące dane relacyjne.");
                             }
                         }
                         else if (statusChanged || dueDateChanged)
@@ -716,6 +723,36 @@ namespace Reklamacje_Dane
             public int LastMessageCount { get; set; }
             public string StatusAllegro { get; set; }
             public DateTime? DecisionDueDate { get; set; }
+        }
+
+        private async Task<bool> RequiresIssueBackfillAsync(string disputeId, MySqlConnection con)
+        {
+            using (var cmd = new MySqlCommand(@"
+                SELECT 1
+                FROM AllegroDisputes
+                WHERE DisputeId = @DisputeId
+                  AND (
+                        BuyerFirstName IS NULL
+                        OR BuyerLastName IS NULL
+                        OR BuyerEmail IS NULL
+                        OR DeliveryStreet IS NULL
+                        OR DeliveryZipCode IS NULL
+                        OR DeliveryCity IS NULL
+                        OR DeliveryPhoneNumber IS NULL
+                        OR Expectations IS NULL
+                        OR InitialMessageText IS NULL
+                        OR CreatedAt IS NULL
+                        OR Status IS NULL
+                        OR ProductName IS NULL
+                        OR BoughtAt IS NULL
+                        OR OrderJsonDetails IS NULL
+                      )
+                LIMIT 1", con))
+            {
+                cmd.Parameters.AddWithValue("@DisputeId", disputeId);
+                var result = await cmd.ExecuteScalarAsync();
+                return result != null && result != DBNull.Value;
+            }
         }
 
         private async Task<IssueSyncState> GetIssueSyncStateAsync(string disputeId, MySqlConnection con)
