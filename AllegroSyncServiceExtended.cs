@@ -634,7 +634,9 @@ namespace Reklamacje_Dane
                         int apiMessagesCount = issueShort.Chat?.MessagesCount ?? 0;
                         bool hasNewMessagesByCount = isNewIssue || apiMessagesCount > dbState.LastMessageCount;
 
-                        if (isNewIssue)
+                        bool requiresBackfill = !isNewIssue && await RequiresIssueBackfillAsync(issueShort.Id, con);
+
+                        if (isNewIssue || requiresBackfill)
                         {
                             var fullIssue = await apiClient.GetIssueDetailsAsync(issueShort.Id);
                             if (fullIssue == null)
@@ -653,6 +655,11 @@ namespace Reklamacje_Dane
                             if (inserted)
                             {
                                 result.NewIssues++;
+                            }
+
+                            if (requiresBackfill)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[BACKFILL] Issue {issueShort.Id}: uzupełniono brakujące dane relacyjne.");
                             }
                         }
                         else if (statusChanged || dueDateChanged)
@@ -716,6 +723,36 @@ namespace Reklamacje_Dane
             public int LastMessageCount { get; set; }
             public string StatusAllegro { get; set; }
             public DateTime? DecisionDueDate { get; set; }
+        }
+
+        private async Task<bool> RequiresIssueBackfillAsync(string disputeId, MySqlConnection con)
+        {
+            using (var cmd = new MySqlCommand(@"
+                SELECT 1
+                FROM AllegroDisputes
+                WHERE DisputeId = @DisputeId
+                  AND (
+                        BuyerFirstName IS NULL
+                        OR BuyerLastName IS NULL
+                        OR BuyerEmail IS NULL
+                        OR DeliveryStreet IS NULL
+                        OR DeliveryZipCode IS NULL
+                        OR DeliveryCity IS NULL
+                        OR DeliveryPhoneNumber IS NULL
+                        OR Expectations IS NULL
+                        OR InitialMessageText IS NULL
+                        OR CreatedAt IS NULL
+                        OR Status IS NULL
+                        OR ProductName IS NULL
+                        OR BoughtAt IS NULL
+                        OR OrderJsonDetails IS NULL
+                      )
+                LIMIT 1", con))
+            {
+                cmd.Parameters.AddWithValue("@DisputeId", disputeId);
+                var result = await cmd.ExecuteScalarAsync();
+                return result != null && result != DBNull.Value;
+            }
         }
 
         private async Task<IssueSyncState> GetIssueSyncStateAsync(string disputeId, MySqlConnection con)
@@ -1106,14 +1143,26 @@ namespace Reklamacje_Dane
                 cmd.Parameters.AddWithValue("@OpenedAt", issue.OpenedDate);
                 cmd.Parameters.AddWithValue("@DecisionDueDate", issue.DecisionDueDate ?? (object)DBNull.Value);
 
-                cmd.Parameters.AddWithValue("@ClosedAt", DBNull.Value);
+                cmd.Parameters.AddWithValue("@ClosedAt", issue.ClosedAt ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@LastCheckedAt", DateTime.Now);
+                cmd.Parameters.AddWithValue("@CreatedAt", issue.OpenedDate);
+                cmd.Parameters.AddWithValue("@Status", issue.CurrentState?.Status ?? (object)DBNull.Value);
 
                 cmd.Parameters.AddWithValue("@OrderId", issue.CheckoutForm?.Id ?? (object)DBNull.Value);
                 
                 // ✅ v3.2 BUYER FIX: Dane kupującego z orderDetails.Buyer zamiast issue.Buyer (które jest NULL)
-                cmd.Parameters.AddWithValue("@BuyerLogin", orderDetails?.Buyer?.Login ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BuyerLogin", orderDetails?.Buyer?.Login ?? issue.Buyer?.Login ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@BuyerEmail", orderDetails?.Buyer?.Email ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BuyerFirstName", orderDetails?.Buyer?.FirstName ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BuyerLastName", orderDetails?.Buyer?.LastName ?? (object)DBNull.Value);
+
+                var deliveryAddress = orderDetails?.Delivery?.Address;
+                cmd.Parameters.AddWithValue("@DeliveryCompanyName", deliveryAddress?.CompanyName ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@DeliveryStreet", deliveryAddress?.Street ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@DeliveryZipCode", deliveryAddress?.ZipCode ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@DeliveryCity", deliveryAddress?.City ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@DeliveryPhoneNumber", deliveryAddress?.PhoneNumber ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@DeliveryCompany", deliveryAddress?.CompanyName ?? (object)DBNull.Value);
 
                 cmd.Parameters.AddWithValue("@ProductId", issue.Product?.Id ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@OfferId", issue.Offer?.Id ?? (object)DBNull.Value);
@@ -1128,6 +1177,10 @@ namespace Reklamacje_Dane
                 cmd.Parameters.AddWithValue("@InvoiceNumber", orderDetails?.Invoice?.InvoiceNumber ?? (object)DBNull.Value);
 
                 var firstExpectation = issue.Expectations?.FirstOrDefault();
+                cmd.Parameters.AddWithValue("@Expectations", firstExpectation?.Name ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@InitialMessageText", issue.Chat?.InitialMessage?.Text ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@InitialMessageCount", issue.Chat?.MessagesCount ?? 0);
+
                 cmd.Parameters.AddWithValue("@ExpectationType", firstExpectation?.Name ?? (object)DBNull.Value);
 
                 decimal? refundAmount = null;
@@ -1413,15 +1466,19 @@ namespace Reklamacje_Dane
             return @"
                 INSERT INTO AllegroDisputes 
                 (DisputeId, AllegroAccountId, Type, ReferenceNumber, Subject, Description, StatusAllegro,
-                 OpenedAt, DecisionDueDate, ClosedAt, LastCheckedAt, OrderId, BuyerLogin, BuyerEmail,
+                 OpenedAt, DecisionDueDate, ClosedAt, LastCheckedAt, CreatedAt, Status, OrderId, BuyerLogin, BuyerEmail, BuyerFirstName, BuyerLastName,
+                 DeliveryCompanyName, DeliveryStreet, DeliveryZipCode, DeliveryCity, DeliveryPhoneNumber, DeliveryCompany,
                  ProductId, OfferId, ProductName, ProductEAN, ProductSKU, InvoiceNumber,
+                 Expectations, InitialMessageText, InitialMessageCount,
                  ExpectationType, ExpectationRefundAmount, ExpectationRefundCurrency,
                  ReasonType, ReasonDescription, BoughtAt, NeedsDecision, LastMessageCount, HasNewMessages,
                  ComplaintId, JsonDetails, OrderJsonDetails)
                 VALUES 
                 (@DisputeId, @AllegroAccountId, @Type, @ReferenceNumber, @Subject, @Description, @StatusAllegro,
-                 @OpenedAt, @DecisionDueDate, @ClosedAt, @LastCheckedAt, @OrderId, @BuyerLogin, @BuyerEmail,
+                 @OpenedAt, @DecisionDueDate, @ClosedAt, @LastCheckedAt, @CreatedAt, @Status, @OrderId, @BuyerLogin, @BuyerEmail, @BuyerFirstName, @BuyerLastName,
+                 @DeliveryCompanyName, @DeliveryStreet, @DeliveryZipCode, @DeliveryCity, @DeliveryPhoneNumber, @DeliveryCompany,
                  @ProductId, @OfferId, @ProductName, @ProductEAN, @ProductSKU, @InvoiceNumber,
+                 @Expectations, @InitialMessageText, @InitialMessageCount,
                  @ExpectationType, @ExpectationRefundAmount, @ExpectationRefundCurrency,
                  @ReasonType, @ReasonDescription, @BoughtAt, @NeedsDecision, 0, 0,
                  @ComplaintId, @JsonDetails, @OrderJsonDetails)";
@@ -1440,15 +1497,28 @@ namespace Reklamacje_Dane
                     DecisionDueDate = @DecisionDueDate,
                     ClosedAt = @ClosedAt,
                     LastCheckedAt = @LastCheckedAt,
+                    CreatedAt = @CreatedAt,
+                    Status = @Status,
                     OrderId = @OrderId,
                     BuyerLogin = @BuyerLogin,
                     BuyerEmail = @BuyerEmail,
+                    BuyerFirstName = @BuyerFirstName,
+                    BuyerLastName = @BuyerLastName,
+                    DeliveryCompanyName = @DeliveryCompanyName,
+                    DeliveryStreet = @DeliveryStreet,
+                    DeliveryZipCode = @DeliveryZipCode,
+                    DeliveryCity = @DeliveryCity,
+                    DeliveryPhoneNumber = @DeliveryPhoneNumber,
+                    DeliveryCompany = @DeliveryCompany,
                     ProductId = @ProductId,
                     OfferId = @OfferId,
                     ProductName = @ProductName,
                     ProductEAN = @ProductEAN,
                     ProductSKU = @ProductSKU,
                     InvoiceNumber = @InvoiceNumber,
+                    Expectations = @Expectations,
+                    InitialMessageText = @InitialMessageText,
+                    InitialMessageCount = @InitialMessageCount,
                     ExpectationType = @ExpectationType,
                     ExpectationRefundAmount = @ExpectationRefundAmount,
                     ExpectationRefundCurrency = @ExpectationRefundCurrency,
