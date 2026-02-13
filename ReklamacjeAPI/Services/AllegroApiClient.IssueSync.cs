@@ -460,6 +460,9 @@ internal static class JsonElementExtensions
 {
     public static string? GetStringProp(this JsonElement el, string name)
     {
+        if (el.ValueKind != JsonValueKind.Object)
+            return null;
+
         if (el.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String)
             return prop.GetString();
         return null;
@@ -467,6 +470,9 @@ internal static class JsonElementExtensions
 
     public static DateTime? GetDateTimeProp(this JsonElement el, string name)
     {
+        if (el.ValueKind != JsonValueKind.Object)
+            return null;
+
         if (el.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String)
         {
             var str = prop.GetString();
@@ -478,6 +484,9 @@ internal static class JsonElementExtensions
 
     public static int? GetIntProp(this JsonElement el, string name)
     {
+        if (el.ValueKind != JsonValueKind.Object)
+            return null;
+
         if (el.TryGetProperty(name, out var prop))
         {
             if (prop.ValueKind == JsonValueKind.Number)
@@ -490,6 +499,9 @@ internal static class JsonElementExtensions
 
     public static bool? GetBoolProp(this JsonElement el, string name)
     {
+        if (el.ValueKind != JsonValueKind.Object)
+            return null;
+
         if (el.TryGetProperty(name, out var prop))
         {
             if (prop.ValueKind == JsonValueKind.True) return true;

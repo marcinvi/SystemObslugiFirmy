@@ -1,7 +1,3 @@
-// Plik: AllegroOrderModels.cs (WERSJA Z POPRAWK¥ B£ÊDÓW)
-// Opis: Dodano brakuj¹ce w³aœciwoœci Id, Price i Cost oraz definicje
-//       klas Price i Cost, aby naprawiæ b³êdy kompilacji.
-
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -18,9 +14,17 @@ namespace Reklamacje_Dane.Allegro
 
     public class Seller { [JsonProperty("id")] public string Id { get; set; } }
 
+    public class Payment
+    {
+        [JsonProperty("id")] public string Id { get; set; }
+        [JsonProperty("type")] public string Type { get; set; }
+        [JsonProperty("provider")] public string Provider { get; set; }
+        [JsonProperty("finishedAt")] public DateTime? FinishedAt { get; set; }
+        [JsonProperty("paidAmount")] public Price PaidAmount { get; set; }
+    }
+
     public class OrderDetails
     {
-    public class Payment { [JsonProperty("id")] public string Id { get; set; } [JsonProperty("type")] public string Type { get; set; } [JsonProperty("provider")] public string Provider { get; set; } [JsonProperty("finishedAt")] public DateTime? FinishedAt { get; set; } [JsonProperty("paidAmount")] public Price PaidAmount { get; set; } }
         [JsonProperty("login")] public string Login { get; set; }
         [JsonProperty("id")] public string Id { get; set; }
         [JsonProperty("buyer")] public OrderBuyer Buyer { get; set; }
@@ -33,7 +37,6 @@ namespace Reklamacje_Dane.Allegro
         [JsonProperty("invoice")] public Invoice Invoice { get; set; }
     }
 
-    public class Payment { [JsonProperty("id")] public string Id { get; set; } [JsonProperty("type")] public string Type { get; set; } }
     public class Fulfillment { [JsonProperty("status")] public string Status { get; set; } }
 
     public class OrderBuyer
@@ -87,6 +90,7 @@ namespace Reklamacje_Dane.Allegro
         [JsonProperty("id")] public string Id { get; set; }
         [JsonProperty("offer")] public Offer Offer { get; set; }
         [JsonProperty("quantity")] public int Quantity { get; set; }
+        [JsonProperty("price")] public Price Price { get; set; }
         [JsonProperty("external")] public ExternalOffer External { get; set; }
         [JsonProperty("product")] public OfferProduct Product { get; set; }
     }
@@ -99,11 +103,8 @@ namespace Reklamacje_Dane.Allegro
     public class OfferProduct
     {
         [JsonProperty("id")] public string Id { get; set; }
-        // ########## POPRAWKA - Dodano brakuj¹ce pole Price ##########
-        [JsonProperty("price")] public Price Price { get; set; }
     }
 
-    // ########## POPRAWKA - Dodano brakuj¹c¹ klasê Price ##########
     public class Price
     {
         [JsonProperty("amount")] public string Amount { get; set; }
