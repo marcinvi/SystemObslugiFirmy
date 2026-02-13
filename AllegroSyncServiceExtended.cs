@@ -522,6 +522,19 @@ namespace Reklamacje_Dane
                 await cmd.ExecuteNonQueryAsync();
             }
 
+            if (orderDetails != null)
+            {
+                try
+                {
+                    await UpsertOrderDetailsAsync(orderDetails, accountId, con);
+                    await UpsertOrderItemsAsync(orderDetails, con);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[WARN] Nie udało się zapisać tabel AllegroOrderDetails/AllegroOrderItems dla {orderDetails.Id}: {ex.Message}");
+                }
+            }
+
             return isNew;
         }
 
@@ -579,94 +592,88 @@ namespace Reklamacje_Dane
 
             try
             {
-                // ═══════════════════════════════════════════════════════
-                // WARSTWA 1: SYNC LOG CHECK (skip jeśli < 5 min)
-                // ═══════════════════════════════════════════════════════
                 var lastSyncTime = await GetLastSuccessfulSyncTimeAsync(accountId, con);
-
                 if (lastSyncTime != null)
                 {
                     var timeSinceLastSync = DateTime.Now - lastSyncTime.Value;
-
                     if (timeSinceLastSync.TotalMinutes < 1)
                     {
                         progress?.Report($"Konto {accountId}: Sync {timeSinceLastSync.TotalMinutes:F1} min temu - pomijam");
-                        System.Diagnostics.Debug.WriteLine($"[SYNC SKIP] Konto {accountId}: Ostatnia sync {timeSinceLastSync.TotalMinutes:F1} min temu");
                         await LogSyncCompleteAsync(logId, "SKIPPED", 0, 0, 0, con, "Too recent sync");
                         return result;
                     }
                 }
 
-                progress?.Report($"Konto {accountId}: Sprawdzanie...");
-
-                // ═══════════════════════════════════════════════════════
-                // KROK 1: Pobierz wszystkie issues z API
-                // ═══════════════════════════════════════════════════════
-                System.Diagnostics.Debug.WriteLine($"[SYNC] Konto {accountId}: Pobieranie issues z API...");
-
+                progress?.Report($"Konto {accountId}: Pobieranie listy issues...");
                 var allIssuesFromApi = await apiClient.GetIssuesAsync();
 
                 if (allIssuesFromApi == null || !allIssuesFromApi.Any())
                 {
-                    System.Diagnostics.Debug.WriteLine($"[SYNC] Konto {accountId}: Brak issues w API");
                     await LogSyncCompleteAsync(logId, "SUCCESS", 0, 0, 0, con);
                     return result;
                 }
 
-                // ═══════════════════════════════════════════════════════
-                // KROK 2: Porównaj z bazą - czy są nowe?
-                // ═══════════════════════════════════════════════════════
-                int countInDb = await GetIssuesCountInDbAsync(accountId, con);
-                int countInApi = allIssuesFromApi.Count;
-
-                System.Diagnostics.Debug.WriteLine($"[SYNC COMPARE] API: {countInApi} issues, DB: {countInDb} issues");
-
-                if (countInApi == countInDb)
-                {
-                    // Same liczby - POMIŃ synchronizację (nawet czatów - za wolno!)
-                    progress?.Report($"Konto {accountId}: Issues OK ({countInApi}) - nic do synchronizacji");
-                    System.Diagnostics.Debug.WriteLine($"[SYNC QUICK] Issues aktualne - pomijam (w tym czaty - za wolno)");
-
-                    // Czat nie jest wykonywany w trybie quick-check (wydajność).
-                    result.IssuesWithNewMessages = 0;
-
-                    progress?.Report($"Konto {accountId}: ✅ OK! (Issues: 0, Czaty: POMINIĘTE)");
-                    await LogSyncCompleteAsync(logId, "SUCCESS", 0, 0, result.IssuesWithNewMessages, con);
-                    return result;
-                }
-
-                // ═══════════════════════════════════════════════════════
-                // KROK 3: PEŁNA SYNCHRONIZACJA - są nowe issues!
-                // ═══════════════════════════════════════════════════════
-                progress?.Report($"Konto {accountId}: Nowe issues ({countInApi} vs {countInDb}) - synchronizuję...");
-                System.Diagnostics.Debug.WriteLine($"[SYNC FULL] Znaleziono nowe issues - pełna sync");
-
                 result.TotalProcessed = allIssuesFromApi.Count;
-
+                bool hasLastMessageIdColumn = await CheckLastMessageIdColumnExists(con);
                 int current = 0;
+
                 foreach (var issueShort in allIssuesFromApi)
                 {
                     current++;
                     if (current % 10 == 0 || current == allIssuesFromApi.Count)
                     {
-                        progress?.Report($"Konto {accountId}: Issues {current}/{allIssuesFromApi.Count}...");
+                        progress?.Report($"Konto {accountId}: {current}/{allIssuesFromApi.Count}...");
                     }
 
-                    await ProcessSingleIssueAsync(apiClient, issueShort, accountId, con, result);
+                    try
+                    {
+                        var dbState = await GetIssueSyncStateAsync(issueShort.Id, con);
+                        bool isNewIssue = dbState == null;
+                        bool statusChanged = dbState != null && !string.Equals(dbState.StatusAllegro ?? string.Empty, issueShort.CurrentState?.Status ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+                        bool dueDateChanged = dbState != null && dbState.DecisionDueDate != issueShort.DecisionDueDate;
+                        int apiMessagesCount = issueShort.Chat?.MessagesCount ?? 0;
+                        bool hasNewMessagesByCount = isNewIssue || apiMessagesCount > dbState.LastMessageCount;
+
+                        if (isNewIssue)
+                        {
+                            var fullIssue = await apiClient.GetIssueDetailsAsync(issueShort.Id);
+                            if (fullIssue == null)
+                            {
+                                result.ErrorMessages.Add($"Issue {issueShort.Id}: Nie można pobrać szczegółów");
+                                continue;
+                            }
+
+                            OrderDetails orderDetails = null;
+                            if (!string.IsNullOrEmpty(fullIssue.CheckoutForm?.Id))
+                            {
+                                orderDetails = await apiClient.GetOrderDetailsByCheckoutFormIdAsync(fullIssue.CheckoutForm.Id);
+                            }
+
+                            bool inserted = await UpsertIssueAsync(fullIssue, orderDetails, accountId, con);
+                            if (inserted)
+                            {
+                                result.NewIssues++;
+                            }
+                        }
+                        else if (statusChanged || dueDateChanged)
+                        {
+                            await UpdateIssueFromListAsync(issueShort, con);
+                        }
+
+                        if (hasNewMessagesByCount)
+                        {
+                            bool hasNewMessages = await SynchronizeChatForIssueAsync_Fixed(apiClient, issueShort, con, hasLastMessageIdColumn);
+                            if (hasNewMessages)
+                            {
+                                result.IssuesWithNewMessages++;
+                            }
+                        }
+                    }
+                    catch (Exception exIssue)
+                    {
+                        result.ErrorMessages.Add($"Issue {issueShort.Id}: {exIssue.Message}");
+                    }
                 }
-
-                System.Diagnostics.Debug.WriteLine($"[SYNC] Issues: {result.TotalProcessed} (Nowych: {result.NewIssues})");
-
-                // ═══════════════════════════════════════════════════════
-                // KROK 4: Synchronizuj czaty - TYMCZASOWO WYŁĄCZONE!
-                // ═══════════════════════════════════════════════════════
-                // ⚠️ WYŁĄCZONE: Synchronizacja czatów zajmuje 90% czasu (300 issues * 2 API calls = 600 calls!)
-                // TODO: Włączyć po naprawieniu wydajności
-                
-                progress?.Report($"Konto {accountId}: ⚠️ Czaty pominięte (oszczędność czasu)");
-                System.Diagnostics.Debug.WriteLine($"[SYNC] Czaty POMINIĘTE dla oszczędności czasu");
-                
-                result.IssuesWithNewMessages = await SynchronizeChatsOnlyAsync(apiClient, accountId, con, progress);
 
                 progress?.Report($"Konto {accountId}: ✅ OK! (Nowych: {result.NewIssues}, Czaty: {result.IssuesWithNewMessages})");
                 await LogSyncCompleteAsync(logId, "SUCCESS", result.TotalProcessed, result.NewIssues, result.IssuesWithNewMessages, con);
@@ -674,7 +681,6 @@ namespace Reklamacje_Dane
             catch (Exception ex)
             {
                 progress?.Report($"Konto {accountId}: ❌ BŁĄD!");
-                System.Diagnostics.Debug.WriteLine($"[ERROR] Konto {accountId}: {ex.Message}\n{ex.StackTrace}");
                 await LogSyncCompleteAsync(logId, "FAILED", result.TotalProcessed, result.NewIssues, result.IssuesWithNewMessages, con, ex.Message);
                 throw;
             }
@@ -705,20 +711,61 @@ namespace Reklamacje_Dane
             return null;
         }
 
-        /// <summary>
-        /// ⭐ NAPRAWIONA METODA: Zwraca liczbę issues w bazie (nie ID!)
-        /// </summary>
-        private async Task<int> GetIssuesCountInDbAsync(int accountId, MySqlConnection con)
+        private sealed class IssueSyncState
         {
-            var cmd = new MySqlCommand(@"
-                SELECT COUNT(*) 
-                FROM AllegroDisputes 
-                WHERE AllegroAccountId = @AccountId", con);
+            public int LastMessageCount { get; set; }
+            public string StatusAllegro { get; set; }
+            public DateTime? DecisionDueDate { get; set; }
+        }
 
-            cmd.Parameters.AddWithValue("@AccountId", accountId);
+        private async Task<IssueSyncState> GetIssueSyncStateAsync(string disputeId, MySqlConnection con)
+        {
+            using (var cmd = new MySqlCommand(@"
+                SELECT LastMessageCount, StatusAllegro, DecisionDueDate
+                FROM AllegroDisputes
+                WHERE DisputeId = @DisputeId
+                LIMIT 1", con))
+            {
+                cmd.Parameters.AddWithValue("@DisputeId", disputeId);
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    if (!await reader.ReadAsync())
+                    {
+                        return null;
+                    }
 
-            var result = await cmd.ExecuteScalarAsync();
-            return Convert.ToInt32(result);
+                    return new IssueSyncState
+                    {
+                        LastMessageCount = reader["LastMessageCount"] == DBNull.Value ? 0 : Convert.ToInt32(reader["LastMessageCount"]),
+                        StatusAllegro = reader["StatusAllegro"]?.ToString(),
+                        DecisionDueDate = reader["DecisionDueDate"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(reader["DecisionDueDate"])
+                    };
+                }
+            }
+        }
+
+        private async Task UpdateIssueFromListAsync(Issue issueShort, MySqlConnection con)
+        {
+            string status = issueShort.CurrentState?.Status ?? string.Empty;
+            bool needsDecision = (status == "IN_PROGRESS" || status == "OPENED")
+                                 && issueShort.DecisionDueDate.HasValue
+                                 && issueShort.DecisionDueDate.Value > DateTime.Now;
+
+            using (var cmd = new MySqlCommand(@"
+                UPDATE AllegroDisputes
+                SET StatusAllegro = @StatusAllegro,
+                    DecisionDueDate = @DecisionDueDate,
+                    LastCheckedAt = @LastCheckedAt,
+                    NeedsDecision = @NeedsDecision
+                WHERE DisputeId = @DisputeId", con))
+            {
+                cmd.Parameters.AddWithValue("@StatusAllegro", issueShort.CurrentState?.Status ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@DecisionDueDate", issueShort.DecisionDueDate ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@LastCheckedAt", DateTime.Now);
+                cmd.Parameters.AddWithValue("@NeedsDecision", needsDecision ? 1 : 0);
+                cmd.Parameters.AddWithValue("@DisputeId", issueShort.Id);
+                await cmd.ExecuteNonQueryAsync();
+            }
         }
 
         private async Task<int> SynchronizeChatsOnlyAsync(
@@ -1071,9 +1118,14 @@ namespace Reklamacje_Dane
                 cmd.Parameters.AddWithValue("@ProductId", issue.Product?.Id ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@OfferId", issue.Offer?.Id ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@ProductName", issue.Offer?.Name ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@ProductEAN", (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@ProductSKU", (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@InvoiceNumber", (object)DBNull.Value);
+
+                var matchingLineItem = orderDetails?.LineItems?.FirstOrDefault(li =>
+                    string.Equals(li?.Offer?.Id, issue.Offer?.Id, StringComparison.OrdinalIgnoreCase))
+                    ?? orderDetails?.LineItems?.FirstOrDefault();
+
+                cmd.Parameters.AddWithValue("@ProductEAN", matchingLineItem?.Offer?.Product?.Id ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@ProductSKU", matchingLineItem?.Offer?.External?.Id ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@InvoiceNumber", orderDetails?.Invoice?.InvoiceNumber ?? (object)DBNull.Value);
 
                 var firstExpectation = issue.Expectations?.FirstOrDefault();
                 cmd.Parameters.AddWithValue("@ExpectationType", firstExpectation?.Name ?? (object)DBNull.Value);
@@ -1113,6 +1165,19 @@ namespace Reklamacje_Dane
                 await cmd.ExecuteNonQueryAsync();
             }
 
+            if (orderDetails != null)
+            {
+                try
+                {
+                    await UpsertOrderDetailsAsync(orderDetails, accountId, con);
+                    await UpsertOrderItemsAsync(orderDetails, con);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[WARN] Nie udało się zapisać tabel AllegroOrderDetails/AllegroOrderItems dla {orderDetails.Id}: {ex.Message}");
+                }
+            }
+
             return isNew;
         }
 
@@ -1126,6 +1191,131 @@ namespace Reklamacje_Dane
         {
             // TODO: Sprawdzić dokładną nazwę kolumny email w tabeli Zgloszenia
             return null;
+        }
+
+        private async Task UpsertOrderDetailsAsync(OrderDetails orderDetails, int accountId, MySqlConnection con)
+        {
+            if (string.IsNullOrWhiteSpace(orderDetails?.Id))
+            {
+                return;
+            }
+
+            using (var cmd = new MySqlCommand(@"
+                INSERT INTO AllegroOrderDetails
+                (OrderId, AllegroAccountId, Status, FulfillmentStatus, BoughtAt, UpdatedAt,
+                 BuyerLogin, BuyerEmail, BuyerFirstName, BuyerLastName, BuyerPhoneNumber,
+                 Delivery_Street, Delivery_City, Delivery_ZipCode, Delivery_CountryCode, Delivery_CompanyName,
+                 PaymentType, PaymentProvider, PaymentFinishedAt, PaidAmount, PaidCurrency,
+                 InvoiceRequired, Invoice_CompanyName, Invoice_TaxId, Invoice_Street, Invoice_City, Invoice_ZipCode, Invoice_CountryCode,
+                 MessageToSeller, JsonDetails, LastSyncAt)
+                VALUES
+                (@OrderId, @AllegroAccountId, @Status, @FulfillmentStatus, @BoughtAt, @UpdatedAt,
+                 @BuyerLogin, @BuyerEmail, @BuyerFirstName, @BuyerLastName, @BuyerPhoneNumber,
+                 @Delivery_Street, @Delivery_City, @Delivery_ZipCode, @Delivery_CountryCode, @Delivery_CompanyName,
+                 @PaymentType, @PaymentProvider, @PaymentFinishedAt, @PaidAmount, @PaidCurrency,
+                 @InvoiceRequired, @Invoice_CompanyName, @Invoice_TaxId, @Invoice_Street, @Invoice_City, @Invoice_ZipCode, @Invoice_CountryCode,
+                 @MessageToSeller, @JsonDetails, @LastSyncAt)
+                ON DUPLICATE KEY UPDATE
+                 AllegroAccountId = VALUES(AllegroAccountId),
+                 Status = VALUES(Status),
+                 FulfillmentStatus = VALUES(FulfillmentStatus),
+                 BoughtAt = VALUES(BoughtAt),
+                 UpdatedAt = VALUES(UpdatedAt),
+                 BuyerLogin = VALUES(BuyerLogin),
+                 BuyerEmail = VALUES(BuyerEmail),
+                 BuyerFirstName = VALUES(BuyerFirstName),
+                 BuyerLastName = VALUES(BuyerLastName),
+                 BuyerPhoneNumber = VALUES(BuyerPhoneNumber),
+                 Delivery_Street = VALUES(Delivery_Street),
+                 Delivery_City = VALUES(Delivery_City),
+                 Delivery_ZipCode = VALUES(Delivery_ZipCode),
+                 Delivery_CountryCode = VALUES(Delivery_CountryCode),
+                 Delivery_CompanyName = VALUES(Delivery_CompanyName),
+                 PaymentType = VALUES(PaymentType),
+                 PaymentProvider = VALUES(PaymentProvider),
+                 PaymentFinishedAt = VALUES(PaymentFinishedAt),
+                 PaidAmount = VALUES(PaidAmount),
+                 PaidCurrency = VALUES(PaidCurrency),
+                 InvoiceRequired = VALUES(InvoiceRequired),
+                 Invoice_CompanyName = VALUES(Invoice_CompanyName),
+                 Invoice_TaxId = VALUES(Invoice_TaxId),
+                 Invoice_Street = VALUES(Invoice_Street),
+                 Invoice_City = VALUES(Invoice_City),
+                 Invoice_ZipCode = VALUES(Invoice_ZipCode),
+                 Invoice_CountryCode = VALUES(Invoice_CountryCode),
+                 MessageToSeller = VALUES(MessageToSeller),
+                 JsonDetails = VALUES(JsonDetails),
+                 LastSyncAt = VALUES(LastSyncAt)", con))
+            {
+                cmd.Parameters.AddWithValue("@OrderId", orderDetails.Id);
+                cmd.Parameters.AddWithValue("@AllegroAccountId", accountId);
+                cmd.Parameters.AddWithValue("@Status", (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@FulfillmentStatus", orderDetails.Fulfillment?.Status ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BoughtAt", orderDetails.BoughtAt ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@UpdatedAt", DateTime.Now);
+                cmd.Parameters.AddWithValue("@BuyerLogin", orderDetails.Buyer?.Login ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BuyerEmail", orderDetails.Buyer?.Email ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BuyerFirstName", orderDetails.Buyer?.FirstName ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BuyerLastName", orderDetails.Buyer?.LastName ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@BuyerPhoneNumber", orderDetails.Buyer?.PhoneNumber ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Delivery_Street", orderDetails.Delivery?.Address?.Street ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Delivery_City", orderDetails.Delivery?.Address?.City ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Delivery_ZipCode", orderDetails.Delivery?.Address?.ZipCode ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Delivery_CountryCode", "PL");
+                cmd.Parameters.AddWithValue("@Delivery_CompanyName", orderDetails.Delivery?.Address?.CompanyName ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@PaymentType", orderDetails.Payment?.Type ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@PaymentProvider", orderDetails.Payment?.Provider ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@PaymentFinishedAt", orderDetails.Payment?.FinishedAt ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@PaidAmount", SafeParseDecimal(orderDetails.Payment?.PaidAmount?.Amount) ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@PaidCurrency", orderDetails.Payment?.PaidAmount?.Currency ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@InvoiceRequired", orderDetails.Invoice != null ? 1 : 0);
+                cmd.Parameters.AddWithValue("@Invoice_CompanyName", orderDetails.Invoice?.Address?.CompanyName ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Invoice_TaxId", orderDetails.Invoice?.Address?.TaxId ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Invoice_Street", orderDetails.Invoice?.Address?.Street ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Invoice_City", orderDetails.Invoice?.Address?.City ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Invoice_ZipCode", orderDetails.Invoice?.Address?.ZipCode ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@Invoice_CountryCode", "PL");
+                cmd.Parameters.AddWithValue("@MessageToSeller", (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@JsonDetails", JsonConvert.SerializeObject(orderDetails));
+                cmd.Parameters.AddWithValue("@LastSyncAt", DateTime.Now);
+
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        private async Task UpsertOrderItemsAsync(OrderDetails orderDetails, MySqlConnection con)
+        {
+            if (string.IsNullOrWhiteSpace(orderDetails?.Id) || orderDetails.LineItems == null || !orderDetails.LineItems.Any())
+            {
+                return;
+            }
+
+            using (var deleteCmd = new MySqlCommand("DELETE FROM AllegroOrderItems WHERE OrderId = @OrderId", con))
+            {
+                deleteCmd.Parameters.AddWithValue("@OrderId", orderDetails.Id);
+                await deleteCmd.ExecuteNonQueryAsync();
+            }
+
+            foreach (var item in orderDetails.LineItems)
+            {
+                using (var insertCmd = new MySqlCommand(@"
+                    INSERT INTO AllegroOrderItems
+                    (OrderId, OfferId, Name, Quantity, Price, Currency, ReconciliationAmount, ImageUrl, JsonDetails)
+                    VALUES
+                    (@OrderId, @OfferId, @Name, @Quantity, @Price, @Currency, @ReconciliationAmount, @ImageUrl, @JsonDetails)", con))
+                {
+                    insertCmd.Parameters.AddWithValue("@OrderId", orderDetails.Id);
+                    insertCmd.Parameters.AddWithValue("@OfferId", item.Offer?.Id ?? (object)DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@Name", item.Offer?.Name ?? (object)DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@Quantity", item.Quantity);
+                    insertCmd.Parameters.AddWithValue("@Price", SafeParseDecimal(item.Price?.Amount) ?? (object)DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@Currency", item.Price?.Currency ?? (object)DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@ReconciliationAmount", DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@ImageUrl", DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@JsonDetails", JsonConvert.SerializeObject(item));
+                    await insertCmd.ExecuteNonQueryAsync();
+                }
+            }
         }
 
         #endregion

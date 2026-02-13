@@ -1,6 +1,6 @@
-// Plik: AllegroOrderModels.cs (WERSJA Z POPRAWK¥ B£ÊDÓW)
-// Opis: Dodano brakuj¹ce w³aœciwoœci Id, Price i Cost oraz definicje
-//       klas Price i Cost, aby naprawiæ b³êdy kompilacji.
+// Plik: AllegroOrderModels.cs (WERSJA Z POPRAWKÂ¥ BÂ£ÃŠDÃ“W)
+// Opis: Dodano brakujÂ¹ce wÂ³aÅ“ciwoÅ“ci Id, Price i Cost oraz definicje
+//       klas Price i Cost, aby naprawiÃ¦ bÂ³Ãªdy kompilacji.
 
 using Newtonsoft.Json;
 using System;
@@ -20,7 +20,8 @@ namespace Reklamacje_Dane.Allegro
 
     public class OrderDetails
     {
-        // ########## POPRAWKA - Dodano brakuj¹ce pole ID ##########
+    public class Payment { [JsonProperty("id")] public string Id { get; set; } [JsonProperty("type")] public string Type { get; set; } [JsonProperty("provider")] public string Provider { get; set; } [JsonProperty("finishedAt")] public DateTime? FinishedAt { get; set; } [JsonProperty("paidAmount")] public Price PaidAmount { get; set; } }
+        [JsonProperty("login")] public string Login { get; set; }
         [JsonProperty("id")] public string Id { get; set; }
         [JsonProperty("buyer")] public OrderBuyer Buyer { get; set; }
         [JsonProperty("delivery")] public Delivery Delivery { get; set; }
@@ -54,11 +55,11 @@ namespace Reklamacje_Dane.Allegro
     public class Delivery
     {
         [JsonProperty("address")] public Address Address { get; set; }
-        // ########## POPRAWKA - Dodano brakuj¹ce pole Cost ##########
+        // ########## POPRAWKA - Dodano brakujÂ¹ce pole Cost ##########
         [JsonProperty("cost")] public Cost Cost { get; set; }
     }
 
-    // ########## POPRAWKA - Dodano brakuj¹c¹ klasê Cost ##########
+    // ########## POPRAWKA - Dodano brakujÂ¹cÂ¹ klasÃª Cost ##########
     public class Cost
     {
         [JsonProperty("amount")] public string Amount { get; set; }
@@ -70,7 +71,7 @@ namespace Reklamacje_Dane.Allegro
         [JsonProperty("address")] public InvoiceAddress Address { get; set; }
 
         // ########## DODANE ##########
-        // Dodano pole invoiceNumber zgodnie z dokumentacj¹ Allegro.
+        // Dodano pole invoiceNumber zgodnie z dokumentacjÂ¹ Allegro.
         [JsonProperty("invoiceNumber")]
         public string InvoiceNumber { get; set; }
     }
@@ -86,11 +87,23 @@ namespace Reklamacje_Dane.Allegro
         [JsonProperty("id")] public string Id { get; set; }
         [JsonProperty("offer")] public Offer Offer { get; set; }
         [JsonProperty("quantity")] public int Quantity { get; set; }
-        // ########## POPRAWKA - Dodano brakuj¹ce pole Price ##########
+        [JsonProperty("external")] public ExternalOffer External { get; set; }
+        [JsonProperty("product")] public OfferProduct Product { get; set; }
+    }
+
+    public class ExternalOffer
+    {
+        [JsonProperty("id")] public string Id { get; set; }
+    }
+
+    public class OfferProduct
+    {
+        [JsonProperty("id")] public string Id { get; set; }
+        // ########## POPRAWKA - Dodano brakujÂ¹ce pole Price ##########
         [JsonProperty("price")] public Price Price { get; set; }
     }
 
-    // ########## POPRAWKA - Dodano brakuj¹c¹ klasê Price ##########
+    // ########## POPRAWKA - Dodano brakujÂ¹cÂ¹ klasÃª Price ##########
     public class Price
     {
         [JsonProperty("amount")] public string Amount { get; set; }
@@ -125,17 +138,17 @@ namespace Reklamacje_Dane.Allegro
     }
 }
 
-// ########## DODANE KLASY - MODELE ZWROTU WP£ATY ##########
-// Poni¿sze klasy umieszczono w dodatkowej przestrzeni nazw
-// Reklamacje_Dane.Allegro.Models, aby umo¿liwiæ serializacjê ¿¹dania
-// zwrotu p³atnoœci (POST /payments/refunds) zgodnie z dokumentacj¹ Allegro.
+// ########## DODANE KLASY - MODELE ZWROTU WPÂ£ATY ##########
+// PoniÂ¿sze klasy umieszczono w dodatkowej przestrzeni nazw
+// Reklamacje_Dane.Allegro.Models, aby umoÂ¿liwiÃ¦ serializacjÃª Â¿Â¹dania
+// zwrotu pÂ³atnoÅ“ci (POST /payments/refunds) zgodnie z dokumentacjÂ¹ Allegro.
 namespace Reklamacje_Dane.Allegro.Models
 {
     using System.Collections.Generic;
     using Newtonsoft.Json;
 
     /// <summary>
-    /// Reprezentuje ¿¹danie zwrotu p³atnoœci.
+    /// Reprezentuje Â¿Â¹danie zwrotu pÂ³atnoÅ“ci.
     /// </summary>
     public class PaymentRefundRequest
     {
