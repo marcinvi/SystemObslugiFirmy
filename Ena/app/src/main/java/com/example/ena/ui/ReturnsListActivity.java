@@ -667,7 +667,8 @@ public class ReturnsListActivity extends AppCompatActivity {
 
     private String buildQueryString() {
         StringBuilder sb = new StringBuilder("?");
-        int pageSize = "warehouse".equals(mode) ? 0 : 100;
+        // pageSize=0 powodowało pobieranie całej tabeli zwrotów i bardzo wolne ładowanie przez API
+        int pageSize = 100;
         sb.append("page=1&pageSize=").append(pageSize);
 
         String searchValue = editSearch.getText().toString().trim();
