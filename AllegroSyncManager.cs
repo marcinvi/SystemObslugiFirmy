@@ -9,7 +9,6 @@ namespace Reklamacje_Dane
         private static AllegroSyncManager _instance;
         public static AllegroSyncManager Instance => _instance ?? (_instance = new AllegroSyncManager());
 
-        private readonly AllegroSyncService _syncService;
         private Timer _syncTimer;
         private volatile bool _isSyncRunning = false;
         private readonly object _syncLock = new object();
@@ -19,7 +18,6 @@ namespace Reklamacje_Dane
 
         private AllegroSyncManager()
         {
-            _syncService = new AllegroSyncService();
         }
 
         public void Start(TimeSpan interval)
@@ -50,19 +48,31 @@ namespace Reklamacje_Dane
 
             try
             {
-                SyncStatusChanged?.Invoke("Rozpoczęto synchronizację z Allegro...");
-                // #################### POPRAWKA BŁĘDU KOMPILACJI ####################
-                // Przekazujemy `null` jako argument `progress`, ponieważ ten menedżer
-                // działa w tle i nie ma bezpośredniego dostępu do interfejsu użytkownika.
-                var result = await _syncService.SynchronizeDisputesAsync(null);
+                SyncStatusChanged?.Invoke("Rozpoczęto synchronizację z Allegro przez ReklamacjeAPI...");
+
+                var apiSync = ApiSyncService.Instance;
+                if (!apiSync.IsInitialized || !apiSync.IsAuthenticated)
+                {
+                    throw new InvalidOperationException("Synchronizacja Allegro wymaga aktywnego połączenia i logowania do ReklamacjeAPI.");
+                }
+
+                var runResult = await apiSync.TriggerAllegroSyncAsync();
+                var status = runResult?.Status ?? new AllegroSyncStatusApi();
+
+                var result = new AllegroSyncResult
+                {
+                    NewDisputesFound = status.NewDisputesFoundLastRun,
+                    UnregisteredDisputesCount = status.UnregisteredDisputesCount,
+                    DisputesWithNewMessages = status.DisputesWithNewMessages
+                };
+
                 SyncCompleted?.Invoke(result);
-                SyncStatusChanged?.Invoke("Synchronizacja zakończona.");
+                SyncStatusChanged?.Invoke(runResult?.Message ?? "Synchronizacja Allegro przez API zakończona.");
             }
             catch (Exception ex)
             {
-                // Logowanie błędów
-                System.Diagnostics.Debug.WriteLine($"Błąd podczas synchronizacji Allegro: {ex.Message}");
-                SyncStatusChanged?.Invoke("Błąd synchronizacji.");
+                System.Diagnostics.Debug.WriteLine($"Błąd podczas synchronizacji Allegro (API): {ex.Message}");
+                SyncStatusChanged?.Invoke($"Błąd synchronizacji przez API: {ex.Message}");
             }
             finally
             {

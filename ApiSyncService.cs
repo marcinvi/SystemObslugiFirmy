@@ -144,6 +144,49 @@ namespace Reklamacje_Dane
             ClearSavedToken();
         }
 
+
+        // ===== ALLEGRO SYNC (SERVER-SIDE) =====
+
+        /// <summary>
+        /// Uruchamia synchronizację Allegro po stronie ReklamacjeAPI.
+        /// </summary>
+        public async Task<AllegroSyncRunResultApi> TriggerAllegroSyncAsync()
+        {
+            if (!IsAuthenticated)
+            {
+                throw new InvalidOperationException("Musisz być zalogowany do API, aby uruchomić synchronizację Allegro");
+            }
+
+            try
+            {
+                return await _apiClient.TriggerAllegroSyncAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Błąd uruchomienia synchronizacji Allegro przez API: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Pobiera status synchronizacji Allegro z ReklamacjeAPI.
+        /// </summary>
+        public async Task<AllegroSyncStatusApi> GetAllegroSyncStatusAsync()
+        {
+            if (!IsAuthenticated)
+            {
+                throw new InvalidOperationException("Musisz być zalogowany do API, aby pobrać status synchronizacji Allegro");
+            }
+
+            try
+            {
+                return await _apiClient.GetAllegroSyncStatusAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Błąd pobierania statusu synchronizacji Allegro przez API: {ex.Message}", ex);
+            }
+        }
+
         // ===== SYNCHRONIZACJA ZGŁOSZEŃ =====
 
         /// <summary>
