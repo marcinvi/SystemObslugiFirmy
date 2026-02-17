@@ -38,13 +38,20 @@ import com.journeyapps.barcodescanner.ScanOptions;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.function.IntConsumer;
+// USUNIĘTO: import java.util.function.IntConsumer; - Powodował błędy na Redmi/Android 11
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import androidx.activity.result.ActivityResultLauncher;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class ReturnsListActivity extends AppCompatActivity {
+
+    // --- NAPRAWA: Własny interfejs zamiast IntConsumer ---
+    public interface CountCallback {
+        void onCount(int count);
+    }
+    // -----------------------------------------------------
+
     public static final String EXTRA_MODE = "mode";
     private static final int CAMERA_PERMISSION_REQUEST = 2001;
     private static final String STATE_PENDING_MANUAL_CODE = "pending_manual_code";
@@ -63,7 +70,7 @@ public class ReturnsListActivity extends AppCompatActivity {
     private Button btnFilterOczekujace;
     private Button btnFilterNaDecyzje;
     private Button btnFilterPoDecyzji;
-    private Button btnFilterWTrakcie; // ✅ NOWA ZAKŁADKA
+    private Button btnFilterWTrakcie;
     private Button btnFilterWDrodze;
     private Button btnFilterWszystkie;
     private ImageButton btnRefresh;
@@ -78,7 +85,7 @@ public class ReturnsListActivity extends AppCompatActivity {
     private String currentStatusWewnetrzny;
     private String currentStatusAllegro;
     private int pendingCount;
-    private int inProgressCount; // ✅ LICZNIK DLA "W TRAKCIE"
+    private int inProgressCount;
     private int completedCount;
     private String pendingManualCode;
     private boolean isManualDialogVisible;
@@ -106,7 +113,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         btnFilterOczekujace = findViewById(R.id.btnFilterOczekujace);
         btnFilterNaDecyzje = findViewById(R.id.btnFilterNaDecyzje);
         btnFilterPoDecyzji = findViewById(R.id.btnFilterPoDecyzji);
-        btnFilterWTrakcie = findViewById(R.id.btnFilterWTrakcie); // ✅ INICJALIZACJA
+        btnFilterWTrakcie = findViewById(R.id.btnFilterWTrakcie);
         btnFilterWDrodze = findViewById(R.id.btnFilterWDrodze);
         btnFilterWszystkie = findViewById(R.id.btnFilterWszystkie);
         btnRefresh = findViewById(R.id.btnRefresh);
@@ -238,7 +245,6 @@ public class ReturnsListActivity extends AppCompatActivity {
         currentStatusAllegro = null;
     }
 
-    // ✅ ZAKTUALIZOWANA METODA - 3 ZAKŁADKI DLA HANDLOWCA
     private void setupSalesFilters() {
         spinnerStatusAllegro.setVisibility(View.GONE);
         btnFilterOczekujace.setVisibility(View.GONE);
@@ -257,7 +263,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             loadReturns();
         });
 
-        // ✅ Zakładka 2: W trakcie (NOWA!)
+        // Zakładka 2: W trakcie
         if (btnFilterWTrakcie != null) {
             btnFilterWTrakcie.setVisibility(View.VISIBLE);
             btnFilterWTrakcie.setText("W trakcie");
@@ -319,47 +325,6 @@ public class ReturnsListActivity extends AppCompatActivity {
 
         setActiveFilter(btnFilterWszystkie);
         currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_NA_PRZYJECIE;
-        currentStatusAllegro = null;
-    }
-
-    private void setupSummaryFilters() {
-        spinnerStatusAllegro.setVisibility(View.GONE);
-        btnFilterOczekujace.setVisibility(View.GONE);
-        btnFilterWDrodze.setVisibility(View.GONE);
-        btnFilterWszystkie.setVisibility(View.GONE);
-        if (filtersDecisionRow != null) {
-            filtersDecisionRow.setVisibility(View.VISIBLE);
-        }
-
-        btnFilterNaDecyzje.setText("Czekają na decyzję");
-        btnFilterNaDecyzje.setOnClickListener(v -> {
-            currentStatusWewnetrzny = STATUS_WEW_OCZEKUJE_DECYZJI;
-            currentStatusAllegro = null;
-            setActiveFilter(btnFilterNaDecyzje);
-            loadReturns();
-        });
-
-        if (btnFilterWTrakcie != null) {
-            btnFilterWTrakcie.setVisibility(View.VISIBLE);
-            btnFilterWTrakcie.setText("Po decyzji");
-            btnFilterWTrakcie.setOnClickListener(v -> {
-                currentStatusWewnetrzny = STATUS_WEW_PO_DECYZJI;
-                currentStatusAllegro = null;
-                setActiveFilter(btnFilterWTrakcie);
-                loadReturns();
-            });
-        }
-
-        btnFilterPoDecyzji.setText("Zakończone");
-        btnFilterPoDecyzji.setOnClickListener(v -> {
-            currentStatusWewnetrzny = STATUS_WEW_ZAKONCZONY;
-            currentStatusAllegro = null;
-            setActiveFilter(btnFilterPoDecyzji);
-            loadReturns();
-        });
-
-        setActiveFilter(btnFilterWTrakcie != null ? btnFilterWTrakcie : btnFilterNaDecyzje);
-        currentStatusWewnetrzny = STATUS_WEW_PO_DECYZJI;
         currentStatusAllegro = null;
     }
 
@@ -536,7 +501,7 @@ public class ReturnsListActivity extends AppCompatActivity {
 
                         if (totalAcc > 0 && accName != null && !accName.isEmpty()) {
                             msg.append("Konto ").append(currAcc).append("/").append(totalAcc)
-                               .append(": ").append(accName).append("\n");
+                                    .append(": ").append(accName).append("\n");
                         } else if (totalAcc > 0) {
                             msg.append("Konto ").append(currAcc).append("/").append(totalAcc).append("\n");
                         } else {
@@ -645,12 +610,11 @@ public class ReturnsListActivity extends AppCompatActivity {
         });
     }
 
-    // ✅ ZAKTUALIZOWANA METODA - OBSŁUGA 3 PRZYCISKÓW
     private void setActiveFilter(Button activeButton) {
         Button[] buttons = new Button[] {
                 btnFilterOczekujace,
                 btnFilterNaDecyzje,
-                btnFilterWTrakcie, // ✅ DODANY
+                btnFilterWTrakcie,
                 btnFilterPoDecyzji,
                 btnFilterWDrodze,
                 btnFilterWszystkie
@@ -689,7 +653,7 @@ public class ReturnsListActivity extends AppCompatActivity {
         return sb.toString();
     }
 
-    // ✅ ZAKTUALIZOWANA METODA - POBIERANIE LICZNIKÓW DLA 3 ZAKŁADEK
+    // --- NAPRAWA: Zaktualizowana metoda updateSalesCounts z lambda ---
     private void updateSalesCounts() {
         ApiClient client = new ApiClient(this);
 
@@ -699,7 +663,7 @@ public class ReturnsListActivity extends AppCompatActivity {
             btnFilterNaDecyzje.setText("Nowe sprawy (" + pendingCount + ")");
         });
 
-        // ✅ Licznik: W trakcie
+        // Licznik: W trakcie
         fetchSalesCount(client, STATUS_WEW_PO_DECYZJI, count -> {
             inProgressCount = count;
             if (btnFilterWTrakcie != null) {
@@ -714,21 +678,24 @@ public class ReturnsListActivity extends AppCompatActivity {
         });
     }
 
-    private void fetchSalesCount(ApiClient client, String status, IntConsumer callback) {
+    // --- NAPRAWA: Metoda używająca nowego interfejsu ---
+    private void fetchSalesCount(ApiClient client, String status, CountCallback callback) {
         String query = "?page=1&pageSize=1&statusWewnetrzny=" + encode(status);
         client.fetchAssignedReturns(query, new ApiClient.ApiCallback<PaginatedResponse<ReturnListItemDto>>() {
             @Override
             public void onSuccess(PaginatedResponse<ReturnListItemDto> data) {
                 int total = data != null ? data.getTotalItems() : 0;
-                runOnUiThread(() -> callback.accept(total));
+                // Wywołanie metody interfejsu zamiast accept()
+                runOnUiThread(() -> callback.onCount(total));
             }
 
             @Override
             public void onError(String message) {
-                runOnUiThread(() -> callback.accept(0));
+                runOnUiThread(() -> callback.onCount(0));
             }
         });
     }
+    // ----------------------------------------------------
 
     private void startCodeScan() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -857,7 +824,11 @@ public class ReturnsListActivity extends AppCompatActivity {
         if (value == null) {
             return "";
         }
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+        try {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
+        } catch (Exception e) {
+            return value;
+        }
     }
 
     private void showLoadingOverlay(String message) {

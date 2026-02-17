@@ -9,6 +9,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -79,7 +80,6 @@ public class SummaryActivity extends AppCompatActivity {
 
         // Po kliknięciu otwieramy szczegóły.
         // Używamy ReturnDetailActivity jako uniwersalnego podglądu dla kierownika.
-        // (Można by też zrobić osobny Activity "ReadOnly", ale ten się nada).
         adapter = new ReturnListAdapter(item -> {
             Intent intent = new Intent(this, ReturnDetailActivity.class);
             intent.putExtra("return_id", item.getId());
@@ -179,8 +179,17 @@ public class SummaryActivity extends AppCompatActivity {
         });
     }
 
+    // --- NAPRAWA: Metoda kompatybilna z Android < 13 ---
     private String encode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+        try {
+            // Używamy .toString(), aby przekazać nazwę kodowania jako String ("UTF-8"),
+            // co jest obsługiwane od pierwszej wersji Androida.
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
+        } catch (UnsupportedEncodingException e) {
+            // To się nigdy nie wydarzy dla UTF-8, ale Java wymaga catch
+            return value;
+        } catch (Exception e) {
+            return "";
+        }
     }
-
 }

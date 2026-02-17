@@ -5,7 +5,8 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
 import androidx.annotation.NonNull;
-
+import java.util.HashSet;
+import java.util.Set;
 import com.example.ena.NetworkUtils;
 import com.example.ena.PairingManager;
 import com.example.ena.UserSession;
@@ -190,7 +191,71 @@ public class ApiClient {
             }
         });
     }
+// ==========================================
+    // NOWE: ZEWNĘTRZNE API KODÓW POCZTOWYCH
+    // ==========================================
 
+    public void fetchExternalZipCode(String zipCode, ApiCallback<List<String>> callback) {
+        // Zewnętrzne API: https://kodpocztowy.intami.pl/api/83-000
+        String url = "https://kodpocztowy.intami.pl/api/" + zipCode;
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .build();
+
+        // Używamy standardowego klienta (nie tego unsafe, bo to publiczne HTTPS)
+        CLIENT.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                // Nie blokujemy użytkownika błędem, po prostu nie podpowiemy miasta
+                callback.onError(e.getMessage());
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    callback.onError("API Error: " + response.code());
+                    return;
+                }
+
+                String json = response.body().string();
+                try {
+                    // Parsujemy tablicę obiektów
+                    Type listType = new TypeToken<List<ZipEntry>>(){}.getType();
+                    List<ZipEntry> entries = GSON.fromJson(json, listType);
+
+                    // LOGIKA FILTROWANIA:
+                    // 1. Wyciągamy tylko nazwy miejscowości
+                    // 2. Używamy Set, żeby usunąć duplikaty (np. Pruszcz Gdański występujący 100 razy dla ulic)
+                    Set<String> uniqueCities = new HashSet<>();
+                    if (entries != null) {
+                        for (ZipEntry entry : entries) {
+                            if (entry.miejscowosc != null && !entry.miejscowosc.isEmpty()) {
+                                uniqueCities.add(entry.miejscowosc);
+                            }
+                        }
+                    }
+
+                    List<String> result = new ArrayList<>(uniqueCities);
+                    callback.onSuccess(result);
+
+                } catch (Exception e) {
+                    callback.onError("Błąd parsowania: " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    // Prosta klasa pomocnicza do mapowania JSON-a z intami.pl
+    private static class ZipEntry {
+        String kod;
+        String miejscowosc;
+        String ulica;
+        String gmina;
+        String powiat;
+        String wojewodztwo;
+    }
     private void executeSendWithFallback(String url, String path, String method, RequestBody body, ApiCallback<Void> callback) {
         Request request = buildRequest(url).method(method, body).build();
         selectClient(url).newCall(request).enqueue(new Callback() {
@@ -532,13 +597,36 @@ public class ApiClient {
         get("api/returns/statuses?type=" + encoded, type, callback);
     }
 
-    public void createManualReturn(ReturnManualCreateRequest payload, ApiCallback<Void> callback) {
-        sendJson("api/returns/manual", payload, "POST", callback);
+    public void createManualReturn(ReturnManualCreateRequest payload, ApiCallback<Integer> callback) {
+        // Oczekujemy obiektu { "id": 123 }
+        Type type = new TypeToken<ApiResponse<IdResponse>>(){}.getType();
+
+        // Używamy sendJsonWithResponse zamiast sendJson
+        sendJsonWithResponse("api/returns/manual", payload, "POST", type, new ApiCallback<IdResponse>() {
+            @Override
+            public void onSuccess(IdResponse data) {
+                if (data != null) {
+                    callback.onSuccess(data.id);
+                } else {
+                    callback.onError("Błąd: Serwer nie zwrócił numeru zwrotu.");
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                callback.onError(message);
+            }
+        });
+    }
+
+    // Klasa pomocnicza do odebrania ID
+    private static class IdResponse {
+        int id;
     }
 
     // ==========================================
     // NOWE METODY - PROFIL UŻYTKOWNIKA
-    // ==========================================
+    // =========1=================================
 
     // 1. Pobranie danych profilu
     public void getProfile(ApiCallback<UserProfileDto> callback) {

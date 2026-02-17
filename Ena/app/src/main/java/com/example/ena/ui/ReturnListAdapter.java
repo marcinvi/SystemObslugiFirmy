@@ -13,12 +13,13 @@ import com.example.ena.api.ReturnListItemDto;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections; // DODANO: Bezpieczne sortowanie
 import java.util.List;
 import java.util.Locale;
 
 public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.ViewHolder> {
+    // Bezpieczniejsza inicjalizacja formatowania daty
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM HH:mm");
-
 
     public enum DisplayMode {
         DECISION,
@@ -49,26 +50,26 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         if (data != null) {
             items.addAll(data);
         }
+
+        // POPRAWKA: Używamy Collections.sort zamiast items.sort dla 100% kompatybilności
         if (displayMode != DisplayMode.SUMMARY) {
-            items.sort((left, right) -> {
-                int leftPriority = statusPriority(left);
-                int rightPriority = statusPriority(right);
-                if (leftPriority != rightPriority) {
-                    return Integer.compare(leftPriority, rightPriority);
-                }
-                OffsetDateTime leftDate = left.getCreatedAt();
-                OffsetDateTime rightDate = right.getCreatedAt();
-                if (leftDate == null && rightDate == null) {
-                    return 0;
-                }
-                if (leftDate == null) {
-                    return 1;
-                }
-                if (rightDate == null) {
-                    return -1;
-                }
-                return rightDate.compareTo(leftDate);
-            });
+            try {
+                Collections.sort(items, (left, right) -> {
+                    int leftPriority = statusPriority(left);
+                    int rightPriority = statusPriority(right);
+                    if (leftPriority != rightPriority) {
+                        return Integer.compare(leftPriority, rightPriority);
+                    }
+                    OffsetDateTime leftDate = left.getCreatedAt();
+                    OffsetDateTime rightDate = right.getCreatedAt();
+                    if (leftDate == null && rightDate == null) return 0;
+                    if (leftDate == null) return 1;
+                    if (rightDate == null) return -1;
+                    return rightDate.compareTo(leftDate);
+                });
+            } catch (Exception e) {
+                // Ignorujemy błędy sortowania, żeby nie wywalić aplikacji
+            }
         }
         notifyDataSetChanged();
     }
@@ -92,10 +93,15 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         String labelText = resolveActionLabel(item);
         holder.txtAction.setText(labelText.toUpperCase(Locale.ROOT));
         DecisionStyle style = resolveDecisionStyle(labelText);
-        holder.statusStrip.setBackgroundColor(style.stripColor);
-        holder.decisionContainer.setBackgroundTintList(ColorStateList.valueOf(style.containerColor));
-        holder.txtAction.setTextColor(style.textColor);
-        holder.itemView.setOnClickListener(v -> listener.onItemClick(item));
+
+        // Zabezpieczenie przed null w holderze
+        if (holder.statusStrip != null) holder.statusStrip.setBackgroundColor(style.stripColor);
+        if (holder.decisionContainer != null) holder.decisionContainer.setBackgroundTintList(ColorStateList.valueOf(style.containerColor));
+        if (holder.txtAction != null) holder.txtAction.setTextColor(style.textColor);
+
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) listener.onItemClick(item);
+        });
     }
 
     @Override
@@ -127,10 +133,12 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
     }
 
     private String formatDate(OffsetDateTime date) {
-        if (date == null) {
+        if (date == null) return "";
+        try {
+            return DATE_FORMAT.format(date);
+        } catch (Exception e) {
             return "";
         }
-        return DATE_FORMAT.format(date);
     }
 
     private DecisionStyle resolveDecisionStyle(String decision) {
@@ -145,9 +153,6 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         }
         String normalized = decision.trim().toLowerCase();
         if (normalized.isEmpty() || normalized.contains("brak")) {
-            return DecisionStyle.NEUTRAL;
-        }
-        if (displayMode == DisplayMode.WAREHOUSE_STATUS) {
             return DecisionStyle.NEUTRAL;
         }
         if (normalized.contains("półk") || normalized.contains("polk")) {
@@ -166,13 +171,9 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
     }
 
     private DecisionStyle resolveWarehouseStatusStyle(String statusLabel) {
-        if (statusLabel == null) {
-            return DecisionStyle.NEUTRAL;
-        }
+        if (statusLabel == null) return DecisionStyle.NEUTRAL;
         String normalized = statusLabel.trim().toLowerCase(Locale.ROOT);
-        if (normalized.contains("dostarcz")) {
-            return DecisionStyle.STOCK;
-        }
+        if (normalized.contains("dostarcz")) return DecisionStyle.STOCK;
         if (normalized.contains("w drodze") || normalized.contains("in_transit")) {
             return new DecisionStyle(0xFFFB8C00, 0xFFFFF3E0, 0xFFEF6C00);
         }
@@ -210,14 +211,9 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
     }
 
     private String resolveWarehouseStatusLabel(ReturnListItemDto item) {
-        if (item == null) {
-            return "Brak statusu";
-        }
+        if (item == null) return "Brak statusu";
         String status = item.getStatusAllegro();
-        if (status == null || status.trim().isEmpty()) {
-            return "Brak statusu";
-        }
-        return translateStatusAllegro(status.trim());
+        return (status == null || status.trim().isEmpty()) ? "Brak statusu" : translateStatusAllegro(status.trim());
     }
 
     private String formatStatusLine(ReturnListItemDto item) {
@@ -229,66 +225,41 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
     }
 
     private String formatStatusAllegro(ReturnListItemDto item) {
-        if (item == null) {
-            return "Status: -";
-        }
-        if (item.isManual()) {
-            return "Status: Zwrot ręczny";
-        }
+        if (item == null) return "Status: -";
+        if (item.isManual()) return "Status: Zwrot ręczny";
         String status = item.getStatusAllegro();
-        if (status == null || status.trim().isEmpty()) {
-            return "Status: Brak danych";
-        }
-        return "Status: " + translateStatusAllegro(status.trim());
+        return (status == null || status.trim().isEmpty()) ? "Status: Brak danych" : "Status: " + translateStatusAllegro(status.trim());
     }
 
     private String translateStatusAllegro(String status) {
+        if (status == null) return "";
         switch (status) {
-            case "CREATED":
-                return "Utworzono";
-            case "IN_TRANSIT":
-                return "W drodze";
-            case "DELIVERED":
-                return "Dostarczone";
-            case "FINISHED":
-                return "Zakończone";
-            case "REJECTED":
-                return "Odrzucone";
-            case "COMMISSION_REFUND_CLAIMED":
-                return "Wniosek o zwrot prowizji";
-            case "COMMISSION_REFUNDED":
-                return "Prowizja zwrócona";
-            case "WAREHOUSE_DELIVERED":
-                return "Dostarczone do magazynu Allegro";
-            case "WAREHOUSE_VERIFICATION":
-                return "W weryfikacji magazynu Allegro";
-            case "READY_FOR_PICKUP":
-                return "Gotowy do odbioru";
-            default:
-                return status;
+            case "CREATED": return "Utworzono";
+            case "IN_TRANSIT": return "W drodze";
+            case "DELIVERED": return "Dostarczone";
+            case "FINISHED": return "Zakończone";
+            case "REJECTED": return "Odrzucone";
+            case "COMMISSION_REFUND_CLAIMED": return "Wniosek o zwrot prowizji";
+            case "COMMISSION_REFUNDED": return "Prowizja zwrócona";
+            case "WAREHOUSE_DELIVERED": return "Dostarczone do magazynu Allegro";
+            case "WAREHOUSE_VERIFICATION": return "W weryfikacji magazynu Allegro";
+            case "READY_FOR_PICKUP": return "Gotowy do odbioru";
+            default: return status;
         }
     }
 
     private int statusPriority(ReturnListItemDto item) {
-        if (item == null) {
-            return 3;
-        }
+        if (item == null) return 3;
         if (displayMode == DisplayMode.SUMMARY) {
             return summaryPriority(item);
         }
         String status = item.getStatusAllegro();
-        if (status == null) {
-            return 3;
-        }
+        if (status == null) return 3;
         switch (status) {
-            case "DELIVERED":
-                return 0;
-            case "IN_TRANSIT":
-                return 1;
-            case "CREATED":
-                return 2;
-            default:
-                return 3;
+            case "DELIVERED": return 0;
+            case "IN_TRANSIT": return 1;
+            case "CREATED": return 2;
+            default: return 3;
         }
     }
 
@@ -298,17 +269,12 @@ public class ReturnListAdapter extends RecyclerView.Adapter<ReturnListAdapter.Vi
         boolean hasDecision = decyzja != null && !decyzja.trim().isEmpty();
         if (!hasDecision && statusWew != null) {
             String normalized = statusWew.toLowerCase(Locale.ROOT);
-            hasDecision = normalized.contains("po decyzji")
-                    || normalized.contains("archiwal");
+            hasDecision = normalized.contains("po decyzji") || normalized.contains("archiwal");
         }
-        if (hasDecision) {
-            return 0;
-        }
+        if (hasDecision) return 0;
         if (statusWew != null) {
             String normalized = statusWew.toLowerCase(Locale.ROOT);
-            if (normalized.contains("oczekuje na decyzję")) {
-                return 1;
-            }
+            if (normalized.contains("oczekuje na decyzję")) return 1;
         }
         return 2;
     }
