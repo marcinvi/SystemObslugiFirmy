@@ -207,6 +207,58 @@ namespace Reklamacje_Dane
                 }
             }
 
+            int? nowySNDoZapisu = null;
+            string logWymianySN = null;
+
+            // Scenariusz: wymiana produktu z numerem seryjnym -> wymagaj nowego SN
+            if (nowyStatusKlient.Contains("Wysyłka nowego"))
+            {
+                try
+                {
+                    using (var con = DatabaseHelper.GetConnection())
+                    {
+                        await con.OpenAsync();
+                        var cmd = new MySqlCommand(@"SELECT z.NrSeryjny, p.CzySN
+                                                   FROM Zgloszenia z
+                                                   LEFT JOIN Produkty p ON z.ProduktID = p.Id
+                                                   WHERE z.NrZgloszenia = @nr", con);
+                        cmd.Parameters.AddWithValue("@nr", this.nrZgloszenia);
+
+                        using (var r = await cmd.ExecuteReaderAsync())
+                        {
+                            if (await r.ReadAsync())
+                            {
+                                var czySN = r["CzySN"] != DBNull.Value && Convert.ToInt32(r["CzySN"]) == 1;
+                                if (czySN)
+                                {
+                                    var starySN = r["NrSeryjny"]?.ToString() ?? "brak";
+                                    var nowySNText = Interaction.InputBox("Podaj numer nowego SN po wymianie:", "Nowy numer seryjny", "").Trim();
+                                    if (string.IsNullOrWhiteSpace(nowySNText))
+                                    {
+                                        MessageBox.Show("Dla produktu z SN musisz podać nowy numer seryjny.", "Wymagane dane", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                        return;
+                                    }
+
+                                    if (!int.TryParse(nowySNText, out var nowySNInt))
+                                    {
+                                        MessageBox.Show("Kolumna NowySN ma typ INT - wpisz numer SN jako liczbę.", "Nieprawidłowy format", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                        return;
+                                    }
+
+                                    nowySNDoZapisu = nowySNInt;
+                                    logWymianySN = $"Wymieniono produkt z Numeru Seryjnego: {starySN} na {nowySNText}";
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Błąd podczas pobierania danych SN: " + ex.Message, "Błąd");
+                    return;
+                }
+            }
+
             // ----------------------------------------------------------------
             // 2. ZAPIS DANYCH (TRANSAKCJA) - Twój oryginalny kod
             // ----------------------------------------------------------------
@@ -216,6 +268,7 @@ namespace Reklamacje_Dane
             if (nowyStatusKlient != originalStatusKlient) sb.Append($"Zmieniono Status Klienta z '{originalStatusKlient}' na '{nowyStatusKlient}'. ");
             if (nowyNrWRL != originalNrWRL) sb.Append($"Zmieniono Nr WRL z '{originalNrWRL}' na '{nowyNrWRL}'. ");
             if (nowaKwotaZwrotu != originalKwotaZwrotu) sb.Append($"Zmieniono Kwotę zwrotu z '{originalKwotaZwrotu}' na '{nowaKwotaZwrotu}'. ");
+            if (!string.IsNullOrWhiteSpace(logWymianySN)) sb.Append(logWymianySN + ". ");
             string logMessage = sb.ToString().Trim();
 
             using (var con = DatabaseHelper.GetConnection())
@@ -225,7 +278,7 @@ namespace Reklamacje_Dane
                 {
                     try
                     {
-                        string updateQuery = @"UPDATE Zgloszenia SET StatusOgolny = @statusOgolny, StatusKlient = @statusKlient, NrWRL = @nrWRL, KwotaZwrotu = @kwotaZwrotu WHERE NrZgloszenia = @nrZgloszenia";
+                        string updateQuery = @"UPDATE Zgloszenia SET StatusOgolny = @statusOgolny, StatusKlient = @statusKlient, NrWRL = @nrWRL, KwotaZwrotu = @kwotaZwrotu, NowySN = COALESCE(@nowySN, NowySN) WHERE NrZgloszenia = @nrZgloszenia";
                         using (var cmdUpdate = new MySqlCommand(updateQuery, con, transaction))
                         {
                             cmdUpdate.Parameters.AddWithValue("@statusOgolny", nowyStatusOgolny);
@@ -233,6 +286,7 @@ namespace Reklamacje_Dane
                             cmdUpdate.Parameters.AddWithValue("@nrWRL", nowyNrWRL);
                             cmdUpdate.Parameters.AddWithValue("@kwotaZwrotu", nowaKwotaZwrotu);
                             cmdUpdate.Parameters.AddWithValue("@nrZgloszenia", this.nrZgloszenia);
+                            cmdUpdate.Parameters.AddWithValue("@nowySN", (object)nowySNDoZapisu ?? DBNull.Value);
                             await cmdUpdate.ExecuteNonQueryAsync();
                         }
 
