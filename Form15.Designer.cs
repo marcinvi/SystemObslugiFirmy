@@ -29,6 +29,8 @@
             this.btnNowaKategoria = new System.Windows.Forms.Button();
             this.comboProducent = new System.Windows.Forms.ComboBox();
             this.comboKategoria = new System.Windows.Forms.ComboBox();
+            this.comboCzySN = new System.Windows.Forms.ComboBox();
+            this.labelCzySN = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
             this.Kodporducenta = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
@@ -136,6 +138,8 @@
             this.panelDetali.Controls.Add(this.btnNowaKategoria);
             this.panelDetali.Controls.Add(this.comboProducent);
             this.panelDetali.Controls.Add(this.comboKategoria);
+            this.panelDetali.Controls.Add(this.comboCzySN);
+            this.panelDetali.Controls.Add(this.labelCzySN);
             this.panelDetali.Controls.Add(this.label6);
             this.panelDetali.Controls.Add(this.Kodporducenta);
             this.panelDetali.Controls.Add(this.label5);
@@ -149,7 +153,7 @@
             this.panelDetali.Location = new System.Drawing.Point(318, 12);
             this.panelDetali.Name = "panelDetali";
             this.panelDetali.Padding = new System.Windows.Forms.Padding(10);
-            this.panelDetali.Size = new System.Drawing.Size(607, 429);
+            this.panelDetali.Size = new System.Drawing.Size(607, 479);
             this.panelDetali.TabIndex = 2;
             // 
             // btnZarzadzajProducentami
@@ -256,6 +260,32 @@
             this.Nazwakrotka.Size = new System.Drawing.Size(578, 27);
             this.Nazwakrotka.TabIndex = 7;
             // 
+            // 
+            // comboCzySN
+            // 
+            this.comboCzySN.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.comboCzySN.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboCzySN.FormattingEnabled = true;
+            this.comboCzySN.Items.AddRange(new object[] {
+            "Nie",
+            "Tak"});
+            this.comboCzySN.Location = new System.Drawing.Point(16, 360);
+            this.comboCzySN.Name = "comboCzySN";
+            this.comboCzySN.Size = new System.Drawing.Size(578, 28);
+            this.comboCzySN.TabIndex = 16;
+            // 
+            // labelCzySN
+            // 
+            this.labelCzySN.AutoSize = true;
+            this.labelCzySN.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.labelCzySN.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            this.labelCzySN.Location = new System.Drawing.Point(13, 337);
+            this.labelCzySN.Name = "labelCzySN";
+            this.labelCzySN.Size = new System.Drawing.Size(141, 20);
+            this.labelCzySN.TabIndex = 15;
+            this.labelCzySN.Text = "Czy produkt ma SN";
+            // 
             // label3
             // 
             this.label3.AutoSize = true;
@@ -306,7 +336,7 @@
             this.buttonUsun.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonUsun.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.buttonUsun.ForeColor = System.Drawing.Color.White;
-            this.buttonUsun.Location = new System.Drawing.Point(785, 457);
+            this.buttonUsun.Location = new System.Drawing.Point(785, 507);
             this.buttonUsun.Name = "buttonUsun";
             this.buttonUsun.Size = new System.Drawing.Size(140, 35);
             this.buttonUsun.TabIndex = 7;
@@ -321,7 +351,7 @@
             this.buttonZapisz.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonZapisz.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.buttonZapisz.ForeColor = System.Drawing.Color.White;
-            this.buttonZapisz.Location = new System.Drawing.Point(627, 457);
+            this.buttonZapisz.Location = new System.Drawing.Point(627, 507);
             this.buttonZapisz.Name = "buttonZapisz";
             this.buttonZapisz.Size = new System.Drawing.Size(152, 35);
             this.buttonZapisz.TabIndex = 6;
@@ -336,7 +366,7 @@
             this.buttonNowy.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonNowy.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.buttonNowy.ForeColor = System.Drawing.Color.White;
-            this.buttonNowy.Location = new System.Drawing.Point(481, 457);
+            this.buttonNowy.Location = new System.Drawing.Point(481, 507);
             this.buttonNowy.Name = "buttonNowy";
             this.buttonNowy.Size = new System.Drawing.Size(140, 35);
             this.buttonNowy.TabIndex = 5;
@@ -349,7 +379,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.ClientSize = new System.Drawing.Size(937, 504);
+            this.ClientSize = new System.Drawing.Size(937, 560);
             this.Controls.Add(this.buttonUsun);
             this.Controls.Add(this.buttonZapisz);
             this.Controls.Add(this.buttonNowy);
@@ -389,6 +419,8 @@
         private System.Windows.Forms.TextBox Kodporducenta;
         private System.Windows.Forms.ComboBox comboKategoria;
         private System.Windows.Forms.ComboBox comboProducent;
+        private System.Windows.Forms.ComboBox comboCzySN;
+        private System.Windows.Forms.Label labelCzySN;
         private System.Windows.Forms.Button btnNowaKategoria;
         private System.Windows.Forms.Button btnZarzadzajProducentami;
         private System.Windows.Forms.Button buttonUsun;

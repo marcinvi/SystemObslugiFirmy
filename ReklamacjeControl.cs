@@ -525,7 +525,7 @@ namespace Reklamacje_Dane
                 if (string.IsNullOrWhiteSpace(credentialsPath) || !File.Exists(credentialsPath))
                     return false;
 
-                var sheets = new[] { "B", "Z" };
+                var sheets = new[] { "B", "C", "Z" };
                 int total = 0;
 
                 foreach (var sheet in sheets)

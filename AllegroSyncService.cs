@@ -118,7 +118,7 @@ namespace Reklamacje_Dane
                                 }
 
                                 // === WSPÓLNE: SYNCHRONIZACJA CZATU ===
-                                await SynchronizeChatForIssueAsync(apiClient, issue, con);
+                                await SynchronizeChatForIssueAsync(apiClient, issue, con, account.Id);
                             }
                             catch (Exception exIssue)
                             {
@@ -277,7 +277,7 @@ namespace Reklamacje_Dane
             }
         }
 
-        private async Task SynchronizeChatForIssueAsync(AllegroApiClient apiClient, Issue issue, MySqlConnection con)
+        private async Task SynchronizeChatForIssueAsync(AllegroApiClient apiClient, Issue issue, MySqlConnection con, int accountId)
         {
             int localMessageCount = 0;
 
@@ -335,11 +335,22 @@ namespace Reklamacje_Dane
 
                         Log($"[CHAT SYNC] Zapisano {insertedCount} nowych wiadomości w tabeli AllegroChatMessages.");
 
-                        var updateCmd = new MySqlCommand("UPDATE AllegroDisputes SET LastMessageCount = @Count, HasNewMessages = 1 WHERE DisputeId = @DisputeId", con, transaction);
+                        var unreadCountCmd = new MySqlCommand(@"
+                            SELECT COUNT(1)
+                            FROM AllegroChatMessages m
+                            LEFT JOIN MessageReadStatus mrs
+                                ON mrs.MessageId = m.MessageId AND mrs.UserId = @UserId
+                            WHERE m.DisputeId = @DisputeId AND mrs.MessageId IS NULL", con, transaction);
+                        unreadCountCmd.Parameters.AddWithValue("@UserId", accountId);
+                        unreadCountCmd.Parameters.AddWithValue("@DisputeId", issue.Id);
+                        var unreadCount = Convert.ToInt32(await unreadCountCmd.ExecuteScalarAsync());
+
+                        var updateCmd = new MySqlCommand("UPDATE AllegroDisputes SET LastMessageCount = @Count, HasNewMessages = @HasNew WHERE DisputeId = @DisputeId", con, transaction);
                         updateCmd.Parameters.AddWithValue("@Count", apiMessageCount);
+                        updateCmd.Parameters.AddWithValue("@HasNew", unreadCount > 0 ? 1 : 0);
                         updateCmd.Parameters.AddWithValue("@DisputeId", issue.Id);
                         await updateCmd.ExecuteNonQueryAsync();
-                        Log($"[CHAT SYNC] Zaktualizowano licznik i flagę HasNewMessages w AllegroDisputes.");
+                        Log($"[CHAT SYNC] Zaktualizowano licznik i flagę HasNewMessages (nieprzeczytane: {unreadCount}) w AllegroDisputes.");
 
                         transaction.Commit();
                         Log($"[CHAT SYNC] Transakcja zakończona sukcesem.");

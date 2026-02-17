@@ -63,6 +63,7 @@ namespace Reklamacje_Dane
             // 2. Ładujemy dane podstawowe
             await WczytajListeProduktow();
             await WypelnijComboBoxy();
+            if (comboCzySN.SelectedIndex < 0) comboCzySN.SelectedIndex = 0;
 
             // 3. Obsługa trybów otwarcia
             if (_idDoEdycji != null)
@@ -89,6 +90,7 @@ namespace Reklamacje_Dane
                 // Tryb dodawania z predefiniowanym producentem
                 WyczyscPolaFormularza();
                 comboProducent.SelectedItem = _producentDoDodania;
+                comboCzySN.SelectedIndex = 0;
             }
         }
 
@@ -97,12 +99,12 @@ namespace Reklamacje_Dane
         private void BudujInterfejsCzesci()
         {
             // Rozszerzamy formularz i panel, żeby zmieścić nową sekcję
-            this.Height = 700; // Zwiększamy wysokość okna
+            this.Height = 760; // Zwiększamy wysokość okna
 
             var groupCzesci = new GroupBox
             {
                 Text = "Części Zamienne (Szablon dla tego modelu)",
-                Location = new Point(16, 340), // Poniżej pola Producent
+                Location = new Point(16, 390), // Poniżej pola CzySN
                 Size = new Size(575, 180),     // Dopasowana szerokość
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
             };
@@ -314,6 +316,7 @@ namespace Reklamacje_Dane
             Kodporducenta.Clear();
             comboKategoria.Text = "";
             comboProducent.SelectedItem = null;
+            comboCzySN.SelectedIndex = 0;
             _wybranyProduktId = -1;
             buttonZapisz.Text = "Dodaj/Zapisz";
 
@@ -347,6 +350,7 @@ namespace Reklamacje_Dane
                                     Kodporducenta.Text = reader["KodProducenta"].ToString();
                                     comboKategoria.Text = reader["Kategoria"].ToString();
                                     comboProducent.SelectedItem = reader["Producent"].ToString();
+                                    comboCzySN.SelectedIndex = reader["CzySN"] != DBNull.Value && Convert.ToInt32(reader["CzySN"]) == 1 ? 1 : 0;
                                 }
                             }
                         }
@@ -385,14 +389,15 @@ namespace Reklamacje_Dane
                 new MySqlParameter("@kodEnova", KodEnova.Text.Trim()),
                 new MySqlParameter("@kodProd", Kodporducenta.Text.Trim()),
                 new MySqlParameter("@kategoria", comboKategoria.Text.Trim()),
-                new MySqlParameter("@producent", comboProducent.SelectedItem.ToString())
+                new MySqlParameter("@producent", comboProducent.SelectedItem.ToString()),
+                new MySqlParameter("@czySN", comboCzySN.SelectedIndex == 1 ? 1 : 0)
             };
 
             try
             {
                 if (_wybranyProduktId == -1) // Tryb dodawania
                 {
-                    string query = "INSERT INTO Produkty (NazwaSystemowa, NazwaKrotka, KodEnova, KodProducenta, Kategoria, Producent) VALUES (@nazwaSys, @nazwaKrotka, @kodEnova, @kodProd, @kategoria, @producent); SELECT LAST_INSERT_ID();";
+                    string query = "INSERT INTO Produkty (NazwaSystemowa, NazwaKrotka, KodEnova, KodProducenta, Kategoria, Producent, CzySN) VALUES (@nazwaSys, @nazwaKrotka, @kodEnova, @kodProd, @kategoria, @producent, @czySN); SELECT LAST_INSERT_ID();";
 
                     using (var con = DatabaseHelper.GetConnection())
                     {
@@ -409,7 +414,7 @@ namespace Reklamacje_Dane
                 }
                 else // Tryb edycji
                 {
-                    string query = "UPDATE Produkty SET NazwaSystemowa = @nazwaSys, NazwaKrotka = @nazwaKrotka, KodEnova = @kodEnova, KodProducenta = @kodProd, Kategoria = @kategoria, Producent = @producent WHERE Id = @id";
+                    string query = "UPDATE Produkty SET NazwaSystemowa = @nazwaSys, NazwaKrotka = @nazwaKrotka, KodEnova = @kodEnova, KodProducenta = @kodProd, Kategoria = @kategoria, Producent = @producent, CzySN = @czySN WHERE Id = @id";
                     var parametryUpdate = new List<MySqlParameter>(parametry);
                     parametryUpdate.Add(new MySqlParameter("@id", _wybranyProduktId));
                     await _dbService.ExecuteNonQueryAsync(query, parametryUpdate.ToArray());
