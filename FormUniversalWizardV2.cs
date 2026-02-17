@@ -1161,7 +1161,7 @@ namespace Reklamacje_Dane
                 else if (_source == WizardSource.GoogleSheet)
                 {
                     this.Text = "Wybierz zgłoszenie z arkusza";
-                    string[] sheetsToRead = { "B", "Z" };
+                    string[] sheetsToRead = { "B", "Z", "C"};
                     string credentialsPath = "reklamacje-baza-c36d05b0ffdb.json";
                     string spreadsheetId = "1VXGP4Cckt6NmSHtiv-Um7nqg-itLMczAGd-5a_Tc4Ds";
 
