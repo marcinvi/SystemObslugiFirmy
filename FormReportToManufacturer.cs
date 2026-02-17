@@ -251,7 +251,8 @@ namespace Reklamacje_Dane
 
                                 var lblReq = this.Controls.Find("lblWymaganiaInfo", true).FirstOrDefault() as Label;
                                 if (lblReq != null && !string.IsNullOrWhiteSpace(_wymaganiaProducenta))
-                                    lblReq.Text = "Wymagania: " + _wymaganiaProducenta;
+                                    lblReq.Text = "Wymagania: " + _wymaganiaProducenta; 
+                                lblWymaganiaInfo.Text = "Producent wymaga: " + _wymaganiaProducenta;
                             }
                         }
                     }

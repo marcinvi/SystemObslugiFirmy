@@ -367,6 +367,7 @@ namespace Reklamacje_Dane
 
                 SafeInvoke(() =>
                 {
+                    GetUnregisteredAllegroCountAsync();
                     btnNewGoogle.Text = $"🟢 Nowe Google ({Math.Max(0, counters.UnregisteredGoogleCount)})";
                     btnNewAllegro.Text = $"🟠 Nowe Allegro ({Math.Max(0, counters.UnregisteredAllegroCount)})";
                     btnChat.Text = $"💬 Czat Allegro ({Math.Max(0, counters.AllegroNewMessages)})";
@@ -391,22 +392,32 @@ namespace Reklamacje_Dane
 
         private async Task UpdateAllegroUnregisteredCountFromDbAsync()
         {
+            int count = 0;
+
             try
             {
-                int count = 0;
                 using (var con = Database.GetNewOpenConnection())
                 {
-                    var sql = @"SELECT COUNT(*) FROM AllegroDisputes WHERE IFNULL(CzyZarejestrowane, 0) = 0";
-                    using (var cmd = new MySqlCommand(sql, con))
-                        count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    using (var cmd = new MySqlCommand(@"
+                SELECT COUNT(*)
+                FROM AllegroDisputes
+                WHERE ComplaintId IS NULL;", con))
+                    {
+                        var result = await cmd.ExecuteScalarAsync();
+                        if (result != null && result != DBNull.Value)
+                            count = Convert.ToInt32(result);
+                    }
                 }
-
-                SafeInvoke(() => { btnNewAllegro.Text = $"🟠 Nowe Allegro ({count})"; });
             }
             catch
             {
-                SafeInvoke(() => { btnNewAllegro.Text = "🟠 Nowe Allegro (0)"; });
+                count = 0;
             }
+
+            SafeInvoke(() =>
+            {
+                btnNewAllegro.Text = $"🟠 Nowe Allegro ({count})";
+            });
         }
 
         private async Task PollLocalSyncStatusFromDb()
@@ -654,6 +665,8 @@ namespace Reklamacje_Dane
             }
             catch { }
             finally { _isCheckingLogs = false; }
+
+
         }
 
         private async Task CheckForDueRemindersAndPopup()
@@ -1077,7 +1090,16 @@ namespace Reklamacje_Dane
                 if (c is Button b) { b.BackColor = Color.FromArgb(21, 32, 54); b.ForeColor = Color.FromArgb(180, 190, 210); }
             if (sender is Button btn) { btn.BackColor = Color.FromArgb(30, 41, 59); btn.ForeColor = Color.White; }
         }
-
+        public async Task<int> GetUnregisteredAllegroCountAsync()
+        {
+            using (var con = Database.GetNewOpenConnection())
+            {
+                // Liczymy dysputy, które nie mają przypisanego ComplaintId (są nowe/nieobsłużone)
+                string sql = "SELECT COUNT(*) FROM allegrodisputes WHERE ComplaintId IS NULL";
+                var cmd = new MySqlCommand(sql, con);
+                return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            }
+        }
         private void menuStronaGlowna_Click(object sender, EventArgs e) { HighlightMenuButton(sender); RequestDataReload(); }
         private void menuNiezarejestrowaneGoogle_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUniversalWizardV2(WizardSource.GoogleSheet).Show(); }
         private void menuNiezarejestrowaneAllegro_Click(object sender, EventArgs e) { HighlightMenuButton(sender); new FormUniversalWizardV2(WizardSource.Allegro).Show(); }
