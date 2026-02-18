@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,14 +13,28 @@ namespace Reklamacje_Dane
     {
         private MySqlConnection GetConn() => DatabaseHelper.GetConnection();
 
+        /// <summary>
+        /// Callback do aktualizacji statusu ładowania w UI.
+        /// </summary>
+        public Action<string> OnProgress { get; set; }
+
+        private void ReportProgress(string msg)
+        {
+            Debug.WriteLine($"[FastDataService] {msg}");
+            OnProgress?.Invoke(msg);
+        }
+
         public async Task<List<ComplaintViewModel>> LoadAllComplaintsAsync()
         {
             DapperTypeHandlerBootstrap.EnsureRegistered();
 
-            // --- ZAPYTANIA SQL (BEZ LIMITU - WSZYSTKIE DANE) ---
+            var swTotal = Stopwatch.StartNew();
+            var sw = Stopwatch.StartNew();
 
-            // SQL 1: Główne dane zgłoszeń
-            var sqlMain = @"
+            ReportProgress("Łączenie z bazą...");
+
+            // === JEDNO zapytanie SQL: JOINy + GROUP_CONCAT + SearchVector budowany w bazie ===
+            var sql = @"
                 SELECT 
                     z.Id, z.NrZgloszenia, z.DataZgloszenia,
                     COALESCE(z.StatusOgolny, '') AS Status,
@@ -79,90 +94,95 @@ namespace Reklamacje_Dane
                     COALESCE(z.NrRMA, '') AS NrRMA,
                     COALESCE(z.NrKPZN, '') AS NrKPZN,
                     CAST(NULLIF(NULLIF(z.CzyNotaRozliczona, ''), '-') AS SIGNED) AS CzyNotaRozliczona,
-                    COALESCE(z.KwotaZwrotu, '') AS KwotaZwrotu
+                    COALESCE(z.KwotaZwrotu, '') AS KwotaZwrotu,
+
+                    COALESCE(d_agg.DzialaniaText, '') AS Dzialania,
+
+                    LOWER(CONCAT_WS(' ',
+                        z.NrZgloszenia,
+                        z.DataZgloszenia,
+                        COALESCE(z.StatusOgolny, ''),
+                        COALESCE(z.StatusKlient, ''),
+                        COALESCE(z.StatusProducent, ''),
+                        COALESCE(k.ImieNazwisko, ''),
+                        COALESCE(k.NazwaFirmy, ''),
+                        COALESCE(k.NIP, ''),
+                        COALESCE(k.Ulica, ''),
+                        COALESCE(k.KodPocztowy, ''),
+                        COALESCE(k.Miejscowosc, ''),
+                        COALESCE(k.Email, ''),
+                        COALESCE(k.Telefon, ''),
+                        COALESCE(p.NazwaSystemowa, ''),
+                        COALESCE(p.NazwaKrotka, ''),
+                        COALESCE(p.KodEnova, ''),
+                        COALESCE(p.KodProducenta, ''),
+                        COALESCE(p.Kategoria, ''),
+                        COALESCE(p.Wymagania, ''),
+                        COALESCE(p.Producent, ''),
+                        COALESCE(pr.KontaktMail, ''),
+                        COALESCE(pr.Adres, ''),
+                        COALESCE(z.NrSeryjny, ''),
+                        COALESCE(z.NrFaktury, ''),
+                        COALESCE(z.NrFakturyPrzychodu, ''),
+                        COALESCE(z.NrFakturyKosztowej, ''),
+                        COALESCE(z.Skad, ''),
+                        COALESCE(z.OpisUsterki, ''),
+                        COALESCE(z.Produkt, ''),
+                        COALESCE(z.allegroBuyerLogin, ''),
+                        COALESCE(z.allegroOrderId, ''),
+                        COALESCE(z.allegroDisputeId, ''),
+                        COALESCE(z.AllegroAccountId, ''),
+                        COALESCE(z.GwarancjaPlatna, ''),
+                        COALESCE(z.CzekamyNaDostawe, ''),
+                        COALESCE(z.NrWRL, ''),
+                        COALESCE(z.NrKWZ2, ''),
+                        COALESCE(z.NrRMA, ''),
+                        COALESCE(z.NrKPZN, ''),
+                        COALESCE(z.KwotaZwrotu, ''),
+                        COALESCE(d_agg.DzialaniaText, '')
+                    )) AS SearchVector
 
                 FROM Zgloszenia z
                 LEFT JOIN klienci k ON k.Id = z.KlientID
                 LEFT JOIN Produkty p ON p.Id = z.ProduktID
                 LEFT JOIN Producenci pr ON pr.NazwaProducenta = p.Producent
-                ORDER BY z.DataZgloszenia DESC; 
+                LEFT JOIN (
+                    SELECT NrZgloszenia, 
+                           GROUP_CONCAT(CONCAT(COALESCE(DataDzialania,''), ' ', Tresc) SEPARATOR ' ') AS DzialaniaText
+                    FROM dzialania 
+                    WHERE Tresc IS NOT NULL AND Tresc != ''
+                    GROUP BY NrZgloszenia
+                ) d_agg ON d_agg.NrZgloszenia = z.NrZgloszenia
+
+                ORDER BY z.DataZgloszenia DESC;
             ";
 
-            // SQL 2: Pobierz wszystkie działania (tylko ID i treść)
-            var sqlActions = @"
-                SELECT NrZgloszenia, DataDzialania, Tresc
-                FROM dzialania 
-                WHERE Tresc IS NOT NULL AND Tresc != '';
-            ";
+            ReportProgress("Pobieranie danych z bazy...");
 
-            // --- WYKONANIE RÓWNOLEGŁE NA DWÓCH POŁĄCZENIACH ---
-
-            // Zadanie 1: Pobierz zgłoszenia na własnym połączeniu
-            var taskComplaints = Task.Run(async () =>
+            var complaints = await Task.Run(async () =>
             {
                 using (var conn = GetConn())
                 {
                     await conn.OpenAsync();
-                    return (await conn.QueryAsync<ComplaintViewModel>(sqlMain)).ToList();
+
+                    // Zwiększ limit GROUP_CONCAT na tej sesji
+                    await conn.ExecuteAsync("SET SESSION group_concat_max_len = 1000000;");
+
+                    sw.Stop();
+                    ReportProgress($"Połączono ({sw.ElapsedMilliseconds}ms). Wykonywanie zapytania...");
+                    sw.Restart();
+
+                    var result = (await conn.QueryAsync<ComplaintViewModel>(sql, commandTimeout: 120)).AsList();
+
+                    sw.Stop();
+                    ReportProgress($"SQL: {sw.ElapsedMilliseconds}ms, pobrano {result.Count} zgłoszeń");
+
+                    return result;
                 }
             });
 
-            // Zadanie 2: Pobierz działania na własnym połączeniu
-            var taskActions = Task.Run(async () =>
-            {
-                using (var conn = GetConn())
-                {
-                    await conn.OpenAsync();
-                    return (await conn.QueryAsync<dynamic>(sqlActions)).ToList();
-                }
-            });
-
-            // Czekamy na oba (teraz to zadziała, bo są na osobnych połączeniach)
-            await Task.WhenAll(taskComplaints, taskActions);
-
-            var complaints = taskComplaints.Result;
-            var actions = taskActions.Result;
-
-            // --- ŁĄCZENIE DANYCH W PAMIĘCI (SZYBKO) ---
-
-            // Grupujemy działania po numerze zgłoszenia dla szybkiego dostępu
-            var actionsLookup = actions
-                .GroupBy(x => (string)x.NrZgloszenia)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            // Równoległe łączenie i budowanie wyszukiwarki
-            Parallel.ForEach(complaints, c =>
-            {
-                // Znajdź działania dla tego zgłoszenia
-                if (c.NrZgloszenia != null && actionsLookup.TryGetValue(c.NrZgloszenia, out var cActions))
-                {
-                    // Sklejamy treść działań do ukrytego pola wyszukiwania
-                    var sb = new StringBuilder();
-                    // Dodajemy spację startową
-                    sb.Append(" ");
-
-                    foreach (var act in cActions)
-                    {
-                        // Dodajemy tylko treść do wyszukiwania
-                        sb.Append(act.DataDzialania).Append(" ").Append(act.Tresc).Append(" ");
-                    }
-
-                    // Ustawiamy właściwość (jeśli chcesz ją widzieć w tooltipie)
-                    // c.Dzialania = sb.ToString(); 
-
-                    // Budujemy główny wektor
-                    c.BuildSearchVector();
-
-                    // Doklejamy historię do wektora wyszukiwania
-                    c.SearchVector += sb.ToString().ToLower();
-                }
-                else
-                {
-                    // Brak działań - po prostu budujemy standardowy wektor
-                    c.Dzialania = "";
-                    c.BuildSearchVector();
-                }
-            });
+            swTotal.Stop();
+            ReportProgress($"Gotowe! Łącznie: {swTotal.ElapsedMilliseconds}ms");
 
             return complaints;
         }

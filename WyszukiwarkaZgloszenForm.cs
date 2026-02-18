@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Text;
 using System.Reflection;
+using BrightIdeasSoftware;
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace Reklamacje_Dane
@@ -18,7 +19,7 @@ namespace Reklamacje_Dane
         private readonly FastDataService _service = new FastDataService();
 
         // --- ELEMENTY UI ---
-        private DataGridView _grid;
+        private FastObjectListView _olv;
         private TextBox _txtSearch;
         private Label _lblStats;
         private Panel _loadingOverlay;
@@ -28,11 +29,32 @@ namespace Reklamacje_Dane
 
         private readonly Dictionary<string, Control> _columnFilters = new Dictionary<string, Control>();
         private Dictionary<string, List<string>> _multiSelectFilters = new Dictionary<string, List<string>>();
-        private readonly Dictionary<string, Func<ComplaintViewModel, object>> _propertyAccessors = new Dictionary<string, Func<ComplaintViewModel, object>>(StringComparer.Ordinal);
 
         private readonly Timer _searchDebounceTimer = new Timer();
-        private string _currentSortColumn;
-        private bool _sortAscending = true;
+
+        // --- CACHE ACCESSORÓW ---
+        private static readonly Dictionary<string, Func<ComplaintViewModel, string>> _propertyAccessors;
+
+        static WyszukiwarkaZgloszenForm()
+        {
+            _propertyAccessors = new Dictionary<string, Func<ComplaintViewModel, string>>();
+            foreach (var prop in typeof(ComplaintViewModel).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                var p = prop;
+                if (p.PropertyType == typeof(string))
+                    _propertyAccessors[p.Name] = item => (string)p.GetValue(item) ?? "";
+                else if (p.PropertyType == typeof(DateTime?))
+                    _propertyAccessors[p.Name] = item => ((DateTime?)p.GetValue(item))?.ToString("yyyy-MM-dd") ?? "";
+                else if (p.PropertyType == typeof(int?))
+                    _propertyAccessors[p.Name] = item => ((int?)p.GetValue(item))?.ToString() ?? "";
+                else if (p.PropertyType == typeof(double?))
+                    _propertyAccessors[p.Name] = item => ((double?)p.GetValue(item))?.ToString() ?? "";
+                else if (p.PropertyType == typeof(int))
+                    _propertyAccessors[p.Name] = item => ((int)p.GetValue(item)).ToString();
+                else
+                    _propertyAccessors[p.Name] = item => p.GetValue(item)?.ToString() ?? "";
+            }
+        }
 
         // --- DEFINICJA KOLUMN ---
         private readonly List<ColumnDefinition> _availableColumns = new List<ColumnDefinition>
@@ -46,7 +68,6 @@ namespace Reklamacje_Dane
             new ColumnDefinition("SN", "S/N", 100),
             new ColumnDefinition("OpisUsterki", "Opis Usterki", 200, false),
             new ColumnDefinition("Dzialania", "Działania (Historia)", 250, false),
-
             new ColumnDefinition("Id", "ID", 60, false),
             new ColumnDefinition("KlientImieNazwisko", "Klient - Imię Nazwisko", 160, false),
             new ColumnDefinition("KlientNazwaFirmy", "Klient - Nazwa Firmy", 160, false),
@@ -94,30 +115,23 @@ namespace Reklamacje_Dane
         public WyszukiwarkaZgloszenForm()
         {
             this.DoubleBuffered = true;
-            InitializeComponentManual(); // Zamiast SetupUI w konstruktorze
-            BuildPropertyAccessorCache();
-
-            // Fix na ładowanie UI: Używamy OnLoad zamiast Shown, czasem jest stabilniejsze dla layoutu
+            InitializeComponentManual();
             this.Load += async (s, e) => await LoadDataAsync();
-            EnableSpellCheckOnAllTextBoxes();
         }
 
         private void InitializeComponentManual()
         {
-            // WAŻNE: Zatrzymujemy logikę rysowania na czas budowania UI
             this.SuspendLayout();
-
             this.Text = "Wyszukiwarka Zgłoszeń - Power Search";
             this.Font = new Font("Segoe UI", 9.5f);
             this.BackColor = Color.White;
             this.Size = new Size(1400, 800);
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            // --- GŁÓWNY KONTENER ---
             var mainPanel = new Panel { Dock = DockStyle.Fill };
             this.Controls.Add(mainPanel);
 
-            // --- LOADING OVERLAY (Musi być dodany do this.Controls na końcu, żeby był NA WIERZCHU) ---
+            // --- LOADING OVERLAY ---
             _loadingOverlay = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(245, 245, 245), Visible = true };
             _lblLoading = new Label
             {
@@ -132,7 +146,6 @@ namespace Reklamacje_Dane
                 _lblLoading.Left = (_loadingOverlay.Width - _lblLoading.Width) / 2;
                 _lblLoading.Top = (_loadingOverlay.Height - _lblLoading.Height) / 2;
             };
-            // Nie dodajemy go jeszcze, dodamy na końcu metody
 
             // --- TOP BAR ---
             var topBar = new Panel { Dock = DockStyle.Top, Height = 65, BackColor = Color.WhiteSmoke, Padding = new Padding(15) };
@@ -186,86 +199,110 @@ namespace Reklamacje_Dane
             _filterPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.WhiteSmoke };
             _filterPanelContainer.Controls.Add(_filterPanel);
 
-            // --- GRID ---
-            _grid = new DataGridView
+            // --- FastObjectListView (ZAMIAST DataGridView) ---
+            _olv = new FastObjectListView
             {
                 Dock = DockStyle.Fill,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                BackgroundColor = Color.White,
+                FullRowSelect = true,
+                MultiSelect = false,
+                ShowGroups = false,
+                GridLines = true,
+                BackColor = Color.White,
+                UseAlternatingBackColors = true,
+                AlternateRowBackColor = Color.FromArgb(250, 250, 250),
                 BorderStyle = BorderStyle.None,
-                RowHeadersVisible = false,
-                AllowUserToAddRows = false,
-                AllowUserToDeleteRows = false,
-                ReadOnly = true,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                EnableHeadersVisualStyles = false,
-                ColumnHeadersHeight = 35,
-                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
-                RowTemplate = { Height = 30 },
-                GridColor = Color.LightGray
-            };
+                HeaderStyle = ColumnHeaderStyle.Clickable,
+                Font = new Font("Segoe UI", 9f),
+                RowHeight = 30,
+                View = View.Details,
 
-            _grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(235, 235, 235);
-            _grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5f);
-            _grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(50, 50, 50);
-            _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(204, 232, 255);
-            _grid.DefaultCellStyle.SelectionForeColor = Color.Black;
-            _grid.DefaultCellStyle.Font = new Font("Segoe UI", 9f);
-            _grid.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
-
-            _grid.CellDoubleClick += (s, e) =>
-            {
-                if (e.RowIndex >= 0)
+                // Sortowanie po NrZgloszenia — customowe
+                CustomSorter = (col, order) =>
                 {
-                    var item = _grid.Rows[e.RowIndex].DataBoundItem as ComplaintViewModel;
-                    if (item != null) new Form2(item.NrZgloszenia).Show();
+                    if (col.AspectName == "NrZgloszenia")
+                    {
+                        _olv.ListViewItemSorter = new NrZgloszeniaComparer(order);
+                    }
+                    else
+                    {
+                        _olv.ListViewItemSorter = new ColumnComparer(col, order);
+                    }
                 }
             };
 
-            _grid.CellFormatting += (s, e) =>
+            // Styl nagłówków
+            _olv.HeaderFormatStyle = new HeaderFormatStyle();
+            _olv.HeaderFormatStyle.Normal.BackColor = Color.FromArgb(235, 235, 235);
+            _olv.HeaderFormatStyle.Normal.ForeColor = Color.FromArgb(50, 50, 50);
+            _olv.HeaderFormatStyle.Normal.Font = new Font("Segoe UI Semibold", 9.5f);
+
+            // Styl zaznaczenia
+            _olv.HighlightBackgroundColor = Color.FromArgb(204, 232, 255);
+            _olv.HighlightForegroundColor = Color.Black;
+            _olv.UnfocusedHighlightBackgroundColor = Color.FromArgb(220, 235, 252);
+            _olv.UnfocusedHighlightForegroundColor = Color.Black;
+
+            // Kolorowanie wierszy Allegro
+            _olv.FormatRow += (s, e) =>
             {
-                if (e.Value != null && e.Value.ToString().Length > 50)
-                    _grid.Rows[e.RowIndex].Cells[e.ColumnIndex].ToolTipText = e.Value.ToString();
+                var item = (ComplaintViewModel)e.Model;
+                if (item?.Skad != null && item.Skad.Contains("Allegro"))
+                    e.Item.BackColor = Color.FromArgb(255, 248, 230);
             };
 
-            _grid.RowPrePaint += (s, e) =>
+            // Tooltip dla długich tekstów
+            _olv.CellToolTipShowing += (s, e) =>
             {
-                if (e.RowIndex >= 0 && e.RowIndex < _grid.Rows.Count)
-                {
-                    if (e.RowIndex % 2 == 0) _grid.Rows[e.RowIndex].DefaultCellStyle.BackColor = Color.FromArgb(250, 250, 250);
-
-                    var item = _grid.Rows[e.RowIndex].DataBoundItem as ComplaintViewModel;
-                    if (item != null && item.Skad != null && item.Skad.Contains("Allegro"))
-                        _grid.Rows[e.RowIndex].DefaultCellStyle.BackColor = Color.FromArgb(255, 248, 230);
-                }
+                if (e.SubItem != null && e.SubItem.Text != null && e.SubItem.Text.Length > 50)
+                    e.Text = e.SubItem.Text;
             };
 
-            _grid.ColumnWidthChanged += (s, e) => SyncFilterWidth(e.Column);
-            _grid.ColumnDisplayIndexChanged += (s, e) => BuildColumnFilters();
-            _grid.ColumnStateChanged += (s, e) => { if (e.StateChanged == DataGridViewElementStates.Visible) BuildColumnFilters(); };
-            _grid.ColumnHeaderMouseClick += (s, e) => SortByColumn(_grid.Columns[e.ColumnIndex]);
-            _grid.Scroll += (s, e) => { if (e.ScrollOrientation == ScrollOrientation.HorizontalScroll) _filterPanel.Left = -_grid.HorizontalScrollingOffset; };
+            // Podwójne kliknięcie → otwórz Form2
+            _olv.DoubleClick += (s, e) =>
+            {
+                var item = _olv.SelectedObject as ComplaintViewModel;
+                if (item != null) new Form2(item.NrZgloszenia).Show();
+            };
 
-            // --- KOLEJNOŚĆ DODAWANIA MA ZNACZENIE DLA DOCKINGU (Odwrócona logika) ---
-            // 1. Grid (Fill)
-            // 2. FilterPanel (Top)
-            // 3. TopBar (Top)
-            // W WinForms: ostatni dodany ma priorytet dokowania "na górze".
+            // Synchronizacja filtrów przy zmianie szerokości kolumn
+            _olv.ColumnWidthChanged += (s, e) => RecalcFilterPositions();
 
-            mainPanel.Controls.Add(_grid);                // Na samym dole
-            mainPanel.Controls.Add(_filterPanelContainer); // Nad gridem
-            mainPanel.Controls.Add(topBar);               // Na samej górze
+            // Sync horizontal scroll z panelem filtrów
+            _olv.Scroll += (s, e) =>
+            {
+                var scrollPos = GetHorizontalScrollPosition(_olv);
+                _filterPanel.Left = -scrollPos;
+            };
 
-            // Dodajemy Overlay na sam wierzch formularza
+            // --- KOLEJNOŚĆ DODAWANIA ---
+            mainPanel.Controls.Add(_olv);
+            mainPanel.Controls.Add(_filterPanelContainer);
+            mainPanel.Controls.Add(topBar);
+
             this.Controls.Add(_loadingOverlay);
             _loadingOverlay.BringToFront();
 
-            SetupGridColumns();
+            SetupColumns();
             ConfigureSearchDebounce();
 
-            // WAŻNE: Przywracamy rysowanie
             this.ResumeLayout(false);
             this.PerformLayout();
+        }
+
+        private int GetHorizontalScrollPosition(ListView lv)
+        {
+            // Odczytaj pozycję scrollowania z nagłówka ListView
+            const int LVM_GETSCROLLINFO = 0x1000 + 20; // alternatywa
+            try
+            {
+                if (lv.Items.Count > 0)
+                {
+                    var firstItem = lv.GetItemRect(0, ItemBoundsPortion.Entire);
+                    return -firstItem.Left;
+                }
+            }
+            catch { }
+            return 0;
         }
 
         private Button CreateStyledButton(string text, Color bg, Color fg, Point loc)
@@ -288,7 +325,7 @@ namespace Reklamacje_Dane
 
         private void ConfigureSearchDebounce()
         {
-            _searchDebounceTimer.Interval = 350;
+            _searchDebounceTimer.Interval = 250;
             _searchDebounceTimer.Tick += (s, e) =>
             {
                 _searchDebounceTimer.Stop();
@@ -296,125 +333,125 @@ namespace Reklamacje_Dane
             };
         }
 
-        private void SetupGridColumns()
+        private void SetupColumns()
         {
-            _grid.AutoGenerateColumns = false;
-            _grid.Columns.Clear();
+            _olv.AllColumns.Clear();
+            _olv.Columns.Clear();
 
-            foreach (var colDef in _availableColumns.Where(c => c.VisibleByDefault))
+            foreach (var colDef in _availableColumns)
             {
-                var col = new DataGridViewTextBoxColumn
+                var col = new OLVColumn
                 {
                     Name = colDef.PropertyName,
-                    DataPropertyName = colDef.PropertyName,
-                    HeaderText = colDef.DisplayName,
+                    AspectName = colDef.PropertyName,
+                    Text = colDef.DisplayName,
                     Width = colDef.Width,
-                    Visible = colDef.VisibleByDefault,
-                    MinimumWidth = 50
+                    MinimumWidth = 50,
+                    IsVisible = colDef.VisibleByDefault,
+                    FillsFreeSpace = false
                 };
-                _grid.Columns.Add(col);
+
+                // Formatowanie dat
+                if (colDef.PropertyName == "DataZgloszenia" || colDef.PropertyName == "DataZakupu")
+                    col.AspectToStringFormat = "{0:yyyy-MM-dd}";
+
+                _olv.AllColumns.Add(col);
             }
 
+            _olv.RebuildColumns();
             BuildColumnFilters();
-        }
-
-        private void BuildPropertyAccessorCache()
-        {
-            _propertyAccessors.Clear();
-            var properties = typeof(ComplaintViewModel).GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            foreach (var property in properties)
-            {
-                _propertyAccessors[property.Name] = item => property.GetValue(item, null);
-            }
         }
 
         private void BuildColumnFilters()
         {
-            // Zatrzymujemy layout panelu filtrów na czas budowania
             _filterPanel.SuspendLayout();
 
-            var textFiltersState = _columnFilters.Where(kvp => kvp.Value is TextBox).ToDictionary(k => k.Key, v => ((TextBox)v.Value).Text);
+            // Zapamiętaj tekst w filtrach
+            var textFiltersState = new Dictionary<string, string>();
+            foreach (var kvp in _columnFilters)
+            {
+                if (kvp.Value is TextBox tb && !string.IsNullOrEmpty(tb.Text))
+                    textFiltersState[kvp.Key] = tb.Text;
+            }
+
             _columnFilters.Clear();
             _filterPanel.Controls.Clear();
 
             int x = 0;
-            var visibleColumns = _grid.Columns.Cast<DataGridViewColumn>()
-                .Where(c => c.Visible)
-                .OrderBy(c => c.DisplayIndex)
-                .ToList();
-
-            foreach (var column in visibleColumns)
+            foreach (ColumnHeader ch in _olv.Columns)
             {
-                bool isStatusCol = column.DataPropertyName.Contains("Status") ||
-                                   column.DataPropertyName == "Kategoria" ||
-                                   column.DataPropertyName == "Producent";
+                var col = ch as OLVColumn;
+                if (col == null) continue;
+
+                string key = col.AspectName;
+                bool isStatusCol = key.Contains("Status") || key == "Kategoria" || key == "Producent";
 
                 Control ctrl;
 
                 if (isStatusCol)
                 {
+                    bool hasSelection = _multiSelectFilters.ContainsKey(key) && _multiSelectFilters[key].Any();
+
                     var btn = new Button
                     {
-                        Width = Math.Max(column.Width - 1, 10),
+                        Width = Math.Max(col.Width - 1, 10),
                         Height = 26,
-                        Text = _multiSelectFilters.ContainsKey(column.DataPropertyName) && _multiSelectFilters[column.DataPropertyName].Any()
-                               ? $"[{_multiSelectFilters[column.DataPropertyName].Count}]"
-                               : "▼",
-                        Tag = column.DataPropertyName,
+                        Text = hasSelection ? $"[{_multiSelectFilters[key].Count}]" : "▼",
+                        Tag = key,
                         Location = new Point(x, 4),
                         FlatStyle = FlatStyle.Flat,
-                        BackColor = Color.White,
-                        Font = new Font("Segoe UI", 8.5f),
+                        BackColor = hasSelection ? Color.AliceBlue : Color.White,
+                        Font = new Font("Segoe UI", 8.5f, hasSelection ? FontStyle.Bold : FontStyle.Regular),
                         TextAlign = ContentAlignment.MiddleCenter
                     };
                     btn.FlatAppearance.BorderColor = Color.Silver;
                     btn.FlatAppearance.BorderSize = 1;
-
-                    if (_multiSelectFilters.ContainsKey(column.DataPropertyName) && _multiSelectFilters[column.DataPropertyName].Any())
-                    {
-                        btn.BackColor = Color.AliceBlue;
-                        btn.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
-                    }
-
-                    btn.Click += (s, e) => ShowMultiSelectFilter(column.DataPropertyName, btn);
+                    var capturedKey = key;
+                    btn.Click += (s, e) => ShowMultiSelectFilter(capturedKey, btn);
                     ctrl = btn;
                 }
                 else
                 {
                     var tb = new TextBox
                     {
-                        Width = Math.Max(column.Width - 1, 10),
+                        Width = Math.Max(col.Width - 1, 10),
                         Height = 26,
                         Font = new Font("Segoe UI", 9.5f),
                         BorderStyle = BorderStyle.FixedSingle,
-                        Tag = column.DataPropertyName,
+                        Tag = key,
                         Location = new Point(x, 4)
                     };
-                    if (textFiltersState.TryGetValue(column.DataPropertyName, out string val)) tb.Text = val;
+                    if (textFiltersState.TryGetValue(key, out string val))
+                        tb.Text = val;
                     tb.TextChanged += (s, e) => ScheduleFilterUpdate();
                     ctrl = tb;
                 }
 
                 _filterPanel.Controls.Add(ctrl);
-                _columnFilters[column.DataPropertyName] = ctrl;
-                x += column.Width;
+                _columnFilters[key] = ctrl;
+                x += col.Width;
             }
 
             _filterPanel.Width = Math.Max(x, _filterPanelContainer.Width);
-            _filterPanel.Left = -_grid.HorizontalScrollingOffset;
-
-            // Przywracamy layout
             _filterPanel.ResumeLayout(true);
         }
 
-        private void SyncFilterWidth(DataGridViewColumn column)
+        private void RecalcFilterPositions()
         {
-            if (column == null || !column.Visible) return;
-            if (_columnFilters.TryGetValue(column.DataPropertyName, out var ctrl))
+            int x = 0;
+            foreach (ColumnHeader ch in _olv.Columns)
             {
-                ctrl.Width = Math.Max(column.Width - 1, 10);
-                BuildColumnFilters();
+                var col = ch as OLVColumn;
+                if (col == null) continue;
+
+                if (_columnFilters.TryGetValue(col.AspectName, out var ctrl))
+                {
+                    ctrl.Width = Math.Max(col.Width - 1, 10);
+                    ctrl.Left = x;
+                }
+                x += col.Width;
             }
+            _filterPanel.Width = Math.Max(x, _filterPanelContainer.Width);
         }
 
         private async Task LoadDataAsync(bool forceRefresh = false)
@@ -422,19 +459,25 @@ namespace Reklamacje_Dane
             ShowLoading(true);
             try
             {
-                await Task.Run(async () =>
+                // Podłącz progress do loading overlay
+                _service.OnProgress = (msg) =>
                 {
-                    if (forceRefresh || !DataCache.Instance.HasData())
-                    {
-                        if (forceRefresh) DataCache.Instance.Clear();
-                        _allData = await _service.LoadAllComplaintsAsync();
-                        DataCache.Instance.SetData(_allData);
-                    }
+                    if (this.InvokeRequired)
+                        this.BeginInvoke(new Action(() => { _lblLoading.Text = msg; _lblLoading.Refresh(); }));
                     else
-                    {
-                        _allData = DataCache.Instance.GetData();
-                    }
-                });
+                        { _lblLoading.Text = msg; _lblLoading.Refresh(); }
+                };
+
+                if (forceRefresh || !DataCache.Instance.HasData())
+                {
+                    if (forceRefresh) DataCache.Instance.Clear();
+                    _allData = await _service.LoadAllComplaintsAsync();
+                    DataCache.Instance.SetData(_allData);
+                }
+                else
+                {
+                    _allData = DataCache.Instance.GetData();
+                }
                 ApplyFilters();
             }
             catch (Exception ex)
@@ -445,100 +488,108 @@ namespace Reklamacje_Dane
             {
                 ShowLoading(false);
                 if (this.Visible && _txtSearch.Enabled)
-                {
-                    // Używamy bezpiecznego focusowania
                     this.BeginInvoke(new Action(() => _txtSearch.Focus()));
-                }
             }
         }
 
         private void ApplyFilters()
         {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new Action(ApplyFilters));
-                return;
-            }
+            if (this.InvokeRequired) { this.Invoke(new Action(ApplyFilters)); return; }
 
-            // Zabezpieczenie przed migotaniem podczas filtrowania
-            _grid.SuspendLayout();
+            var query = _txtSearch.Text;
+            var parsedQuery = string.IsNullOrWhiteSpace(query) ? null : query;
 
-            var queryPlan = SearchEngine.Compile(_txtSearch.Text);
-
-            var textFilters = new List<Tuple<Func<ComplaintViewModel, object>, string>>();
+            // Zbierz aktywne filtry
+            var activeTextFilters = new List<KeyValuePair<string, string>>();
             foreach (var kvp in _columnFilters)
             {
-                if (!(kvp.Value is TextBox tb) || string.IsNullOrWhiteSpace(tb.Text)) continue;
-                if (!_propertyAccessors.TryGetValue(kvp.Key, out var getter)) continue;
-                textFilters.Add(Tuple.Create(getter, tb.Text.Trim()));
+                if (kvp.Value is TextBox tb && !string.IsNullOrWhiteSpace(tb.Text))
+                    activeTextFilters.Add(new KeyValuePair<string, string>(kvp.Key, tb.Text.Trim().ToLowerInvariant()));
             }
 
-            var multiFilters = new List<Tuple<Func<ComplaintViewModel, object>, HashSet<string>>>();
+            var activeMultiFilters = new List<KeyValuePair<string, HashSet<string>>>();
             foreach (var kvp in _multiSelectFilters)
             {
-                if (kvp.Value == null || kvp.Value.Count == 0) continue;
-                if (!_propertyAccessors.TryGetValue(kvp.Key, out var getter)) continue;
-                multiFilters.Add(Tuple.Create(getter, new HashSet<string>(kvp.Value, StringComparer.Ordinal)));
+                if (kvp.Value != null && kvp.Value.Count > 0)
+                    activeMultiFilters.Add(new KeyValuePair<string, HashSet<string>>(kvp.Key, new HashSet<string>(kvp.Value)));
             }
 
-            var filtered = new List<ComplaintViewModel>(_allData.Count);
+            bool hasQuery = parsedQuery != null;
+            bool hasTextFilters = activeTextFilters.Count > 0;
+            bool hasMultiFilters = activeMultiFilters.Count > 0;
 
-            foreach (var item in _allData)
+            if (!hasQuery && !hasTextFilters && !hasMultiFilters)
             {
-                if (!SearchEngine.Match(item.SearchVector, queryPlan)) continue;
+                _filteredData = _allData;
+            }
+            else
+            {
+                var result = new List<ComplaintViewModel>(_allData.Count / 2);
 
-                bool pass = true;
-
-                for (int i = 0; i < textFilters.Count; i++)
+                for (int i = 0; i < _allData.Count; i++)
                 {
-                    var value = textFilters[i].Item1(item)?.ToString() ?? string.Empty;
-                    if (value.IndexOf(textFilters[i].Item2, StringComparison.OrdinalIgnoreCase) < 0)
+                    var item = _allData[i];
+
+                    if (hasQuery && !SearchEngine.Match(item.SearchVector, parsedQuery))
+                        continue;
+
+                    bool match = true;
+                    if (hasTextFilters)
                     {
-                        pass = false;
-                        break;
+                        for (int f = 0; f < activeTextFilters.Count; f++)
+                        {
+                            var filter = activeTextFilters[f];
+                            if (_propertyAccessors.TryGetValue(filter.Key, out var accessor))
+                            {
+                                if (accessor(item).IndexOf(filter.Value, StringComparison.OrdinalIgnoreCase) < 0)
+                                { match = false; break; }
+                            }
+                        }
+                        if (!match) continue;
                     }
-                }
 
-                if (!pass) continue;
-
-                for (int i = 0; i < multiFilters.Count; i++)
-                {
-                    var value = multiFilters[i].Item1(item)?.ToString() ?? string.Empty;
-                    if (!multiFilters[i].Item2.Contains(value))
+                    if (hasMultiFilters)
                     {
-                        pass = false;
-                        break;
+                        for (int f = 0; f < activeMultiFilters.Count; f++)
+                        {
+                            var filter = activeMultiFilters[f];
+                            if (_propertyAccessors.TryGetValue(filter.Key, out var accessor))
+                            {
+                                if (!filter.Value.Contains(accessor(item)))
+                                { match = false; break; }
+                            }
+                        }
+                        if (!match) continue;
                     }
-                }
 
-                if (pass) filtered.Add(item);
+                    result.Add(item);
+                }
+                _filteredData = result;
             }
 
-            _filteredData = filtered;
+            // === FastObjectListView: SetObjects — ZERO kaskady zdarzeń, ZERO migotania ===
+            _olv.SetObjects(_filteredData);
 
-            _grid.DataSource = _filteredData;
-
-            _grid.ResumeLayout();
             _lblStats.Text = $"Wyniki: {_filteredData.Count} / {_allData.Count}";
             _lblStats.ForeColor = _filteredData.Count > 0 ? Color.Green : Color.Red;
         }
 
         private void ShowMultiSelectFilter(string propertyName, Button senderBtn)
         {
-            if (!_propertyAccessors.TryGetValue(propertyName, out var getter)) return;
+            if (!_propertyAccessors.TryGetValue(propertyName, out var accessor)) return;
 
-            var uniqueValues = _allData
-                .Select(item => getter(item)?.ToString() ?? "")
-                .Where(val => !string.IsNullOrEmpty(val))
-                .Distinct()
-                .OrderBy(val => val)
-                .ToList();
+            var uniqueValues = new HashSet<string>();
+            for (int i = 0; i < _allData.Count; i++)
+            {
+                var val = accessor(_allData[i]);
+                if (!string.IsNullOrEmpty(val)) uniqueValues.Add(val);
+            }
 
+            var sortedValues = uniqueValues.OrderBy(v => v).ToList();
             var currentSelection = _multiSelectFilters.ContainsKey(propertyName)
-                ? _multiSelectFilters[propertyName]
-                : new List<string>();
+                ? _multiSelectFilters[propertyName] : new List<string>();
 
-            using (var form = new MultiSelectFilterForm(uniqueValues, currentSelection))
+            using (var form = new MultiSelectFilterForm(sortedValues, currentSelection))
             {
                 var screenPoint = senderBtn.PointToScreen(new Point(0, senderBtn.Height));
                 form.StartPosition = FormStartPosition.Manual;
@@ -563,38 +614,6 @@ namespace Reklamacje_Dane
             _searchDebounceTimer.Start();
         }
 
-        private void SortByColumn(DataGridViewColumn column)
-        {
-            if (column == null || string.IsNullOrWhiteSpace(column.DataPropertyName)) return;
-
-            var propertyName = column.DataPropertyName;
-            if (_currentSortColumn == propertyName) _sortAscending = !_sortAscending;
-            else { _currentSortColumn = propertyName; _sortAscending = true; }
-
-            Func<ComplaintViewModel, object> selector = item =>
-            {
-                if (propertyName == "NrZgloszenia") return ParseNrZgloszenia(item?.NrZgloszenia);
-                if (_propertyAccessors.TryGetValue(propertyName, out var getter)) return getter(item);
-                return null;
-            };
-
-            _filteredData = _sortAscending
-                ? _filteredData.OrderBy(selector).ToList()
-                : _filteredData.OrderByDescending(selector).ToList();
-
-            _grid.DataSource = _filteredData;
-        }
-
-        private static Tuple<int, int> ParseNrZgloszenia(string nr)
-        {
-            if (string.IsNullOrWhiteSpace(nr)) return Tuple.Create(0, 0);
-            var parts = nr.Split('/');
-            if (parts.Length < 2) return Tuple.Create(0, 0);
-            int.TryParse(parts[0], out int przed);
-            int.TryParse(parts[1], out int po);
-            return Tuple.Create(po, przed);
-        }
-
         private void ShowColumnSelector(object sender, EventArgs e)
         {
             var availMap = _availableColumns.ToDictionary(c => c.PropertyName, c => c.DisplayName);
@@ -602,45 +621,22 @@ namespace Reklamacje_Dane
 
             foreach (var colDef in _availableColumns)
             {
-                var gridCol = _grid.Columns[colDef.PropertyName];
-                visMap[colDef.PropertyName] = gridCol != null && gridCol.Visible;
+                var olvCol = _olv.AllColumns.FirstOrDefault(c => c.AspectName == colDef.PropertyName);
+                visMap[colDef.PropertyName] = olvCol != null && olvCol.IsVisible;
             }
 
             using (var form = new ColumnSelectorForm(availMap, visMap))
             {
                 if (form.ShowDialog() == DialogResult.OK)
                 {
-                    _grid.SuspendLayout();
-
                     foreach (var kvp in form.Result)
                     {
-                        var gridCol = _grid.Columns[kvp.Key];
-                        if (gridCol != null)
-                        {
-                            gridCol.Visible = kvp.Value;
-                        }
-                        else if (kvp.Value)
-                        {
-                            var def = _availableColumns.First(c => c.PropertyName == kvp.Key);
-                            _grid.Columns.Add(new DataGridViewTextBoxColumn
-                            {
-                                Name = def.PropertyName,
-                                DataPropertyName = def.PropertyName,
-                                HeaderText = def.DisplayName,
-                                Width = def.Width,
-                                Visible = true
-                            });
-                        }
+                        var olvCol = _olv.AllColumns.FirstOrDefault(c => c.AspectName == kvp.Key);
+                        if (olvCol != null)
+                            olvCol.IsVisible = kvp.Value;
                     }
 
-                    int displayIdx = 0;
-                    foreach (var def in _availableColumns)
-                    {
-                        if (_grid.Columns.Contains(def.PropertyName) && _grid.Columns[def.PropertyName].Visible)
-                            _grid.Columns[def.PropertyName].DisplayIndex = displayIdx++;
-                    }
-
-                    _grid.ResumeLayout();
+                    _olv.RebuildColumns();
                     BuildColumnFilters();
                 }
             }
@@ -648,14 +644,9 @@ namespace Reklamacje_Dane
 
         private void ShowLoading(bool show)
         {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new Action(() => ShowLoading(show)));
-                return;
-            }
+            if (this.InvokeRequired) { this.Invoke(new Action(() => ShowLoading(show))); return; }
 
             _loadingOverlay.Visible = show;
-
             if (show)
             {
                 _loadingOverlay.BringToFront();
@@ -664,10 +655,6 @@ namespace Reklamacje_Dane
             else
             {
                 _loadingOverlay.SendToBack();
-
-                // Wymuszenie pełnego odrysowania po schowaniu overlay'a.
-                // Bez tego po pierwszym ładowaniu zdarza się, że textboxy/przyciski
-                // są aktywne, ale nie są widoczne do czasu kliknięcia.
                 this.Invalidate(true);
                 this.Update();
             }
@@ -685,31 +672,41 @@ namespace Reklamacje_Dane
                     var wb = app.Workbooks.Add();
                     var ws = (Excel.Worksheet)wb.Sheets[1];
 
+                    // Pobierz widoczne kolumny
                     List<string> headers = new List<string>();
                     List<string> props = new List<string>();
 
-                    this.Invoke(new Action(() => {
-                        foreach (DataGridViewColumn c in _grid.Columns)
+                    this.Invoke(new Action(() =>
+                    {
+                        foreach (ColumnHeader ch in _olv.Columns)
                         {
-                            if (c.Visible)
+                            var col = ch as OLVColumn;
+                            if (col != null)
                             {
-                                headers.Add(c.HeaderText);
-                                props.Add(c.DataPropertyName);
+                                headers.Add(col.Text);
+                                props.Add(col.AspectName);
                             }
                         }
                     }));
 
-                    for (int i = 0; i < headers.Count; i++) ws.Cells[1, i + 1] = headers[i];
+                    for (int i = 0; i < headers.Count; i++)
+                        ws.Cells[1, i + 1] = headers[i];
+
+                    var accessors = new List<Func<ComplaintViewModel, string>>();
+                    foreach (var propName in props)
+                    {
+                        if (_propertyAccessors.TryGetValue(propName, out var acc))
+                            accessors.Add(acc);
+                        else
+                            accessors.Add(_ => "");
+                    }
 
                     object[,] data = new object[_filteredData.Count, headers.Count];
                     for (int i = 0; i < _filteredData.Count; i++)
                     {
                         var item = _filteredData[i];
-                        for (int j = 0; j < props.Count; j++)
-                        {
-                            var prop = item.GetType().GetProperty(props[j]);
-                            data[i, j] = prop?.GetValue(item) ?? "";
-                        }
+                        for (int j = 0; j < accessors.Count; j++)
+                            data[i, j] = accessors[j](item);
                     }
 
                     ws.Range[ws.Cells[2, 1], ws.Cells[_filteredData.Count + 1, headers.Count]].Value = data;
@@ -721,15 +718,6 @@ namespace Reklamacje_Dane
             });
         }
 
-        private void EnableSpellCheckOnAllTextBoxes()
-        {
-            foreach (Control c in GetAllControls(this)) if (c is RichTextBox r) r.EnableSpellCheck(true);
-        }
-        private IEnumerable<Control> GetAllControls(Control container)
-        {
-            foreach (Control c in container.Controls) { yield return c; if (c.HasChildren) foreach (Control child in GetAllControls(c)) yield return child; }
-        }
-
         private class ColumnDefinition
         {
             public string PropertyName { get; set; }
@@ -737,13 +725,42 @@ namespace Reklamacje_Dane
             public int Width { get; set; }
             public bool VisibleByDefault { get; set; }
             public ColumnDefinition(string p, string d, int w, bool v = true)
-            {
-                PropertyName = p; DisplayName = d; Width = w; VisibleByDefault = v;
-            }
+            { PropertyName = p; DisplayName = d; Width = w; VisibleByDefault = v; }
         }
     }
 
-    // --- CACHE & SEARCH ---
+    // === Custom comparer dla sortowania Nr Zgłoszenia (np. "123/2024") ===
+    public class NrZgloszeniaComparer : System.Collections.IComparer
+    {
+        private readonly SortOrder _order;
+        public NrZgloszeniaComparer(SortOrder order) { _order = order; }
+
+        public int Compare(object x, object y)
+        {
+            var a = (x as OLVListItem)?.RowObject as ComplaintViewModel;
+            var b = (y as OLVListItem)?.RowObject as ComplaintViewModel;
+
+            var ta = ParseNr(a?.NrZgloszenia);
+            var tb = ParseNr(b?.NrZgloszenia);
+
+            int result = ta.Item1.CompareTo(tb.Item1);
+            if (result == 0) result = ta.Item2.CompareTo(tb.Item2);
+
+            return _order == SortOrder.Descending ? -result : result;
+        }
+
+        private static Tuple<int, int> ParseNr(string nr)
+        {
+            if (string.IsNullOrWhiteSpace(nr)) return Tuple.Create(0, 0);
+            var parts = nr.Split('/');
+            if (parts.Length < 2) return Tuple.Create(0, 0);
+            int.TryParse(parts[0], out int przed);
+            int.TryParse(parts[1], out int po);
+            return Tuple.Create(po, przed);
+        }
+    }
+
+    // --- CACHE & SEARCH (BEZ ZMIAN) ---
 
     public sealed class DataCache
     {
@@ -763,51 +780,43 @@ namespace Reklamacje_Dane
     {
         public static bool Match(string searchVector, string query)
         {
-            return Match(searchVector, Compile(query));
-        }
+            if (string.IsNullOrWhiteSpace(query)) return true;
+            var tokens = ParseQuery(query.ToLowerInvariant());
 
-        internal static CompiledQuery Compile(string query)
-        {
-            if (string.IsNullOrWhiteSpace(query)) return CompiledQuery.Empty;
-
-            var normalized = query.ToLowerInvariant();
-            var tokens = ParseQuery(normalized);
-            return new CompiledQuery(tokens, tokens.Any(t => t.Type == TokenType.OR));
-        }
-
-        internal static bool Match(string searchVector, CompiledQuery compiled)
-        {
-            if (compiled == null || compiled.IsEmpty) return true;
-            if (string.IsNullOrEmpty(searchVector)) return false;
-
-            searchVector = searchVector.ToLowerInvariant();
-            var tokens = compiled.Tokens;
-            bool hasOrOperator = compiled.HasOr;
+            bool hasOrOperator = false;
+            for (int i = 0; i < tokens.Count; i++)
+            { if (tokens[i].Type == TokenType.OR) { hasOrOperator = true; break; } }
 
             if (hasOrOperator)
             {
                 bool anyMatch = false;
-                bool excluded = false;
-                foreach (var token in tokens)
+                for (int i = 0; i < tokens.Count; i++)
                 {
-                    if (token.Type == TokenType.NOT) { if (searchVector.Contains(token.Value)) { excluded = true; break; } }
-                    else if (token.Type == TokenType.Term) { if (searchVector.Contains(token.Value)) anyMatch = true; }
+                    var token = tokens[i];
+                    if (token.Type == TokenType.NOT) { if (searchVector.IndexOf(token.Value, StringComparison.Ordinal) >= 0) return false; }
+                    else if (token.Type == TokenType.Term) { if (searchVector.IndexOf(token.Value, StringComparison.Ordinal) >= 0) anyMatch = true; }
                 }
-                return anyMatch && !excluded;
+                return anyMatch;
             }
             else
             {
-                foreach (var token in tokens)
+                for (int i = 0; i < tokens.Count; i++)
                 {
-                    if (token.Type == TokenType.Term) { if (!searchVector.Contains(token.Value)) return false; }
-                    else if (token.Type == TokenType.NOT) { if (searchVector.Contains(token.Value)) return false; }
+                    var token = tokens[i];
+                    if (token.Type == TokenType.Term) { if (searchVector.IndexOf(token.Value, StringComparison.Ordinal) < 0) return false; }
+                    else if (token.Type == TokenType.NOT) { if (searchVector.IndexOf(token.Value, StringComparison.Ordinal) >= 0) return false; }
                 }
                 return true;
             }
         }
 
+        private static string _lastQuery;
+        private static List<Token> _lastTokens;
+
         private static List<Token> ParseQuery(string query)
         {
+            if (query == _lastQuery && _lastTokens != null) return _lastTokens;
+
             var tokens = new List<Token>();
             var parts = SplitKeepingQuotes(query);
             for (int i = 0; i < parts.Count; i++)
@@ -819,6 +828,9 @@ namespace Reklamacje_Dane
                 if (p == "bez" || p == "not") { if (i + 1 < parts.Count) { tokens.Add(new Token { Type = TokenType.NOT, Value = parts[i + 1] }); i++; } continue; }
                 tokens.Add(new Token { Type = TokenType.Term, Value = p.Trim('"') });
             }
+
+            _lastQuery = query;
+            _lastTokens = tokens;
             return tokens;
         }
 
@@ -842,20 +854,5 @@ namespace Reklamacje_Dane
 
         private enum TokenType { Term, AND, OR, NOT }
         private class Token { public TokenType Type; public string Value; }
-
-        internal sealed class CompiledQuery
-        {
-            public static readonly CompiledQuery Empty = new CompiledQuery(new List<Token>(), false);
-
-            public bool IsEmpty => Tokens.Count == 0;
-            internal List<Token> Tokens { get; }
-            public bool HasOr { get; }
-
-            internal CompiledQuery(List<Token> tokens, bool hasOr)
-            {
-                Tokens = tokens ?? new List<Token>();
-                HasOr = hasOr;
-            }
-        }
     }
 }
