@@ -634,9 +634,24 @@ namespace Reklamacje_Dane
                 this.Invoke(new Action(() => ShowLoading(show)));
                 return;
             }
+
             _loadingOverlay.Visible = show;
-            if (show) _loadingOverlay.BringToFront();
-            Application.DoEvents();
+
+            if (show)
+            {
+                _loadingOverlay.BringToFront();
+                _loadingOverlay.Refresh();
+            }
+            else
+            {
+                _loadingOverlay.SendToBack();
+
+                // Wymuszenie pełnego odrysowania po schowaniu overlay'a.
+                // Bez tego po pierwszym ładowaniu zdarza się, że textboxy/przyciski
+                // są aktywne, ale nie są widoczne do czasu kliknięcia.
+                this.Invalidate(true);
+                this.Update();
+            }
         }
 
         private void ExportToExcel()
