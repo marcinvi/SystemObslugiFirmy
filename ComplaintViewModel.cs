@@ -159,7 +159,7 @@ namespace Reklamacje_Dane
         public string Dzialania { get; set; }
 
         [Browsable(false)]
-        public string SearchVector { get; private set; }
+        public string SearchVector { get; set; }
 
         public void BuildSearchVector()
         {

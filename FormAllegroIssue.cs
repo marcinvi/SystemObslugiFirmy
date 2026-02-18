@@ -10,15 +10,17 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Reflection;
 
 namespace Reklamacje_Dane
 {
     /// <summary>
-    /// Nowoczesny, czytelny formularz zarządzania dyskusją Allegro z ulepszoną UX.
-    /// Wersja 2.0 - Całkowicie przeprojektowana
+    /// Nowoczesny formularz zarządzania dyskusją Allegro.
+    /// Wersja Finalna - Zawiera wszystkie poprawki UI, Logiki i Bazy Danych.
     /// </summary>
     public partial class FormAllegroIssue : Form
     {
+        // Pola prywatne
         private readonly string _issueId;
         private AllegroApiClient _apiClient;
         private int _accountId;
@@ -26,37 +28,44 @@ namespace Reklamacje_Dane
         private static readonly HttpClient _fileDownloader = new HttpClient();
         private bool _isLoadingChat = false;
 
-        // UI theme colors
+        // Kolory motywu
         private static readonly Color PRIMARY_COLOR = Color.FromArgb(0, 120, 215);
         private static readonly Color SUCCESS_COLOR = Color.FromArgb(16, 124, 16);
         private static readonly Color WARNING_COLOR = Color.FromArgb(255, 185, 0);
         private static readonly Color DANGER_COLOR = Color.FromArgb(196, 43, 28);
         private static readonly Color BACKGROUND_COLOR = Color.FromArgb(243, 242, 241);
-        private static readonly Color CARD_COLOR = Color.White;
+
+        // Nakładka ładowania
+        private Panel _loadingOverlay;
 
         public FormAllegroIssue(string issueId)
         {
             _issueId = issueId ?? throw new ArgumentNullException(nameof(issueId));
+
+            // Fix migotania (Double Buffering dla Formularza)
+            this.DoubleBuffered = true;
+
             InitializeComponent();
             CustomizeUI();
-            Text = $"Dyskusja Allegro: {_issueId}";
-        
 
-            // Włącz sprawdzanie pisowni dla wszystkich TextBoxów
+            Text = $"Dyskusja Allegro: {_issueId}";
+
+            // Pokaż overlay od razu, zanim formularz w pełni się narysuje
+            ShowLoadingOverlay(true, "Inicjalizacja...");
+
             EnableSpellCheckOnAllTextBoxes();
         }
 
-        #region Initialization
+        #region Initialization & Layout
 
         private void CustomizeUI()
         {
-            // Główne okno
             this.Font = new Font("Segoe UI", 9.5F);
             this.BackColor = BACKGROUND_COLOR;
             this.MinimumSize = new Size(1200, 700);
             this.WindowState = FormWindowState.Maximized;
 
-            // Styl przycisków
+            // Stylowanie przycisków
             StyleButton(btnSendMessage, PRIMARY_COLOR);
             StyleButton(btnAddAttachment, PRIMARY_COLOR);
             StyleButton(btnChangeStatus, SUCCESS_COLOR);
@@ -66,97 +75,87 @@ namespace Reklamacje_Dane
             StyleButton(btnViewOrder, PRIMARY_COLOR);
             StyleButton(btnAddTrackingNumber, PRIMARY_COLOR);
 
-            // Tooltips
-            var tooltip = new ToolTip();
-            tooltip.SetToolTip(btnSendMessage, "Wyślij wiadomość do kupującego");
-            tooltip.SetToolTip(btnAddAttachment, "Dodaj załącznik (max 10MB)");
-            tooltip.SetToolTip(btnViewOrder, "Zobacz szczegóły zamówienia na Allegro");
-            tooltip.SetToolTip(btnReturnRequiredCustom, "Wymagaj zwrotu na koszt kupującego (72h na decyzję)");
-            tooltip.SetToolTip(btnReturnNotRequired, "Zwrot nie jest wymagany - sprzedający pokryje koszty");
-            tooltip.SetToolTip(btnEndRequest, "Poproś kupującego o zakończenie dyskusji");
+            // Placeholdery
+            SetupPlaceholder(txtNewMessage, "Napisz wiadomość do kupującego...");
+            SetupPlaceholder(txtStatusMessage, "Opcjonalnie: dodaj komentarz do zmiany statusu...");
 
-            // Placeholder text
-            txtNewMessage.ForeColor = Color.Gray;
-            txtNewMessage.Text = "Napisz wiadomość do kupującego...";
-            txtNewMessage.Enter += (s, e) => {
-                if (txtNewMessage.Text == "Napisz wiadomość do kupującego...")
-                {
-                    txtNewMessage.Text = "";
-                    txtNewMessage.ForeColor = Color.Black;
-                }
-            };
-            txtNewMessage.Leave += (s, e) => {
-                if (string.IsNullOrWhiteSpace(txtNewMessage.Text))
-                {
-                    txtNewMessage.Text = "Napisz wiadomość do kupującego...";
-                    txtNewMessage.ForeColor = Color.Gray;
-                }
-            };
-
-            txtStatusMessage.ForeColor = Color.Gray;
-            txtStatusMessage.Text = "Opcjonalnie: dodaj komentarz do zmiany statusu...";
-            txtStatusMessage.Enter += (s, e) => {
-                if (txtStatusMessage.Text == "Opcjonalnie: dodaj komentarz do zmiany statusu...")
-                {
-                    txtStatusMessage.Text = "";
-                    txtStatusMessage.ForeColor = Color.Black;
-                }
-            };
-            txtStatusMessage.Leave += (s, e) => {
-                if (string.IsNullOrWhiteSpace(txtStatusMessage.Text))
-                {
-                    txtStatusMessage.Text = "Opcjonalnie: dodaj komentarz do zmiany statusu...";
-                    txtStatusMessage.ForeColor = Color.Gray;
-                }
-            };
-
-            // GroupBox styling
+            // Stylowanie grup
             foreach (Control ctrl in pnlActions.Controls.OfType<GroupBox>())
             {
                 StyleGroupBox((GroupBox)ctrl);
             }
 
-            // Chat history styling
+            // Fix migotania panelu historii
             pnlChatHistory.BackColor = BACKGROUND_COLOR;
+            EnableDoubleBuffering(pnlChatHistory);
         }
 
-        private void StyleButton(Button btn, Color bgColor)
+        // --- KLUCZOWA METODA: REFLOW LAYOUT ---
+        // Układa elementy jeden pod drugim, eliminując puste przestrzenie po ukrytych kontrolkach
+        private void ReflowLayout()
         {
-            btn.FlatStyle = FlatStyle.Flat;
-            btn.FlatAppearance.BorderSize = 0;
-            btn.BackColor = bgColor;
-            btn.ForeColor = Color.White;
-            btn.Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold);
-            btn.Cursor = Cursors.Hand;
-            btn.Padding = new Padding(10, 5, 10, 5);
+            pnlActions.SuspendLayout();
+            int y = 10; // Margines górny
+            int spacing = 15; // Odstęp między elementami
 
-            // Hover effect
-            btn.MouseEnter += (s, e) => {
-                var b = (Button)s;
-                b.BackColor = ControlPaint.Light(b.BackColor, 0.1f);
-            };
-            btn.MouseLeave += (s, e) => {
-                var b = (Button)s;
-                b.BackColor = bgColor;
-            };
-        }
+            // 1. Panel Statusu (zawsze widoczny, ale zmienia wysokość)
+            if (gbStatusAndDeadlines.Visible)
+            {
+                gbStatusAndDeadlines.Location = new Point(gbStatusAndDeadlines.Location.X, y);
 
-        private void StyleGroupBox(GroupBox gb)
-        {
-            gb.Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold);
-            gb.ForeColor = Color.FromArgb(50, 50, 50);
+                // Oblicz potrzebną wysokość na podstawie widocznych dzieci
+                int contentBottom = 0;
+                foreach (Control c in gbStatusAndDeadlines.Controls)
+                {
+                    if (c.Visible) contentBottom = Math.Max(contentBottom, c.Bottom);
+                }
+                gbStatusAndDeadlines.Height = contentBottom + 20; // + padding
+
+                y += gbStatusAndDeadlines.Height + spacing;
+            }
+
+            // 2. Decyzja o zwrocie (tylko reklamacje)
+            if (gbReturnDecision.Visible)
+            {
+                gbReturnDecision.Location = new Point(gbReturnDecision.Location.X, y);
+                y += gbReturnDecision.Height + spacing;
+            }
+
+            // 3. Zmiana Statusu (tylko reklamacje)
+            if (gbChangeStatus.Visible)
+            {
+                gbChangeStatus.Location = new Point(gbChangeStatus.Location.X, y);
+                y += gbChangeStatus.Height + spacing;
+            }
+
+            // 4. Przycisk Zakończ (tylko dyskusje)
+            if (btnEndRequest.Visible)
+            {
+                btnEndRequest.Location = new Point(btnEndRequest.Location.X, y);
+                y += btnEndRequest.Height + spacing;
+            }
+
+            // 5. Zamówienie (zawsze widoczne, przesuwa się pod spód)
+            if (gbOrder.Visible)
+            {
+                gbOrder.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+                gbOrder.Location = new Point(gbOrder.Location.X, y);
+                y += gbOrder.Height + spacing;
+            }
+
+            pnlActions.ResumeLayout(true);
         }
 
         private async void FormAllegroIssue_Load(object sender, EventArgs e)
         {
             try
             {
-                ShowLoadingOverlay(true);
+                ShowLoadingOverlay(true, "Pobieranie danych...");
 
                 var account = await GetAccountForIssueAsync(_issueId);
-                if (account == null || string.IsNullOrWhiteSpace(account.ClientId) || string.IsNullOrWhiteSpace(account.ClientSecret))
+                if (account == null)
                 {
-                    ShowError("Nie można załadować konta Allegro dla tej dyskusji.", "Błąd krytyczny");
+                    ShowError("Brak konta Allegro powiązanego z tą dyskusją.", "Błąd konfiguracji");
                     Close();
                     return;
                 }
@@ -175,14 +174,14 @@ namespace Reklamacje_Dane
             catch (Exception ex)
             {
                 ShowLoadingOverlay(false);
-                HandleApiError(ex, "inicjalizacji formularza");
+                HandleApiError(ex, "ładowania formularza");
                 Close();
             }
         }
 
         #endregion
 
-        #region Data Loading
+        #region Logic & Data Loading
 
         private async Task LoadIssueDetailsAsync()
         {
@@ -191,8 +190,8 @@ namespace Reklamacje_Dane
                 await con.OpenAsync();
                 var cmd = new MySqlCommand(
                     "SELECT ad.*, z.NrZgloszenia " +
-                    "FROM AllegroDisputes ad " +
-                    "LEFT JOIN Zgloszenia z ON ad.ComplaintId = z.Id " +
+                    "FROM allegrodisputes ad " +
+                    "LEFT JOIN zgloszenia z ON ad.ComplaintId = z.Id " +
                     "WHERE ad.DisputeId = @id", con);
                 cmd.Parameters.AddWithValue("@id", _issueId);
 
@@ -200,12 +199,12 @@ namespace Reklamacje_Dane
                 {
                     if (!await reader.ReadAsync())
                     {
-                        ShowError("Nie znaleziono danych dla tego zgłoszenia w lokalnej bazie.", "Błąd");
+                        ShowError("Brak danych w bazie dla tego ID dyskusji.", "Błąd danych");
                         Close();
                         return;
                     }
 
-                    // Check if we need to switch account
+                    // Obsługa zmiany konta (jeśli dyskusja jest na innym koncie niż domyślne)
                     if (reader["AllegroAccountId"] != DBNull.Value)
                     {
                         var accIdFromDb = Convert.ToInt32(reader["AllegroAccountId"]);
@@ -221,35 +220,85 @@ namespace Reklamacje_Dane
                         }
                     }
 
-                    // Update header
+                    // Wypełnianie danych UI
                     lblDisputeId.Text = _issueId;
-                    lblBuyerLogin.Text = reader["BuyerLogin"] != DBNull.Value ? reader["BuyerLogin"].ToString() : "Brak";
-
-                    _internalComplaintNumber = reader["NrZgloszenia"] != DBNull.Value ? reader["NrZgloszenia"].ToString() : "Brak";
+                    lblBuyerLogin.Text = reader["BuyerLogin"]?.ToString() ?? "-";
+                    _internalComplaintNumber = reader["NrZgloszenia"]?.ToString() ?? "-";
                     lblInternalComplaintId.Text = _internalComplaintNumber;
+                    lblProductName.Text = reader["Subject"]?.ToString() ?? "Nieznany produkt";
 
-                    lblProductName.Text = reader["Subject"] != DBNull.Value ? reader["Subject"].ToString() : "Nieznany";
+                    UpdateStatusDisplay(reader["StatusAllegro"]?.ToString());
 
-                    string status = reader["StatusAllegro"] != DBNull.Value ? reader["StatusAllegro"].ToString() : "";
-                    UpdateStatusDisplay(status);
-
-                    DateTime openedUtc = DateTime.UtcNow;
-                    if (reader["OpenedAt"] != DBNull.Value)
-                    {
-                        if (DateTime.TryParse(reader["OpenedAt"].ToString(), out DateTime opened))
-                            openedUtc = DateTime.SpecifyKind(opened, DateTimeKind.Utc);
-                    }
-
-                    UpdateDeadlineDisplays(openedUtc);
+                    // Typ i dostosowanie interfejsu (Dyskusja vs Reklamacja)
+                    string type = reader["Type"]?.ToString() ?? "DISPUTE";
+                    AdjustInterfaceForIssueType(type, reader);
                 }
             }
         }
 
+        private void AdjustInterfaceForIssueType(string type, System.Data.Common.DbDataReader reader)
+        {
+            bool isClaim = type != null && type.ToUpper().Contains("CLAIM");
+
+            DateTime openedUtc = DateTime.UtcNow;
+            if (reader["OpenedAt"] != DBNull.Value && DateTime.TryParse(reader["OpenedAt"].ToString(), out DateTime opened))
+            {
+                openedUtc = DateTime.SpecifyKind(opened, DateTimeKind.Utc);
+            }
+
+            if (isClaim)
+            {
+                // *** REKLAMACJA ***
+                this.Text = $"Reklamacja Allegro: {_issueId}";
+
+                // Pokaż panele decyzyjne
+                gbReturnDecision.Visible = true;
+                gbChangeStatus.Visible = true;
+
+                // Ukryj przycisk zakończenia (bo są decyzje statusowe)
+                btnEndRequest.Visible = false;
+
+                // Pokaż liczniki czasu
+                lblDecisionTime.Visible = true;
+                progressDecision.Visible = true;
+                lblResolutionTime.Text = "Czas na rozpatrzenie (14 dni):";
+                progressResolution.Visible = true;
+
+                UpdateDeadlineDisplays(openedUtc);
+            }
+            else
+            {
+                // *** DYSKUSJA ***
+                this.Text = $"Dyskusja Allegro: {_issueId}";
+
+                // Ukryj panele reklamacyjne
+                gbReturnDecision.Visible = false;
+                gbChangeStatus.Visible = false;
+
+                // Pokaż przycisk zakończenia
+                btnEndRequest.Visible = true;
+
+                // Ukryj zbędne paski czasu
+                lblDecisionTime.Visible = false;
+                progressDecision.Visible = false;
+                progressResolution.Visible = false;
+
+                // Uproszczony tekst dla dyskusji
+                lblResolutionTime.Text = "Regulaminowy czas na rozwiązanie: 30 dni";
+                lblResolutionTime.ForeColor = Color.Black;
+                // Przesuń etykietę wyżej, w miejsce ukrytego decision time
+                lblResolutionTime.Location = new Point(lblDecisionTime.Location.X, lblDecisionTime.Location.Y);
+            }
+
+            // Na koniec przelicz układ (Reflow), żeby usunąć dziury
+            ReflowLayout();
+        }
+
         private void UpdateStatusDisplay(string status)
         {
-            var (translated, color) = TranslateStatus(status);
-            lblCurrentStatus.Text = translated;
-            lblCurrentStatus.ForeColor = color;
+            var result = TranslateStatus(status);
+            lblCurrentStatus.Text = result.translated;
+            lblCurrentStatus.ForeColor = result.color;
         }
 
         private void UpdateDeadlineDisplays(DateTime openedUtc)
@@ -257,7 +306,6 @@ namespace Reklamacje_Dane
             var nowUtc = DateTime.UtcNow;
             var hoursSinceOpen = Math.Max(0, (int)(nowUtc - openedUtc).TotalHours);
 
-            // Decision deadline (3 days)
             var decisionDue = openedUtc.AddDays(3);
             var decisionLeft = decisionDue - nowUtc;
             var allowDecision = IsDecisionStillAllowed(openedUtc);
@@ -266,49 +314,22 @@ namespace Reklamacje_Dane
             progressDecision.Value = Math.Min(progressDecision.Maximum, hoursSinceOpen);
             progressDecision.ForeColor = allowDecision ? SUCCESS_COLOR : DANGER_COLOR;
 
-            var dueLocal = decisionDue.ToLocalTime();
-            var nowLocal = DateTime.Now;
-
             if (!allowDecision)
             {
-                lblDecisionTime.Text = "❌ Termin na decyzję o zwrocie minął!";
+                lblDecisionTime.Text = "❌ Termin na decyzję minął!";
                 lblDecisionTime.ForeColor = DANGER_COLOR;
-                lblDecisionTime.Font = new Font(lblDecisionTime.Font, FontStyle.Bold);
             }
             else
             {
-                if (nowLocal.Date == dueLocal.Date && nowLocal > dueLocal)
-                {
-                    lblDecisionTime.Text = "⚠️ Do końca dzisiejszego dnia";
-                    lblDecisionTime.ForeColor = WARNING_COLOR;
-                }
-                else
-                {
-                    lblDecisionTime.Text = $"⏱️ {Math.Max(0, decisionLeft.Days)}d {Math.Max(0, decisionLeft.Hours)}h pozostało";
-                    lblDecisionTime.ForeColor = (decisionLeft.TotalHours < 24) ? WARNING_COLOR : SUCCESS_COLOR;
-                }
+                lblDecisionTime.Text = $"⏱️ Czas na decyzję: {Math.Max(0, decisionLeft.Days)}d {Math.Max(0, decisionLeft.Hours)}h";
+                lblDecisionTime.ForeColor = (decisionLeft.TotalHours < 24) ? WARNING_COLOR : SUCCESS_COLOR;
             }
 
-            // Resolution deadline (14 days)
             var resolutionDue = openedUtc.AddDays(14);
             var resolutionLeft = resolutionDue - nowUtc;
             progressResolution.Maximum = 14 * 24;
             progressResolution.Value = Math.Min(progressResolution.Maximum, hoursSinceOpen);
             progressResolution.ForeColor = resolutionLeft.TotalSeconds < 0 ? DANGER_COLOR : SUCCESS_COLOR;
-
-            if (resolutionLeft.TotalSeconds < 0)
-            {
-                lblResolutionTime.Text = "❌ Termin na rozpatrzenie minął!";
-                lblResolutionTime.ForeColor = DANGER_COLOR;
-                lblResolutionTime.Font = new Font(lblResolutionTime.Font, FontStyle.Bold);
-            }
-            else
-            {
-                lblResolutionTime.Text = resolutionLeft.TotalDays < 3
-                    ? $"⚠️ {Math.Max(0, resolutionLeft.Days)}d {Math.Max(0, resolutionLeft.Hours)}h pozostało"
-                    : $"⏱️ {Math.Max(0, resolutionLeft.Days)}d {Math.Max(0, resolutionLeft.Hours)}h pozostało";
-                lblResolutionTime.ForeColor = resolutionLeft.TotalDays < 3 ? WARNING_COLOR : SUCCESS_COLOR;
-            }
         }
 
         private async Task LoadChatHistoryAsync()
@@ -318,8 +339,6 @@ namespace Reklamacje_Dane
             try
             {
                 _isLoadingChat = true;
-                ShowLoadingOverlay(true, "Ładowanie historii czatu...");
-
                 var messages = await _apiClient.GetChatAsync(_issueId);
 
                 pnlChatHistory.SuspendLayout();
@@ -327,55 +346,35 @@ namespace Reklamacje_Dane
 
                 if (!messages.Any())
                 {
-                    var emptyLabel = new Label
-                    {
-                        Text = "Brak wiadomości w tej dyskusji",
-                        AutoSize = true,
-                        Font = new Font("Segoe UI", 10F, FontStyle.Italic),
-                        ForeColor = Color.Gray,
-                        Padding = new Padding(20)
-                    };
-                    pnlChatHistory.Controls.Add(emptyLabel);
+                    var lbl = new Label { Text = "Brak wiadomości", AutoSize = true, ForeColor = Color.Gray, Padding = new Padding(20) };
+                    pnlChatHistory.Controls.Add(lbl);
                 }
                 else
                 {
-                    var allControls = new List<Control>();
-
-                    foreach (var message in messages.OrderBy(m => m.CreatedAt))
+                    var controls = new List<Control>();
+                    foreach (var msg in messages.OrderBy(m => m.CreatedAt))
                     {
-                        // Text bubble
-                        if (!string.IsNullOrWhiteSpace(message.Text))
+                        bool isSeller = (msg.Author?.Role?.ToUpperInvariant() == "SELLER");
+
+                        if (!string.IsNullOrWhiteSpace(msg.Text))
                         {
-                            var textBubble = new ChatMessageBubble();
-                            bool isSeller = (message?.Author?.Role?.ToUpperInvariant() == "SELLER");
-                            textBubble.SetMessage(
-                                message?.Author?.Login ?? "—",
-                                message.CreatedAt,
-                                message.Text,
-                                isSeller);
-                            allControls.Add(textBubble);
+                            var bubble = new ChatMessageBubble();
+                            bubble.SetMessage(msg.Author?.Login ?? "-", msg.CreatedAt, msg.Text, isSeller);
+                            controls.Add(bubble);
                         }
 
-                        // Attachment bubbles
-                        if (message.Attachments != null && message.Attachments.Any())
+                        if (msg.Attachments != null)
                         {
-                            foreach (var attachment in message.Attachments)
+                            foreach (var att in msg.Attachments)
                             {
-                                var attachmentBubble = new ChatMessageBubble();
-                                bool isSeller = (message?.Author?.Role?.ToUpperInvariant() == "SELLER");
-                                attachmentBubble.SetMessage(
-                                    message?.Author?.Login ?? "—",
-                                    message.CreatedAt,
-                                    "",
-                                    isSeller);
-
-                                await SetAttachmentInBubble(attachmentBubble, attachment);
-                                allControls.Add(attachmentBubble);
+                                var bubble = new ChatMessageBubble();
+                                bubble.SetMessage(msg.Author?.Login ?? "-", msg.CreatedAt, "", isSeller);
+                                await SetAttachmentInBubble(bubble, att);
+                                controls.Add(bubble);
                             }
                         }
                     }
-
-                    pnlChatHistory.Controls.AddRange(allControls.ToArray());
+                    pnlChatHistory.Controls.AddRange(controls.ToArray());
                 }
             }
             catch (Exception ex)
@@ -385,7 +384,6 @@ namespace Reklamacje_Dane
             finally
             {
                 _isLoadingChat = false;
-                ShowLoadingOverlay(false);
                 pnlChatHistory.ResumeLayout(true);
                 if (pnlChatHistory.Controls.Count > 0)
                     pnlChatHistory.ScrollControlIntoView(pnlChatHistory.Controls[pnlChatHistory.Controls.Count - 1]);
@@ -395,81 +393,45 @@ namespace Reklamacje_Dane
         private async Task SetAttachmentInBubble(ChatMessageBubble bubble, PostPurchaseIssueAttachment attachment)
         {
             if (attachment == null || string.IsNullOrEmpty(attachment.Url)) return;
-
             try
             {
-                var (downloadedImage, localPath) = await DownloadAndSaveAttachmentAsync(attachment, _apiClient);
-
-                if (downloadedImage != null)
-                {
-                    bubble.SetAttachment(downloadedImage, localPath);
-                }
-                else if (localPath != null)
-                {
-                    bubble.SetAttachment(attachment.FileName, localPath);
-                }
+                var result = await DownloadAndSaveAttachmentAsync(attachment, _apiClient);
+                if (result.image != null) bubble.SetAttachment(result.image, result.localPath);
+                else bubble.SetAttachment(attachment.FileName, result.localPath);
             }
-            catch (Exception ex)
+            catch
             {
-                bubble.SetAttachment($"⚠️ Błąd pobierania: {attachment.FileName}", attachment.Url);
-                Console.WriteLine($"[Allegro] Błąd pobierania załącznika {attachment.FileName}: {ex.Message}");
+                bubble.SetAttachment($"Plik: {attachment.FileName}", attachment.Url);
             }
         }
 
         private async Task<(Image image, string localPath)> DownloadAndSaveAttachmentAsync(PostPurchaseIssueAttachment attachment, AllegroApiClient apiClient)
         {
-            string safeComplaintNumber = "BezNumeru";
-            if (!string.IsNullOrEmpty(_internalComplaintNumber) && _internalComplaintNumber != "Brak")
+            string safeNumber = string.IsNullOrEmpty(_internalComplaintNumber) ? "BezNumeru" : _internalComplaintNumber.Replace('/', '.');
+            string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dane", safeNumber);
+            Directory.CreateDirectory(dir);
+            string path = Path.Combine(dir, attachment.FileName);
+
+            if (!File.Exists(path))
             {
-                safeComplaintNumber = _internalComplaintNumber.Replace('/', '.');
+                using (var req = new HttpRequestMessage(HttpMethod.Get, attachment.Url))
+                {
+                    req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiClient.Token.AccessToken);
+                    var resp = await _fileDownloader.SendAsync(req);
+                    var bytes = await resp.Content.ReadAsByteArrayAsync();
+                    await Task.Run(() => File.WriteAllBytes(path, bytes));
+                }
             }
 
-            string directoryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Dane", safeComplaintNumber);
-            Directory.CreateDirectory(directoryPath);
-
-            string localFilePath = Path.Combine(directoryPath, attachment.FileName);
-
-            // Check if file already exists
-            if (File.Exists(localFilePath))
+            if (IsImage(attachment.FileName))
             {
                 try
                 {
-                    byte[] existingBytes = File.ReadAllBytes(localFilePath);
-                    if (IsImage(attachment.FileName))
-                    {
-                        using (var ms = new MemoryStream(existingBytes))
-                        {
-                            return (Image.FromStream(ms), localFilePath);
-                        }
-                    }
-                    return (null, localFilePath);
+                    using (var ms = new MemoryStream(File.ReadAllBytes(path))) return (Image.FromStream(ms), path);
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Allegro] Błąd odczytu istniejącego pliku {localFilePath}: {ex.Message}");
-                }
+                catch { return (null, path); }
             }
-
-            // Download file with authorization header
-            using (var requestMessage = new HttpRequestMessage(HttpMethod.Get, attachment.Url))
-            {
-                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiClient.Token.AccessToken);
-
-                HttpResponseMessage response = await _fileDownloader.SendAsync(requestMessage);
-                response.EnsureSuccessStatusCode();
-
-                byte[] fileBytes = await response.Content.ReadAsByteArrayAsync();
-                await Task.Run(() => File.WriteAllBytes(localFilePath, fileBytes));
-
-                if (IsImage(attachment.FileName))
-                {
-                    using (var ms = new MemoryStream(fileBytes))
-                    {
-                        return (Image.FromStream(ms), localFilePath);
-                    }
-                }
-                return (null, localFilePath);
-            }
+            return (null, path);
         }
 
         #endregion
@@ -478,289 +440,114 @@ namespace Reklamacje_Dane
 
         private async void btnSendMessage_Click(object sender, EventArgs e)
         {
-            if (_apiClient == null)
-            {
-                ShowError("Klient API nie jest zainicjalizowany.", "Błąd");
-                return;
-            }
-
-            var txt = (txtNewMessage.Text ?? "").Trim();
-            if (string.IsNullOrEmpty(txt) || txt == "Napisz wiadomość do kupującego...") return;
+            if (_apiClient == null) return;
+            var txt = txtNewMessage.Text.Trim();
+            if (string.IsNullOrEmpty(txt) || txt.StartsWith("Napisz wiadomość")) return;
 
             try
             {
-                btnSendMessage.Enabled = false;
                 btnSendMessage.Text = "Wysyłanie...";
-
+                btnSendMessage.Enabled = false;
                 await _apiClient.SendMessageAsync(_issueId, new NewMessageRequest { Text = txt });
-
-                txtNewMessage.Text = "Napisz wiadomość do kupującego...";
-                txtNewMessage.ForeColor = Color.Gray;
-
+                txtNewMessage.Text = "";
+                SetupPlaceholder(txtNewMessage, "Napisz wiadomość do kupującego...");
                 await LoadChatHistoryAsync();
-                ShowSuccess("Wiadomość została wysłana");
             }
-            catch (Exception ex)
-            {
-                HandleApiError(ex, "wysyłania wiadomości");
-            }
-            finally
-            {
-                btnSendMessage.Enabled = true;
-                btnSendMessage.Text = "Wyślij";
-            }
+            catch (Exception ex) { HandleApiError(ex, "wysyłania wiadomości"); }
+            finally { btnSendMessage.Text = "Wyślij"; btnSendMessage.Enabled = true; }
         }
 
         private async void btnChangeStatus_Click(object sender, EventArgs e)
         {
-            if (cbClaimStatus.SelectedValue == null || string.IsNullOrEmpty(cbClaimStatus.SelectedValue.ToString()))
-            {
-                ShowWarning("Wybierz status z listy.", "Walidacja");
-                return;
-            }
-            if (_apiClient == null)
-            {
-                ShowError("Klient API nie jest zainicjalizowany.", "Błąd");
-                return;
-            }
-
-            string newStatus = cbClaimStatus.SelectedValue.ToString();
-            var statusText = txtStatusMessage.Text.Trim();
-            if (statusText == "Opcjonalnie: dodaj komentarz do zmiany statusu...")
-                statusText = "";
-
-            var request = new ChangeStatusRequest
-            {
-                Status = newStatus,
-                Message = string.IsNullOrWhiteSpace(statusText)
-                    ? ((KeyValuePair<string, string>)cbClaimStatus.SelectedItem).Key
-                    : statusText
-            };
-
-            // Handle partial refund
-            if (string.Equals(newStatus, "ACCEPTED_PARTIAL_REFUND", StringComparison.OrdinalIgnoreCase))
-            {
-                var raw = (txtPartialRefundAmount.Text ?? "").Trim().Replace(',', '.');
-                if (!decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal amount) || amount <= 0)
-                {
-                    ShowWarning("Wprowadzona kwota częściowego zwrotu jest nieprawidłowa.", "Błąd walidacji");
-                    return;
-                }
-
-                var currency = (cbPartialRefundCurrency.SelectedItem != null)
-                    ? cbPartialRefundCurrency.SelectedItem.ToString()
-                    : "PLN";
-
-                request.PartialRefund = new PartialRefund
-                {
-                    Amount = amount.ToString("F2", CultureInfo.InvariantCulture),
-                    Currency = currency
-                };
-            }
+            if (cbClaimStatus.SelectedValue?.ToString() == "") return;
 
             try
             {
-                if (newStatus.StartsWith("REJECTED_", StringComparison.OrdinalIgnoreCase))
+                var msg = txtStatusMessage.Text.StartsWith("Opcjonalnie") ? "" : txtStatusMessage.Text;
+                var req = new ChangeStatusRequest { Status = cbClaimStatus.SelectedValue.ToString(), Message = msg };
+
+                // Częściowy zwrot
+                if (req.Status == "ACCEPTED_PARTIAL_REFUND")
                 {
-                    var confirm = MessageBox.Show("Czy na pewno odrzucić reklamację?", "Potwierdź",
-                        MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (confirm != DialogResult.Yes) return;
+                    if (decimal.TryParse(txtPartialRefundAmount.Text.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal amt))
+                    {
+                        req.PartialRefund = new PartialRefund { Amount = amt.ToString("F2", CultureInfo.InvariantCulture), Currency = cbPartialRefundCurrency.Text };
+                    }
+                    else { ShowWarning("Błędna kwota.", "Błąd"); return; }
                 }
 
-                btnChangeStatus.Enabled = false;
-                btnChangeStatus.Text = "Zmiana statusu...";
-
-                await _apiClient.ChangeClaimStatusAsync(_issueId, request);
-
-                ShowSuccess("Status reklamacji został pomyślnie zmieniony");
-                await LoadIssueDetailsAsync();
-                await LoadChatHistoryAsync();
+                await _apiClient.ChangeClaimStatusAsync(_issueId, req);
+                ShowSuccess("Status reklamacji został zmieniony.");
+                await LoadIssueDetailsAsync(); // Przeładuj, by zaktualizować status w UI
             }
-            catch (Exception ex)
-            {
-                HandleApiError(ex, "zmiany statusu");
-            }
-            finally
-            {
-                btnChangeStatus.Enabled = true;
-                btnChangeStatus.Text = "Zmień status reklamacji";
-            }
-        }
-
-        private async void btnReturnRequiredCustom_Click(object sender, EventArgs e)
-        {
-            await SendActionMessage("RETURN_REQUIRED_CUSTOM", true,
-                "Czy na pewno wymagać zwrotu towaru na koszt kupującego?");
-        }
-
-        private async void btnReturnNotRequired_Click(object sender, EventArgs e)
-        {
-            await SendActionMessage("RETURN_NOT_REQUIRED", false,
-                "Czy na pewno poinformować, że zwrot towaru nie jest wymagany?");
+            catch (Exception ex) { HandleApiError(ex, "zmiany statusu"); }
         }
 
         private async void btnEndRequest_Click(object sender, EventArgs e)
         {
-            await SendActionMessage("END_REQUEST", false,
-                "Wysłać prośbę o zakończenie dyskusji?");
-        }
-
-        private async Task SendActionMessage(string type, bool requireComment, string confirmText)
-        {
-            if (_apiClient == null)
+            if (MessageBox.Show("Czy na pewno wysłać prośbę o zakończenie dyskusji?", "Potwierdź", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                ShowError("Klient API nie jest zainicjalizowany.", "Błąd");
-                return;
-            }
-
-            var confirm = MessageBox.Show(confirmText, "Potwierdzenie", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (confirm != DialogResult.Yes) return;
-
-            string text = ".";
-            if (requireComment)
-            {
-                using (var prompt = new FormPrompt("Komentarz wymagany", "Podaj komentarz dla klienta (np. adres zwrotu):"))
+                try
                 {
-                    if (prompt.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(prompt.ResultText))
-                        text = prompt.ResultText;
-                    else
-                    {
-                        ShowWarning("Komentarz jest wymagany dla tej akcji.", "Anulowano");
-                        return;
-                    }
+                    await _apiClient.SendMessageAsync(_issueId, new NewMessageRequest { Type = "END_REQUEST", Text = "." });
+                    ShowSuccess("Wysłano prośbę o zakończenie.");
+                    await LoadChatHistoryAsync();
                 }
-            }
-
-            try
-            {
-                var req = new NewMessageRequest { Type = type, Text = text };
-                await _apiClient.SendMessageAsync(_issueId, req);
-                await LoadChatHistoryAsync();
-                ShowSuccess("Wiadomość/akcja została wysłana");
-            }
-            catch (Exception ex)
-            {
-                HandleApiError(ex, "wysyłania akcji");
+                catch (Exception ex) { HandleApiError(ex, "wysyłania prośby"); }
             }
         }
 
         private async void btnAddAttachment_Click(object sender, EventArgs e)
         {
-            if (_apiClient == null)
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
             {
-                ShowError("Klient API nie jest zainicjalizowany.", "Błąd");
-                return;
-            }
-
-            if (openFileDialog1.ShowDialog() != DialogResult.OK) return;
-
-            try
-            {
-                Cursor = Cursors.WaitCursor;
-                ShowLoadingOverlay(true, "Wysyłanie załącznika...");
-
-                var fi = new FileInfo(openFileDialog1.FileName);
-                if (!fi.Exists)
+                try
                 {
-                    ShowError("Plik nie istnieje.", "Błąd");
-                    return;
+                    ShowLoadingOverlay(true, "Wysyłanie pliku...");
+                    var up = await _apiClient.UploadAttachmentAsync(openFileDialog1.FileName);
+                    await _apiClient.SendMessageAsync(_issueId, new NewMessageRequest
+                    {
+                        Text = Path.GetFileName(openFileDialog1.FileName),
+                        Attachments = new List<NewMessageAttachment> { new NewMessageAttachment { Id = up.Id } }
+                    });
+                    await LoadChatHistoryAsync();
                 }
-                if (fi.Length > 10 * 1024 * 1024)
-                {
-                    ShowError("Maksymalny rozmiar pliku to 10 MB.", "Błąd");
-                    return;
-                }
-
-                var uploaded = await _apiClient.UploadAttachmentAsync(openFileDialog1.FileName);
-
-                var req = new NewMessageRequest
-                {
-                    Text = fi.Name,
-                    Attachments = new List<NewMessageAttachment> { new NewMessageAttachment { Id = uploaded.Id } }
-                };
-                await _apiClient.SendMessageAsync(_issueId, req);
-
-                ShowSuccess("Załącznik został wysłany");
-                await LoadChatHistoryAsync();
-            }
-            catch (Exception ex)
-            {
-                HandleApiError(ex, "dodawania załącznika");
-            }
-            finally
-            {
-                Cursor = Cursors.Default;
-                ShowLoadingOverlay(false);
+                catch (Exception ex) { HandleApiError(ex, "wysyłania pliku"); }
+                finally { ShowLoadingOverlay(false); }
             }
         }
 
         private void btnViewOrder_Click(object sender, EventArgs e)
         {
-            try
-            {
-                string checkoutFormId = GetCheckoutFormIdFromDb(_issueId);
-                if (!string.IsNullOrWhiteSpace(checkoutFormId))
-                {
-                    var url = $"https://allegro.pl/moje-allegro/sprzedaz/zamowienia/szczegoly/{checkoutFormId}";
-                    Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-                }
-                else
-                {
-                    ShowWarning("Brak ID zamówienia w bazie.", "Informacja");
-                }
-            }
-            catch (Exception ex)
-            {
-                HandleApiError(ex, "otwierania szczegółów zamówienia");
-            }
+            string orderId = GetOrderIdFromDb(_issueId);
+            if (!string.IsNullOrEmpty(orderId))
+                Process.Start(new ProcessStartInfo($"https://salescenter.allegro.com/orders/{orderId}") { UseShellExecute = true });
+            else
+                ShowWarning("Brak numeru zamówienia w bazie danych.", "Brak danych");
         }
 
-        private void btnAddTrackingNumber_Click(object sender, EventArgs e)
+        private async void btnReturnRequiredCustom_Click(object sender, EventArgs e) => await SimpleAction("RETURN_REQUIRED_CUSTOM");
+        private async void btnReturnNotRequired_Click(object sender, EventArgs e) => await SimpleAction("RETURN_NOT_REQUIRED");
+        private void btnAddTrackingNumber_Click(object sender, EventArgs e) => ShowInfo("Funkcjonalność w przygotowaniu.", "Info");
+
+        private async Task SimpleAction(string type)
         {
-            ShowInfo("Funkcjonalność dodawania numeru przesyłki będzie dostępna wkrótce.", "W przygotowaniu");
+            if (MessageBox.Show("Czy na pewno wykonać tę akcję?", "Potwierdzenie", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            {
+                try
+                {
+                    await _apiClient.SendMessageAsync(_issueId, new NewMessageRequest { Type = type, Text = "." });
+                    await LoadChatHistoryAsync();
+                }
+                catch (Exception ex) { HandleApiError(ex, "wykonywania akcji"); }
+            }
         }
 
         #endregion
 
-        #region Helper Methods
+        #region Helpers & Database Methods (BRAKUJĄCE WCZEŚNIEJ METODY)
 
-        private void PopulateStatusComboBox()
-        {
-            var statuses = new List<KeyValuePair<string, string>>
-            {
-                new KeyValuePair<string, string>("➡️ Wybierz nową akcję...", ""),
-                new KeyValuePair<string, string>("✅ Akceptuję naprawę", "ACCEPTED_REPAIR"),
-                new KeyValuePair<string, string>("✅ Akceptuję zwrot płatności", "ACCEPTED_REFUND"),
-                new KeyValuePair<string, string>("✅ Akceptuję wymianę towaru", "ACCEPTED_EXCHANGE"),
-                new KeyValuePair<string, string>("💰 Akceptuję częściowy zwrot", "ACCEPTED_PARTIAL_REFUND"),
-                new KeyValuePair<string, string>("❌ Odrzucam – brak spełnionych wymagań", "REJECTED_ADDITIONAL_REQUIREMENTS_NOT_COMPLETED"),
-                new KeyValuePair<string, string>("❌ Odrzucam – klient nie zwrócił towaru", "REJECTED_PRODUCT_NOT_RETURNED"),
-                new KeyValuePair<string, string>("❌ Odrzucam – uszkodzone przez klienta", "REJECTED_PRODUCT_DAMAGED_BY_USER"),
-                new KeyValuePair<string, string>("❌ Odrzucam – produkt zgodny z umową", "REJECTED_PRODUCT_CONFORMS_TO_CONTRACT"),
-                new KeyValuePair<string, string>("❌ Odrzucam – drobna wada", "REJECTED_MINOR_DEFECT"),
-                new KeyValuePair<string, string>("❌ Odrzucam – inny powód", "REJECTED_OTHER")
-            };
-
-            cbClaimStatus.DisplayMember = "Key";
-            cbClaimStatus.ValueMember = "Value";
-            cbClaimStatus.DataSource = statuses;
-            cbClaimStatus.SelectedIndex = 0;
-
-            cbPartialRefundCurrency.Items.Clear();
-            cbPartialRefundCurrency.Items.AddRange(new[] { "PLN", "EUR", "USD" });
-            cbPartialRefundCurrency.SelectedIndex = 0;
-        }
-
-        private void cbClaimStatus_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            bool isPartial = string.Equals(
-                cbClaimStatus.SelectedValue != null ? cbClaimStatus.SelectedValue.ToString() : null,
-                "ACCEPTED_PARTIAL_REFUND",
-                StringComparison.OrdinalIgnoreCase);
-
-            pnlPartialRefund.Visible = isPartial;
-        }
-
+        // 1. Tłumaczenie statusów (API -> UI)
         private (string translated, Color color) TranslateStatus(string status)
         {
             var map = new Dictionary<string, (string, Color)>
@@ -772,34 +559,37 @@ namespace Reklamacje_Dane
                 { "CLAIM_ACCEPTED", ("✅ Zaakceptowana", SUCCESS_COLOR) },
                 { "CLAIM_REJECTED", ("❌ Odrzucona", DANGER_COLOR) }
             };
+
             if (string.IsNullOrEmpty(status)) return ("—", Color.Gray);
             return map.TryGetValue(status, out var result) ? result : (status, Color.Gray);
         }
 
-        private static bool IsDecisionStillAllowed(DateTime openedUtc)
+        // 2. Oznaczanie jako przeczytane
+        private async Task MarkIssueAsRead()
         {
-            var decisionDueUtc = openedUtc.AddDays(3);
-            var nowLocal = DateTime.Now;
-            var dueLocal = decisionDueUtc.ToLocalTime();
-
-            if (nowLocal <= dueLocal) return true;
-            if (nowLocal.Date == dueLocal.Date) return true;
-            return false;
+            try
+            {
+                using (var con = DatabaseHelper.GetConnection())
+                {
+                    await con.OpenAsync();
+                    var cmd = new MySqlCommand("UPDATE allegrodisputes SET HasNewMessages = 0 WHERE DisputeId = @id", con);
+                    cmd.Parameters.AddWithValue("@id", _issueId);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Allegro] Błąd oznaczania jako przeczytane: {ex.Message}");
+            }
         }
 
-        private bool IsImage(string fileName)
-        {
-            if (string.IsNullOrEmpty(fileName)) return false;
-            var extension = Path.GetExtension(fileName).ToLowerInvariant();
-            return new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif" }.Contains(extension);
-        }
-
+        // 3. Pobieranie konta Allegro dla dyskusji
         private async Task<AllegroFullAccount> GetAccountForIssueAsync(string disputeId)
         {
             const string byIssueSql = @"
                 SELECT aa.Id, aa.ClientId, aa.ClientSecretEncrypted
                 FROM AllegroAccounts aa
-                JOIN AllegroDisputes ad ON ad.AllegroAccountId = aa.Id
+                JOIN allegrodisputes ad ON ad.AllegroAccountId = aa.Id
                 WHERE ad.DisputeId = @id
                 LIMIT 1";
 
@@ -816,22 +606,16 @@ namespace Reklamacje_Dane
                             return new AllegroFullAccount
                             {
                                 Id = Convert.ToInt32(rd["Id"]),
-                                ClientId = rd["ClientId"] != DBNull.Value ? rd["ClientId"].ToString() : null,
-                                ClientSecret = EncryptionHelper.DecryptString(
-                                    rd["ClientSecretEncrypted"] != DBNull.Value ? rd["ClientSecretEncrypted"].ToString() : string.Empty)
+                                ClientId = rd["ClientId"]?.ToString(),
+                                ClientSecret = EncryptionHelper.DecryptString(rd["ClientSecretEncrypted"]?.ToString())
                             };
                         }
                     }
                 }
             }
 
-            // Fallback to default account
-            const string byDefaultSql = @"
-                SELECT Id, ClientId, ClientSecretEncrypted
-                FROM AllegroAccounts
-                WHERE IsDefault = '1'
-                LIMIT 1";
-
+            // Fallback: Konto domyślne
+            const string byDefaultSql = "SELECT Id, ClientId, ClientSecretEncrypted FROM AllegroAccounts WHERE IsDefault = '1' LIMIT 1";
             using (var con2 = DatabaseHelper.GetConnection())
             {
                 await con2.OpenAsync();
@@ -843,70 +627,48 @@ namespace Reklamacje_Dane
                         return new AllegroFullAccount
                         {
                             Id = Convert.ToInt32(rd2["Id"]),
-                            ClientId = rd2["ClientId"] != DBNull.Value ? rd2["ClientId"].ToString() : null,
-                            ClientSecret = EncryptionHelper.DecryptString(
-                                rd2["ClientSecretEncrypted"] != DBNull.Value ? rd2["ClientSecretEncrypted"].ToString() : string.Empty)
+                            ClientId = rd2["ClientId"]?.ToString(),
+                            ClientSecret = EncryptionHelper.DecryptString(rd2["ClientSecretEncrypted"]?.ToString())
                         };
                     }
                 }
             }
-
             return null;
         }
 
+        // 4. Pobieranie konta po ID
         private async Task<AllegroFullAccount> GetAccountByIdAsync(int accountId)
         {
-            const string sql = @"SELECT Id, ClientId, ClientSecretEncrypted FROM AllegroAccounts WHERE Id = @id LIMIT 1";
             using (var con = DatabaseHelper.GetConnection())
             {
                 await con.OpenAsync();
-                using (var cmd = new MySqlCommand(sql, con))
+                var cmd = new MySqlCommand("SELECT Id, ClientId, ClientSecretEncrypted FROM AllegroAccounts WHERE Id = @id LIMIT 1", con);
+                cmd.Parameters.AddWithValue("@id", accountId);
+                using (var r = await cmd.ExecuteReaderAsync())
                 {
-                    cmd.Parameters.AddWithValue("@id", accountId);
-                    using (var rd = await cmd.ExecuteReaderAsync())
+                    if (await r.ReadAsync())
                     {
-                        if (await rd.ReadAsync())
+                        return new AllegroFullAccount
                         {
-                            return new AllegroFullAccount
-                            {
-                                Id = Convert.ToInt32(rd["Id"]),
-                                ClientId = rd["ClientId"] != DBNull.Value ? rd["ClientId"].ToString() : null,
-                                ClientSecret = EncryptionHelper.DecryptString(
-                                    rd["ClientSecretEncrypted"] != DBNull.Value ? rd["ClientSecretEncrypted"].ToString() : string.Empty)
-                            };
-                        }
+                            Id = Convert.ToInt32(r["Id"]),
+                            ClientId = r["ClientId"]?.ToString(),
+                            ClientSecret = EncryptionHelper.DecryptString(r["ClientSecretEncrypted"]?.ToString())
+                        };
                     }
                 }
             }
             return null;
         }
 
-        private async Task MarkIssueAsRead()
-        {
-            try
-            {
-                using (var con = DatabaseHelper.GetConnection())
-                {
-                    await con.OpenAsync();
-                    var cmd = new MySqlCommand("UPDATE AllegroDisputes SET HasNewMessages = 0 WHERE DisputeId = @id", con);
-                    cmd.Parameters.AddWithValue("@id", _issueId);
-                    await cmd.ExecuteNonQueryAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Allegro] Nie udało się oznaczyć wiadomości jako przeczytane: {ex.Message}");
-            }
-        }
-
-        private string GetCheckoutFormIdFromDb(string disputeId)
+        // 5. Pobieranie OrderId
+        private string GetOrderIdFromDb(string disputeId)
         {
             try
             {
                 using (var con = DatabaseHelper.GetConnection())
                 {
                     con.Open();
-                    using (var cmd = new MySqlCommand("SELECT CheckoutFormId FROM AllegroDisputes WHERE DisputeId=@id LIMIT 1", con))
+                    using (var cmd = new MySqlCommand("SELECT OrderId FROM allegrodisputes WHERE DisputeId=@id LIMIT 1", con))
                     {
                         cmd.Parameters.AddWithValue("@id", disputeId);
                         var obj = cmd.ExecuteScalar();
@@ -917,11 +679,35 @@ namespace Reklamacje_Dane
             catch { return null; }
         }
 
-        #endregion
+        // 6. Inne pomocnicze
+        private void SetupPlaceholder(TextBox txt, string placeholder)
+        {
+            txt.ForeColor = Color.Gray;
+            txt.Text = placeholder;
+            txt.Enter += (s, e) => { if (txt.Text == placeholder) { txt.Text = ""; txt.ForeColor = Color.Black; } };
+            txt.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txt.Text)) { txt.Text = placeholder; txt.ForeColor = Color.Gray; } };
+        }
 
-        #region UI Helpers
+        public static void EnableDoubleBuffering(Control control)
+        {
+            try { typeof(Control).InvokeMember("DoubleBuffered", BindingFlags.SetProperty | BindingFlags.Instance | BindingFlags.NonPublic, null, control, new object[] { true }); } catch { }
+        }
 
-        private Panel _loadingOverlay;
+        private void StyleButton(Button btn, Color bgColor)
+        {
+            btn.FlatStyle = FlatStyle.Flat; btn.FlatAppearance.BorderSize = 0;
+            btn.BackColor = bgColor; btn.ForeColor = Color.White;
+            btn.Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold);
+            btn.Cursor = Cursors.Hand;
+            btn.MouseEnter += (s, e) => btn.BackColor = ControlPaint.Light(bgColor, 0.1f);
+            btn.MouseLeave += (s, e) => btn.BackColor = bgColor;
+        }
+
+        private void StyleGroupBox(GroupBox gb)
+        {
+            gb.Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold);
+            gb.ForeColor = Color.FromArgb(50, 50, 50);
+        }
 
         private void ShowLoadingOverlay(bool show, string message = "Ładowanie...")
         {
@@ -929,127 +715,84 @@ namespace Reklamacje_Dane
             {
                 if (_loadingOverlay == null)
                 {
-                    _loadingOverlay = new Panel
-                    {
-                        Dock = DockStyle.Fill,
-                        BackColor = Color.FromArgb(200, 0, 0, 0),
-                        Name = "loadingOverlay"
-                    };
+                    _loadingOverlay = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(200, 0, 0, 0) };
+                    EnableDoubleBuffering(_loadingOverlay);
+                    var lbl = new Label { Text = "⏳ " + message, Font = new Font("Segoe UI", 16F, FontStyle.Bold), ForeColor = Color.White, AutoSize = true };
+                    _loadingOverlay.Controls.Add(lbl);
 
-                    var spinner = new Label
-                    {
-                        Text = "⏳ " + message,
-                        Font = new Font("Segoe UI", 16F, FontStyle.Bold),
-                        ForeColor = Color.White,
-                        AutoSize = true,
-                        BackColor = Color.Transparent
-                    };
-
-                    _loadingOverlay.Controls.Add(spinner);
-                    spinner.Location = new Point(
-                        (_loadingOverlay.Width - spinner.Width) / 2,
-                        (_loadingOverlay.Height - spinner.Height) / 2
-                    );
-
+                    // Centrowanie przy zmianie rozmiaru
                     _loadingOverlay.Resize += (s, e) => {
-                        spinner.Location = new Point(
-                            (_loadingOverlay.Width - spinner.Width) / 2,
-                            (_loadingOverlay.Height - spinner.Height) / 2
-                        );
+                        lbl.Location = new Point((_loadingOverlay.Width - lbl.Width) / 2, (_loadingOverlay.Height - lbl.Height) / 2);
                     };
                 }
 
-                if (!this.Controls.Contains(_loadingOverlay))
+                // Aktualizuj tekst i pozycję
+                var label = (Label)_loadingOverlay.Controls[0];
+                label.Text = "⏳ " + message;
+                label.Location = new Point((_loadingOverlay.Width - label.Width) / 2, (_loadingOverlay.Height - label.Height) / 2);
+
+                if (!Controls.Contains(_loadingOverlay))
                 {
-                    this.Controls.Add(_loadingOverlay);
+                    Controls.Add(_loadingOverlay);
                     _loadingOverlay.BringToFront();
                 }
             }
             else
             {
-                if (_loadingOverlay != null && this.Controls.Contains(_loadingOverlay))
-                {
-                    this.Controls.Remove(_loadingOverlay);
-                }
+                if (_loadingOverlay != null && Controls.Contains(_loadingOverlay)) Controls.Remove(_loadingOverlay);
             }
         }
 
         private void HandleApiError(Exception ex, string action)
         {
-            string msg = $"Błąd podczas {action}:\n\n{ex.Message}";
-            if (ex is HttpRequestException httpEx && httpEx.Data["ResponseContent"] != null)
-            {
-                msg += "\n\nOdpowiedź z serwera:\n" + httpEx.Data["ResponseContent"];
-            }
+            string msg = $"Błąd podczas {action}:\n{ex.Message}";
             ShowError(msg, "Błąd API");
         }
 
-        private void ShowError(string message, string title = "Błąd")
+        private void ShowError(string msg, string title) => MessageBox.Show(msg, title, MessageBoxButtons.OK, MessageBoxIcon.Error);
+        private void ShowWarning(string msg, string title) => MessageBox.Show(msg, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        private void ShowSuccess(string msg) => MessageBox.Show(msg, "Sukces", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        private void ShowInfo(string msg, string title) => MessageBox.Show(msg, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+        private void EnableSpellCheckOnAllTextBoxes()
         {
-            MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            foreach (Control c in GetAllControls(this)) if (c is RichTextBox r) r.EnableSpellCheck(true);
         }
 
-        private void ShowWarning(string message, string title = "Ostrzeżenie")
+        private IEnumerable<Control> GetAllControls(Control container)
         {
-            MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            foreach (Control c in container.Controls) { yield return c; if (c.HasChildren) foreach (Control child in GetAllControls(c)) yield return child; }
         }
 
-        private void ShowSuccess(string message, string title = "Sukces")
+        private bool IsImage(string f) => new[] { ".jpg", ".png", ".jpeg", ".bmp", ".gif" }.Contains(Path.GetExtension(f).ToLower());
+
+        private static bool IsDecisionStillAllowed(DateTime d) => DateTime.Now <= d.AddDays(3);
+
+        private void PopulateStatusComboBox()
         {
-            MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            cbClaimStatus.DataSource = new BindingSource(new Dictionary<string, string> {
+                { "Wybierz...", "" },
+                { "✅ Akceptuj naprawę", "ACCEPTED_REPAIR" },
+                { "✅ Akceptuj zwrot", "ACCEPTED_REFUND" },
+                { "✅ Akceptuj wymianę", "ACCEPTED_EXCHANGE" },
+                { "💰 Częściowy zwrot", "ACCEPTED_PARTIAL_REFUND" },
+                { "❌ Odrzuć (Brak zwrotu)", "REJECTED_PRODUCT_NOT_RETURNED" },
+                { "❌ Odrzuć (Uszkodzenie)", "REJECTED_PRODUCT_DAMAGED_BY_USER" },
+                { "❌ Odrzuć (Inne)", "REJECTED_OTHER" }
+            }, null);
+            cbClaimStatus.DisplayMember = "Key"; cbClaimStatus.ValueMember = "Value";
+
+            cbPartialRefundCurrency.Items.Clear();
+            cbPartialRefundCurrency.Items.AddRange(new[] { "PLN", "EUR", "USD" });
+            cbPartialRefundCurrency.SelectedIndex = 0;
         }
 
-        private void ShowInfo(string message, string title = "Informacja")
+        private void cbClaimStatus_SelectedIndexChanged(object sender, EventArgs e)
         {
-            MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            pnlPartialRefund.Visible = cbClaimStatus.SelectedValue?.ToString() == "ACCEPTED_PARTIAL_REFUND";
+            ReflowLayout(); // Przelicz układ po zmianie widoczności
         }
 
         #endregion
-    
-        /// <summary>
-        /// Włącza sprawdzanie pisowni po polsku dla wszystkich TextBoxów w formularzu
-        /// </summary>
-        private void EnableSpellCheckOnAllTextBoxes()
-        {
-            try
-            {
-                // Włącz sprawdzanie pisowni dla wszystkich kontrolek typu TextBox i RichTextBox
-                foreach (Control control in GetAllControls(this))
-                {
-                    if (control is RichTextBox richTextBox)
-                    {
-                        richTextBox.EnableSpellCheck(true);
-                    }
-                    else if (control is TextBox textBox && !(textBox is SpellCheckTextBox))
-                    {
-                        // Dla zwykłych TextBoxów - bez podkreślania (bo nie obsługują kolorów)
-                        textBox.EnableSpellCheck(false);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Błąd włączania sprawdzania pisowni: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Rekurencyjnie pobiera wszystkie kontrolki z kontenera
-        /// </summary>
-        private IEnumerable<Control> GetAllControls(Control container)
-        {
-            foreach (Control control in container.Controls)
-            {
-                yield return control;
-
-                if (control.HasChildren)
-                {
-                    foreach (Control child in GetAllControls(control))
-                    {
-                        yield return child;
-                    }
-                }
-            }
-        }
-}
+    }
 }

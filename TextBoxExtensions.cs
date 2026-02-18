@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -18,7 +18,20 @@ namespace Reklamacje_Dane
 
         public static void SetPlaceholder(this TextBox textBox, string placeholder)
         {
-            SendMessage(textBox.Handle, EM_SETCUEBANNER, 0, placeholder);
+            if (textBox.IsHandleCreated)
+            {
+                SendMessage(textBox.Handle, EM_SETCUEBANNER, 0, placeholder);
+                return;
+            }
+
+            void OnHandleCreated(object s, EventArgs e)
+            {
+                textBox.HandleCreated -= OnHandleCreated;
+                if (!textBox.IsDisposed)
+                    SendMessage(textBox.Handle, EM_SETCUEBANNER, 0, placeholder);
+            }
+
+            textBox.HandleCreated += OnHandleCreated;
         }
 
         /// <summary>
@@ -135,7 +148,7 @@ namespace Reklamacje_Dane
 
             if (!SpellCheckConfig.EnableContextMenu)
                 return;
-            
+
             // Znajdź słowo pod kursorem
             int charIndex = textBox.GetCharIndexFromPosition(e.Location);
             if (charIndex < 0 || charIndex >= textBox.Text.Length)
@@ -284,9 +297,9 @@ namespace Reklamacje_Dane
         private static void ReplaceWord(TextBoxBase textBox, int start, int length, string replacement)
         {
             int cursorPosition = textBox.SelectionStart;
-            
+
             textBox.Text = textBox.Text.Remove(start, length).Insert(start, replacement);
-            
+
             // Ustaw kursor po zamienionym słowie
             if (cursorPosition >= start && cursorPosition <= start + length)
             {
