@@ -18,6 +18,13 @@ namespace Reklamacje_Dane
         /// </summary>
         public Action<string> OnProgress { get; set; }
 
+
+        private sealed class DzialaniaAggRow
+        {
+            public string NrZgloszenia { get; set; }
+            public string DzialaniaText { get; set; }
+        }
+
         private void ReportProgress(string msg)
         {
             Debug.WriteLine($"[FastDataService] {msg}");
@@ -33,7 +40,7 @@ namespace Reklamacje_Dane
 
             ReportProgress("Łączenie z bazą...");
 
-            // === JEDNO zapytanie SQL: JOINy + GROUP_CONCAT + SearchVector budowany w bazie ===
+            // === Jedno zapytanie SQL: JOINy + dane zgłoszeń (SearchVector budowany po stronie aplikacji) ===
             var sql = @"
                 SELECT 
                     z.Id, z.NrZgloszenia, z.DataZgloszenia,
@@ -96,63 +103,12 @@ namespace Reklamacje_Dane
                     CAST(NULLIF(NULLIF(z.CzyNotaRozliczona, ''), '-') AS SIGNED) AS CzyNotaRozliczona,
                     COALESCE(z.KwotaZwrotu, '') AS KwotaZwrotu,
 
-                    COALESCE(d_agg.DzialaniaText, '') AS Dzialania,
-
-                    LOWER(CONCAT_WS(' ',
-                        z.NrZgloszenia,
-                        z.DataZgloszenia,
-                        COALESCE(z.StatusOgolny, ''),
-                        COALESCE(z.StatusKlient, ''),
-                        COALESCE(z.StatusProducent, ''),
-                        COALESCE(k.ImieNazwisko, ''),
-                        COALESCE(k.NazwaFirmy, ''),
-                        COALESCE(k.NIP, ''),
-                        COALESCE(k.Ulica, ''),
-                        COALESCE(k.KodPocztowy, ''),
-                        COALESCE(k.Miejscowosc, ''),
-                        COALESCE(k.Email, ''),
-                        COALESCE(k.Telefon, ''),
-                        COALESCE(p.NazwaSystemowa, ''),
-                        COALESCE(p.NazwaKrotka, ''),
-                        COALESCE(p.KodEnova, ''),
-                        COALESCE(p.KodProducenta, ''),
-                        COALESCE(p.Kategoria, ''),
-                        COALESCE(p.Wymagania, ''),
-                        COALESCE(p.Producent, ''),
-                        COALESCE(pr.KontaktMail, ''),
-                        COALESCE(pr.Adres, ''),
-                        COALESCE(z.NrSeryjny, ''),
-                        COALESCE(z.NrFaktury, ''),
-                        COALESCE(z.NrFakturyPrzychodu, ''),
-                        COALESCE(z.NrFakturyKosztowej, ''),
-                        COALESCE(z.Skad, ''),
-                        COALESCE(z.OpisUsterki, ''),
-                        COALESCE(z.Produkt, ''),
-                        COALESCE(z.allegroBuyerLogin, ''),
-                        COALESCE(z.allegroOrderId, ''),
-                        COALESCE(z.allegroDisputeId, ''),
-                        COALESCE(z.AllegroAccountId, ''),
-                        COALESCE(z.GwarancjaPlatna, ''),
-                        COALESCE(z.CzekamyNaDostawe, ''),
-                        COALESCE(z.NrWRL, ''),
-                        COALESCE(z.NrKWZ2, ''),
-                        COALESCE(z.NrRMA, ''),
-                        COALESCE(z.NrKPZN, ''),
-                        COALESCE(z.KwotaZwrotu, ''),
-                        COALESCE(d_agg.DzialaniaText, '')
-                    )) AS SearchVector
+                    COALESCE(z.Dzialania, '') AS Dzialania
 
                 FROM Zgloszenia z
                 LEFT JOIN klienci k ON k.Id = z.KlientID
                 LEFT JOIN Produkty p ON p.Id = z.ProduktID
                 LEFT JOIN Producenci pr ON pr.NazwaProducenta = p.Producent
-                LEFT JOIN (
-                    SELECT NrZgloszenia, 
-                           GROUP_CONCAT(CONCAT(COALESCE(DataDzialania,''), ' ', Tresc) SEPARATOR ' ') AS DzialaniaText
-                    FROM dzialania 
-                    WHERE Tresc IS NOT NULL AND Tresc != ''
-                    GROUP BY NrZgloszenia
-                ) d_agg ON d_agg.NrZgloszenia = z.NrZgloszenia
 
                 ORDER BY z.DataZgloszenia DESC;
             ";
@@ -165,9 +121,6 @@ namespace Reklamacje_Dane
                 {
                     await conn.OpenAsync();
 
-                    // Zwiększ limit GROUP_CONCAT na tej sesji
-                    await conn.ExecuteAsync("SET SESSION group_concat_max_len = 1000000;");
-
                     sw.Stop();
                     ReportProgress($"Połączono ({sw.ElapsedMilliseconds}ms). Wykonywanie zapytania...");
                     sw.Restart();
@@ -176,6 +129,50 @@ namespace Reklamacje_Dane
 
                     sw.Stop();
                     ReportProgress($"SQL: {sw.ElapsedMilliseconds}ms, pobrano {result.Count} zgłoszeń");
+
+                    sw.Restart();
+                    var missingActionNumbers = result
+                        .Where(x => string.IsNullOrWhiteSpace(x.Dzialania) && !string.IsNullOrWhiteSpace(x.NrZgloszenia))
+                        .Select(x => x.NrZgloszenia)
+                        .Distinct()
+                        .ToList();
+
+                    if (missingActionNumbers.Count > 0)
+                    {
+                        var dzialaniaSql = @"
+                            SELECT NrZgloszenia,
+                                   GROUP_CONCAT(CONCAT(COALESCE(DataDzialania,''), ' ', Tresc) SEPARATOR ' ') AS DzialaniaText
+                            FROM dzialania
+                            WHERE Tresc IS NOT NULL
+                              AND Tresc != ''
+                              AND NrZgloszenia IN @NrZgloszenia
+                            GROUP BY NrZgloszenia;";
+
+                        var fallbackMap = (await conn.QueryAsync<DzialaniaAggRow>(dzialaniaSql, new { NrZgloszenia = missingActionNumbers }, commandTimeout: 120))
+                            .Where(x => !string.IsNullOrWhiteSpace(x.NrZgloszenia))
+                            .GroupBy(x => x.NrZgloszenia)
+                            .ToDictionary(g => g.Key, g => g.First().DzialaniaText ?? string.Empty);
+
+                        for (int i = 0; i < result.Count; i++)
+                        {
+                            var row = result[i];
+                            if (!string.IsNullOrWhiteSpace(row.Dzialania) || string.IsNullOrWhiteSpace(row.NrZgloszenia))
+                                continue;
+
+                            if (fallbackMap.TryGetValue(row.NrZgloszenia, out var dzialaniaText))
+                                row.Dzialania = dzialaniaText;
+                        }
+                    }
+                    sw.Stop();
+                    ReportProgress($"Hydracja działań: {sw.ElapsedMilliseconds}ms");
+
+                    sw.Restart();
+                    for (int i = 0; i < result.Count; i++)
+                    {
+                        result[i].BuildSearchVector();
+                    }
+                    sw.Stop();
+                    ReportProgress($"Indeks wyszukiwania: {sw.ElapsedMilliseconds}ms");
 
                     return result;
                 }
