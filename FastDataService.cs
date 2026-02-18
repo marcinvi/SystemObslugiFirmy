@@ -40,7 +40,7 @@ namespace Reklamacje_Dane
 
             ReportProgress("Łączenie z bazą...");
 
-            // === Jedno zapytanie SQL: JOINy + dane zgłoszeń (SearchVector budowany po stronie aplikacji) ===
+            // === Jedno zapytanie SQL: JOINy + GROUP_CONCAT (SearchVector budowany po stronie aplikacji) ===
             var sql = @"
                 SELECT 
                     z.Id, z.NrZgloszenia, z.DataZgloszenia,
@@ -103,7 +103,7 @@ namespace Reklamacje_Dane
                     CAST(NULLIF(NULLIF(z.CzyNotaRozliczona, ''), '-') AS SIGNED) AS CzyNotaRozliczona,
                     COALESCE(z.KwotaZwrotu, '') AS KwotaZwrotu,
 
-                    COALESCE(z.Dzialania, '') AS Dzialania
+                    COALESCE(d_agg.DzialaniaText, '') AS Dzialania
 
                 FROM Zgloszenia z
                 LEFT JOIN klienci k ON k.Id = z.KlientID
@@ -129,42 +129,6 @@ namespace Reklamacje_Dane
 
                     sw.Stop();
                     ReportProgress($"SQL: {sw.ElapsedMilliseconds}ms, pobrano {result.Count} zgłoszeń");
-
-                    sw.Restart();
-                    var missingActionNumbers = result
-                        .Where(x => string.IsNullOrWhiteSpace(x.Dzialania) && !string.IsNullOrWhiteSpace(x.NrZgloszenia))
-                        .Select(x => x.NrZgloszenia)
-                        .Distinct()
-                        .ToList();
-
-                    if (missingActionNumbers.Count > 0)
-                    {
-                        var dzialaniaSql = @"
-                            SELECT NrZgloszenia,
-                                   GROUP_CONCAT(CONCAT(COALESCE(DataDzialania,''), ' ', Tresc) SEPARATOR ' ') AS DzialaniaText
-                            FROM dzialania
-                            WHERE Tresc IS NOT NULL
-                              AND Tresc != ''
-                              AND NrZgloszenia IN @NrZgloszenia
-                            GROUP BY NrZgloszenia;";
-
-                        var fallbackMap = (await conn.QueryAsync<DzialaniaAggRow>(dzialaniaSql, new { NrZgloszenia = missingActionNumbers }, commandTimeout: 120))
-                            .Where(x => !string.IsNullOrWhiteSpace(x.NrZgloszenia))
-                            .GroupBy(x => x.NrZgloszenia)
-                            .ToDictionary(g => g.Key, g => g.First().DzialaniaText ?? string.Empty);
-
-                        for (int i = 0; i < result.Count; i++)
-                        {
-                            var row = result[i];
-                            if (!string.IsNullOrWhiteSpace(row.Dzialania) || string.IsNullOrWhiteSpace(row.NrZgloszenia))
-                                continue;
-
-                            if (fallbackMap.TryGetValue(row.NrZgloszenia, out var dzialaniaText))
-                                row.Dzialania = dzialaniaText;
-                        }
-                    }
-                    sw.Stop();
-                    ReportProgress($"Hydracja działań: {sw.ElapsedMilliseconds}ms");
 
                     sw.Restart();
                     for (int i = 0; i < result.Count; i++)
