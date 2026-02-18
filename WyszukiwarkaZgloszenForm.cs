@@ -840,18 +840,18 @@ namespace Reklamacje_Dane
             return result.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
         }
 
-        internal enum TokenType { Term, AND, OR, NOT }
-        internal class Token { internal TokenType Type; internal string Value; }
+        private enum TokenType { Term, AND, OR, NOT }
+        private class Token { public TokenType Type; public string Value; }
 
         internal sealed class CompiledQuery
         {
             public static readonly CompiledQuery Empty = new CompiledQuery(new List<Token>(), false);
 
             public bool IsEmpty => Tokens.Count == 0;
-            private List<Token> Tokens { get; }
+            internal List<Token> Tokens { get; }
             public bool HasOr { get; }
 
-            private CompiledQuery(List<Token> tokens, bool hasOr)
+            internal CompiledQuery(List<Token> tokens, bool hasOr)
             {
                 Tokens = tokens ?? new List<Token>();
                 HasOr = hasOr;
