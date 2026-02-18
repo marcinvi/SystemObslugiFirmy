@@ -28,6 +28,7 @@ namespace Reklamacje_Dane
 
         private readonly Dictionary<string, Control> _columnFilters = new Dictionary<string, Control>();
         private Dictionary<string, List<string>> _multiSelectFilters = new Dictionary<string, List<string>>();
+        private readonly Dictionary<string, Func<ComplaintViewModel, object>> _propertyAccessors = new Dictionary<string, Func<ComplaintViewModel, object>>(StringComparer.Ordinal);
 
         private readonly Timer _searchDebounceTimer = new Timer();
         private string _currentSortColumn;
@@ -94,6 +95,7 @@ namespace Reklamacje_Dane
         {
             this.DoubleBuffered = true;
             InitializeComponentManual(); // Zamiast SetupUI w konstruktorze
+            BuildPropertyAccessorCache();
 
             // Fix na ładowanie UI: Używamy OnLoad zamiast Shown, czasem jest stabilniejsze dla layoutu
             this.Load += async (s, e) => await LoadDataAsync();
@@ -316,6 +318,16 @@ namespace Reklamacje_Dane
             BuildColumnFilters();
         }
 
+        private void BuildPropertyAccessorCache()
+        {
+            _propertyAccessors.Clear();
+            var properties = typeof(ComplaintViewModel).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            foreach (var property in properties)
+            {
+                _propertyAccessors[property.Name] = item => property.GetValue(item, null);
+            }
+        }
+
         private void BuildColumnFilters()
         {
             // Zatrzymujemy layout panelu filtrów na czas budowania
@@ -451,43 +463,59 @@ namespace Reklamacje_Dane
             // Zabezpieczenie przed migotaniem podczas filtrowania
             _grid.SuspendLayout();
 
-            var query = _txtSearch.Text;
+            var queryPlan = SearchEngine.Compile(_txtSearch.Text);
 
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                _filteredData = _allData;
-            }
-            else
-            {
-                _filteredData = _allData.Where(c => SearchEngine.Match(c.SearchVector, query)).ToList();
-            }
-
+            var textFilters = new List<Tuple<Func<ComplaintViewModel, object>, string>>();
             foreach (var kvp in _columnFilters)
             {
-                if (kvp.Value is TextBox tb && !string.IsNullOrWhiteSpace(tb.Text))
-                {
-                    var term = tb.Text.Trim().ToLower();
-                    _filteredData = _filteredData.Where(item => ColumnMatches(item, kvp.Key, term)).ToList();
-                }
+                if (!(kvp.Value is TextBox tb) || string.IsNullOrWhiteSpace(tb.Text)) continue;
+                if (!_propertyAccessors.TryGetValue(kvp.Key, out var getter)) continue;
+                textFilters.Add(Tuple.Create(getter, tb.Text.Trim()));
             }
 
+            var multiFilters = new List<Tuple<Func<ComplaintViewModel, object>, HashSet<string>>>();
             foreach (var kvp in _multiSelectFilters)
             {
-                if (kvp.Value != null && kvp.Value.Count > 0)
-                {
-                    var prop = typeof(ComplaintViewModel).GetProperty(kvp.Key);
-                    if (prop != null)
-                    {
-                        _filteredData = _filteredData.Where(item =>
-                        {
-                            var val = prop.GetValue(item)?.ToString() ?? "";
-                            return kvp.Value.Contains(val);
-                        }).ToList();
-                    }
-                }
+                if (kvp.Value == null || kvp.Value.Count == 0) continue;
+                if (!_propertyAccessors.TryGetValue(kvp.Key, out var getter)) continue;
+                multiFilters.Add(Tuple.Create(getter, new HashSet<string>(kvp.Value, StringComparer.Ordinal)));
             }
 
-            _grid.DataSource = null;
+            var filtered = new List<ComplaintViewModel>(_allData.Count);
+
+            foreach (var item in _allData)
+            {
+                if (!SearchEngine.Match(item.SearchVector, queryPlan)) continue;
+
+                bool pass = true;
+
+                for (int i = 0; i < textFilters.Count; i++)
+                {
+                    var value = textFilters[i].Item1(item)?.ToString() ?? string.Empty;
+                    if (value.IndexOf(textFilters[i].Item2, StringComparison.OrdinalIgnoreCase) < 0)
+                    {
+                        pass = false;
+                        break;
+                    }
+                }
+
+                if (!pass) continue;
+
+                for (int i = 0; i < multiFilters.Count; i++)
+                {
+                    var value = multiFilters[i].Item1(item)?.ToString() ?? string.Empty;
+                    if (!multiFilters[i].Item2.Contains(value))
+                    {
+                        pass = false;
+                        break;
+                    }
+                }
+
+                if (pass) filtered.Add(item);
+            }
+
+            _filteredData = filtered;
+
             _grid.DataSource = _filteredData;
 
             _grid.ResumeLayout();
@@ -497,11 +525,10 @@ namespace Reklamacje_Dane
 
         private void ShowMultiSelectFilter(string propertyName, Button senderBtn)
         {
-            var prop = typeof(ComplaintViewModel).GetProperty(propertyName);
-            if (prop == null) return;
+            if (!_propertyAccessors.TryGetValue(propertyName, out var getter)) return;
 
             var uniqueValues = _allData
-                .Select(item => prop.GetValue(item)?.ToString() ?? "")
+                .Select(item => getter(item)?.ToString() ?? "")
                 .Where(val => !string.IsNullOrEmpty(val))
                 .Distinct()
                 .OrderBy(val => val)
@@ -547,8 +574,8 @@ namespace Reklamacje_Dane
             Func<ComplaintViewModel, object> selector = item =>
             {
                 if (propertyName == "NrZgloszenia") return ParseNrZgloszenia(item?.NrZgloszenia);
-                var prop = item?.GetType().GetProperty(propertyName);
-                return prop?.GetValue(item);
+                if (_propertyAccessors.TryGetValue(propertyName, out var getter)) return getter(item);
+                return null;
             };
 
             _filteredData = _sortAscending
@@ -566,14 +593,6 @@ namespace Reklamacje_Dane
             int.TryParse(parts[0], out int przed);
             int.TryParse(parts[1], out int po);
             return Tuple.Create(po, przed);
-        }
-
-        private bool ColumnMatches(ComplaintViewModel item, string propertyName, string term)
-        {
-            var prop = item.GetType().GetProperty(propertyName);
-            if (prop == null) return false;
-            var val = prop.GetValue(item)?.ToString() ?? "";
-            return val.ToLower().Contains(term);
         }
 
         private void ShowColumnSelector(object sender, EventArgs e)
@@ -634,9 +653,24 @@ namespace Reklamacje_Dane
                 this.Invoke(new Action(() => ShowLoading(show)));
                 return;
             }
+
             _loadingOverlay.Visible = show;
-            if (show) _loadingOverlay.BringToFront();
-            Application.DoEvents();
+
+            if (show)
+            {
+                _loadingOverlay.BringToFront();
+                _loadingOverlay.Refresh();
+            }
+            else
+            {
+                _loadingOverlay.SendToBack();
+
+                // Wymuszenie pełnego odrysowania po schowaniu overlay'a.
+                // Bez tego po pierwszym ładowaniu zdarza się, że textboxy/przyciski
+                // są aktywne, ale nie są widoczne do czasu kliknięcia.
+                this.Invalidate(true);
+                this.Update();
+            }
         }
 
         private void ExportToExcel()
@@ -729,10 +763,26 @@ namespace Reklamacje_Dane
     {
         public static bool Match(string searchVector, string query)
         {
-            if (string.IsNullOrWhiteSpace(query)) return true;
-            searchVector = searchVector.ToLower();
-            var tokens = ParseQuery(query.ToLower());
-            bool hasOrOperator = tokens.Any(t => t.Type == TokenType.OR);
+            return Match(searchVector, Compile(query));
+        }
+
+        internal static CompiledQuery Compile(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query)) return CompiledQuery.Empty;
+
+            var normalized = query.ToLowerInvariant();
+            var tokens = ParseQuery(normalized);
+            return new CompiledQuery(tokens, tokens.Any(t => t.Type == TokenType.OR));
+        }
+
+        internal static bool Match(string searchVector, CompiledQuery compiled)
+        {
+            if (compiled == null || compiled.IsEmpty) return true;
+            if (string.IsNullOrEmpty(searchVector)) return false;
+
+            searchVector = searchVector.ToLowerInvariant();
+            var tokens = compiled.Tokens;
+            bool hasOrOperator = compiled.HasOr;
 
             if (hasOrOperator)
             {
@@ -792,5 +842,20 @@ namespace Reklamacje_Dane
 
         private enum TokenType { Term, AND, OR, NOT }
         private class Token { public TokenType Type; public string Value; }
+
+        internal sealed class CompiledQuery
+        {
+            public static readonly CompiledQuery Empty = new CompiledQuery(new List<Token>(), false);
+
+            public bool IsEmpty => Tokens.Count == 0;
+            internal List<Token> Tokens { get; }
+            public bool HasOr { get; }
+
+            internal CompiledQuery(List<Token> tokens, bool hasOr)
+            {
+                Tokens = tokens ?? new List<Token>();
+                HasOr = hasOr;
+            }
+        }
     }
 }
