@@ -33,7 +33,7 @@ namespace Reklamacje_Dane
 
             ReportProgress("Łączenie z bazą...");
 
-            // === JEDNO zapytanie SQL: JOINy + GROUP_CONCAT + SearchVector budowany w bazie ===
+            // === Jedno zapytanie SQL: JOINy + GROUP_CONCAT (SearchVector budowany po stronie aplikacji) ===
             var sql = @"
                 SELECT 
                     z.Id, z.NrZgloszenia, z.DataZgloszenia,
@@ -96,51 +96,7 @@ namespace Reklamacje_Dane
                     CAST(NULLIF(NULLIF(z.CzyNotaRozliczona, ''), '-') AS SIGNED) AS CzyNotaRozliczona,
                     COALESCE(z.KwotaZwrotu, '') AS KwotaZwrotu,
 
-                    COALESCE(d_agg.DzialaniaText, '') AS Dzialania,
-
-                    LOWER(CONCAT_WS(' ',
-                        z.NrZgloszenia,
-                        z.DataZgloszenia,
-                        COALESCE(z.StatusOgolny, ''),
-                        COALESCE(z.StatusKlient, ''),
-                        COALESCE(z.StatusProducent, ''),
-                        COALESCE(k.ImieNazwisko, ''),
-                        COALESCE(k.NazwaFirmy, ''),
-                        COALESCE(k.NIP, ''),
-                        COALESCE(k.Ulica, ''),
-                        COALESCE(k.KodPocztowy, ''),
-                        COALESCE(k.Miejscowosc, ''),
-                        COALESCE(k.Email, ''),
-                        COALESCE(k.Telefon, ''),
-                        COALESCE(p.NazwaSystemowa, ''),
-                        COALESCE(p.NazwaKrotka, ''),
-                        COALESCE(p.KodEnova, ''),
-                        COALESCE(p.KodProducenta, ''),
-                        COALESCE(p.Kategoria, ''),
-                        COALESCE(p.Wymagania, ''),
-                        COALESCE(p.Producent, ''),
-                        COALESCE(pr.KontaktMail, ''),
-                        COALESCE(pr.Adres, ''),
-                        COALESCE(z.NrSeryjny, ''),
-                        COALESCE(z.NrFaktury, ''),
-                        COALESCE(z.NrFakturyPrzychodu, ''),
-                        COALESCE(z.NrFakturyKosztowej, ''),
-                        COALESCE(z.Skad, ''),
-                        COALESCE(z.OpisUsterki, ''),
-                        COALESCE(z.Produkt, ''),
-                        COALESCE(z.allegroBuyerLogin, ''),
-                        COALESCE(z.allegroOrderId, ''),
-                        COALESCE(z.allegroDisputeId, ''),
-                        COALESCE(z.AllegroAccountId, ''),
-                        COALESCE(z.GwarancjaPlatna, ''),
-                        COALESCE(z.CzekamyNaDostawe, ''),
-                        COALESCE(z.NrWRL, ''),
-                        COALESCE(z.NrKWZ2, ''),
-                        COALESCE(z.NrRMA, ''),
-                        COALESCE(z.NrKPZN, ''),
-                        COALESCE(z.KwotaZwrotu, ''),
-                        COALESCE(d_agg.DzialaniaText, '')
-                    )) AS SearchVector
+                    COALESCE(d_agg.DzialaniaText, '') AS Dzialania
 
                 FROM Zgloszenia z
                 LEFT JOIN klienci k ON k.Id = z.KlientID
@@ -176,6 +132,14 @@ namespace Reklamacje_Dane
 
                     sw.Stop();
                     ReportProgress($"SQL: {sw.ElapsedMilliseconds}ms, pobrano {result.Count} zgłoszeń");
+
+                    sw.Restart();
+                    for (int i = 0; i < result.Count; i++)
+                    {
+                        result[i].BuildSearchVector();
+                    }
+                    sw.Stop();
+                    ReportProgress($"Indeks wyszukiwania: {sw.ElapsedMilliseconds}ms");
 
                     return result;
                 }
