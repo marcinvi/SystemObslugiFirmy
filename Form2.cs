@@ -40,6 +40,7 @@ namespace Reklamacje_Dane
         private readonly DatabaseService _dbService = new DatabaseService(DatabaseHelper.GetConnectionString());
         private readonly ContactRepository _repo = new ContactRepository();
         private readonly ContextMenuStrip _quickActionsMenu = new ContextMenuStrip();
+        private readonly ToolTip _phoneToolTip = new ToolTip();
         private Button _btnFetchPart;
         private Button _btnRefreshData;
 
@@ -337,7 +338,7 @@ namespace Reklamacje_Dane
                     lbl.ForeColor = Color.RoyalBlue;
                     lbl.Click -= LblPhone_Click;
                     lbl.Click += LblPhone_Click;
-                    new ToolTip().SetToolTip(lbl, "Kliknij, aby zadzwonić");
+                    _phoneToolTip.SetToolTip(lbl, "Kliknij, aby zadzwonić");
                 }
                 if (c.HasChildren) AttachClickRecursive(c);
             }
