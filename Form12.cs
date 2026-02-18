@@ -207,7 +207,7 @@ namespace Reklamacje_Dane
                 }
             }
 
-            int? nowySNDoZapisu = null;
+            string nowySNDoZapisu = null;
             string logWymianySN = null;
 
             // Scenariusz: wymiana produktu z numerem seryjnym -> wymagaj nowego SN
@@ -239,13 +239,15 @@ namespace Reklamacje_Dane
                                         return;
                                     }
 
-                                    if (!int.TryParse(nowySNText, out var nowySNInt))
+                                    if (string.IsNullOrWhiteSpace(nowySNText))
                                     {
-                                        MessageBox.Show("Kolumna NowySN ma typ INT - wpisz numer SN jako liczbę.", "Nieprawidłowy format", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                        MessageBox.Show("Dla produktu z SN musisz podać nowy numer seryjny.",
+                                            "Wymagane dane", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                                         return;
                                     }
 
-                                    nowySNDoZapisu = nowySNInt;
+                                    nowySNDoZapisu = nowySNText;
+
                                     logWymianySN = $"Wymieniono produkt z Numeru Seryjnego: {starySN} na {nowySNText}";
                                 }
                             }
