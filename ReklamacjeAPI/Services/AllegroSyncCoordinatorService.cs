@@ -265,8 +265,8 @@ public class AllegroSyncCoordinatorService
                     // Zapisz wiadomości czatu
                     if (chatMessages != null && chatMessages.Count > 0)
                     {
-                        await SaveChatMessagesAsync(conn, issue.Id, chatMessages);
-                        await UpdateLastMessageCountAsync(conn, issue.Id, chatMessages.Count);
+                        var insertedMessages = await SaveChatMessagesAsync(conn, issue.Id, chatMessages);
+                        await UpdateLastMessageCountAsync(conn, issue.Id, chatMessages.Count, insertedMessages > 0);
                         chatsSynced++;
                     }
 
@@ -318,8 +318,8 @@ public class AllegroSyncCoordinatorService
 
                             if (chatMessages != null && chatMessages.Count > 0)
                             {
-                                await SaveChatMessagesAsync(conn, issue.Id, chatMessages);
-                                await UpdateLastMessageCountAsync(conn, issue.Id, chatMessages.Count);
+                                var insertedMessages = await SaveChatMessagesAsync(conn, issue.Id, chatMessages);
+                                await UpdateLastMessageCountAsync(conn, issue.Id, chatMessages.Count, insertedMessages > 0);
                                 chatsSynced++;
                             }
                         }
@@ -690,11 +690,13 @@ WHERE DisputeId = @DisputeId";
     // =========================================================================
     // ZAPIS WIADOMOŚCI CZATU — INSERT IGNORE (idempotentne)
     // =========================================================================
-    private async Task SaveChatMessagesAsync(
+    private async Task<int> SaveChatMessagesAsync(
         MySqlConnection conn,
         string disputeId,
         List<AllegroApiClient.AllegroIssueChatMessageDto> messages)
     {
+        var insertedMessages = 0;
+
         foreach (var msg in messages)
         {
             if (string.IsNullOrWhiteSpace(msg.Id))
@@ -719,7 +721,11 @@ VALUES
                 cmd.Parameters.AddWithValue("@HasAttachments", msg.Attachments.Count > 0 ? 1 : 0);
                 cmd.Parameters.AddWithValue("@JsonDetails", (object?)msg.RawJson ?? DBNull.Value);
 
-                await cmd.ExecuteNonQueryAsync();
+                var affectedRows = await cmd.ExecuteNonQueryAsync();
+                if (affectedRows > 0)
+                {
+                    insertedMessages++;
+                }
 
                 // Zapisz załączniki
                 if (msg.Attachments.Count > 0)
@@ -736,6 +742,8 @@ VALUES
                     msg.Id, disputeId);
             }
         }
+
+        return insertedMessages;
     }
 
     // =========================================================================
@@ -842,16 +850,17 @@ VALUES
     // UPDATE LastMessageCount PO POBRANIU CZATU
     // =========================================================================
     private static async Task UpdateLastMessageCountAsync(
-        MySqlConnection conn, string disputeId, int messageCount)
+        MySqlConnection conn, string disputeId, int messageCount, bool hasNewMessages)
     {
         const string sql = @"
 UPDATE AllegroDisputes SET
     LastMessageCount = @Count,
-    HasNewMessages = 1
+    HasNewMessages = CASE WHEN @HasNewMessages = 1 THEN 1 ELSE HasNewMessages END
 WHERE DisputeId = @DisputeId";
 
         await using var cmd = new MySqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@Count", messageCount);
+        cmd.Parameters.AddWithValue("@HasNewMessages", hasNewMessages ? 1 : 0);
         cmd.Parameters.AddWithValue("@DisputeId", disputeId);
         await cmd.ExecuteNonQueryAsync();
     }

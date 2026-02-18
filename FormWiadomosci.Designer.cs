@@ -186,6 +186,7 @@
             this.markAllAsReadToolStripMenuItem.Name = "markAllAsReadToolStripMenuItem";
             this.markAllAsReadToolStripMenuItem.Size = new System.Drawing.Size(295, 24);
             this.markAllAsReadToolStripMenuItem.Text = "Oznacz wszystkie jako odczytane";
+            this.markAllAsReadToolStripMenuItem.Click += new System.EventHandler(this.markAllAsReadToolStripMenuItem_Click);
             // 
             // FormWiadomosci
             // 
