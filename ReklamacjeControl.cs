@@ -48,6 +48,8 @@ namespace Reklamacje_Dane
         private long _lastLogId = 0;
         private readonly HashSet<int> _shownReminders = new HashSet<int>();
         private readonly Dictionary<string, string> _syncStatus = new Dictionary<string, string>();
+        private readonly Dictionary<string, Form2> _openComplaintWindows = new Dictionary<string, Form2>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<Form2, string> _complaintWindowNumbers = new Dictionary<Form2, string>();
 
         // === SERWISY ===
         private readonly EmailService _emailService;
@@ -758,7 +760,7 @@ namespace Reklamacje_Dane
                     c.GoToComplaintClicked += (s, e) =>
                     {
                         if (!string.IsNullOrEmpty(c.ComplaintNumber))
-                            new Form2(c.ComplaintNumber).Show();
+                            OpenComplaintForm(c.ComplaintNumber);
                     };
 
                     flowLayoutPanelReminders.Controls.Add(c);
@@ -962,7 +964,48 @@ namespace Reklamacje_Dane
             if (e.RowIndex >= 0 && sender is DataGridView dgv && dgv.Columns.Contains("NrZgloszenia"))
             {
                 string nr = dgv.Rows[e.RowIndex].Cells["NrZgloszenia"].Value?.ToString();
-                if (!string.IsNullOrEmpty(nr)) new Form2(nr).Show();
+                if (!string.IsNullOrEmpty(nr)) OpenComplaintForm(nr);
+            }
+        }
+
+        private void OpenComplaintForm(string complaintNumber)
+        {
+            complaintNumber = complaintNumber?.Trim();
+            if (string.IsNullOrWhiteSpace(complaintNumber)) return;
+
+            if (_openComplaintWindows.TryGetValue(complaintNumber, out var existingForm))
+            {
+                if (existingForm == null || existingForm.IsDisposed)
+                {
+                    _openComplaintWindows.Remove(complaintNumber);
+                }
+                else
+                {
+                    if (existingForm.WindowState == FormWindowState.Minimized)
+                        existingForm.WindowState = FormWindowState.Normal;
+
+                    existingForm.BringToFront();
+                    existingForm.Activate();
+                    return;
+                }
+            }
+
+            var detailsForm = new Form2(complaintNumber);
+            detailsForm.FormClosed += ComplaintForm_FormClosed;
+
+            _openComplaintWindows[complaintNumber] = detailsForm;
+            _complaintWindowNumbers[detailsForm] = complaintNumber;
+            detailsForm.Show();
+        }
+
+        private void ComplaintForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            if (sender is Form2 closedForm && _complaintWindowNumbers.TryGetValue(closedForm, out string complaintNumber))
+            {
+                _complaintWindowNumbers.Remove(closedForm);
+
+                if (_openComplaintWindows.TryGetValue(complaintNumber, out var trackedForm) && ReferenceEquals(trackedForm, closedForm))
+                    _openComplaintWindows.Remove(complaintNumber);
             }
         }
 
@@ -1052,6 +1095,16 @@ namespace Reklamacje_Dane
             StopAndDisposeTimer(_popupCheckTimer);
             StopAndDisposeTimer(_emailSyncTimer);
             if (_privateWebView != null) _privateWebView.Dispose();
+            _statusTooltip.Dispose();
+
+            foreach (var form in _complaintWindowNumbers.Keys.ToList())
+            {
+                if (form == null || form.IsDisposed) continue;
+                form.FormClosed -= ComplaintForm_FormClosed;
+            }
+
+            _complaintWindowNumbers.Clear();
+            _openComplaintWindows.Clear();
         }
 
         private static void StopAndDisposeTimer(System.Timers.Timer t)
