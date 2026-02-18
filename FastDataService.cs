@@ -18,6 +18,13 @@ namespace Reklamacje_Dane
         /// </summary>
         public Action<string> OnProgress { get; set; }
 
+
+        private sealed class DzialaniaAggRow
+        {
+            public string NrZgloszenia { get; set; }
+            public string DzialaniaText { get; set; }
+        }
+
         private void ReportProgress(string msg)
         {
             Debug.WriteLine($"[FastDataService] {msg}");
@@ -102,13 +109,6 @@ namespace Reklamacje_Dane
                 LEFT JOIN klienci k ON k.Id = z.KlientID
                 LEFT JOIN Produkty p ON p.Id = z.ProduktID
                 LEFT JOIN Producenci pr ON pr.NazwaProducenta = p.Producent
-                LEFT JOIN (
-                    SELECT NrZgloszenia, 
-                           GROUP_CONCAT(CONCAT(COALESCE(DataDzialania,''), ' ', Tresc) SEPARATOR ' ') AS DzialaniaText
-                    FROM dzialania 
-                    WHERE Tresc IS NOT NULL AND Tresc != ''
-                    GROUP BY NrZgloszenia
-                ) d_agg ON d_agg.NrZgloszenia = z.NrZgloszenia
 
                 ORDER BY z.DataZgloszenia DESC;
             ";
@@ -120,9 +120,6 @@ namespace Reklamacje_Dane
                 using (var conn = GetConn())
                 {
                     await conn.OpenAsync();
-
-                    // Zwiększ limit GROUP_CONCAT na tej sesji
-                    await conn.ExecuteAsync("SET SESSION group_concat_max_len = 1000000;");
 
                     sw.Stop();
                     ReportProgress($"Połączono ({sw.ElapsedMilliseconds}ms). Wykonywanie zapytania...");
