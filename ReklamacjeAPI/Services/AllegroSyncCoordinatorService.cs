@@ -218,6 +218,8 @@ public class AllegroSyncCoordinatorService
 
             try
             {
+                await EnsureConnectionOpenAsync(conn);
+
                 if (!dbState.TryGetValue(issue.Id, out var existingState))
                 {
                     // ── NOWY ISSUE ──────────────────────────────────
@@ -337,6 +339,20 @@ public class AllegroSyncCoordinatorService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "[Allegro][Sync] Błąd przetwarzania issue {Id}", issue.Id);
+
+                if (conn.State != System.Data.ConnectionState.Open)
+                {
+                    try
+                    {
+                        await EnsureConnectionOpenAsync(conn);
+                        _logger.LogWarning("[Allegro][Sync] Połączenie DB zostało ponownie otwarte po błędzie issue {Id}", issue.Id);
+                    }
+                    catch (Exception reconnectEx)
+                    {
+                        _logger.LogError(reconnectEx,
+                            "[Allegro][Sync] Nie udało się ponownie otworzyć połączenia DB po błędzie issue {Id}", issue.Id);
+                    }
+                }
             }
         }
 
@@ -1044,8 +1060,17 @@ VALUES
     // =========================================================================
     private static async Task<int> GetCountAsync(MySqlConnection conn, string sql)
     {
+        await EnsureConnectionOpenAsync(conn);
         await using var cmd = new MySqlCommand(sql, conn);
         return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
+
+    private static async Task EnsureConnectionOpenAsync(MySqlConnection conn)
+    {
+        if (conn.State == System.Data.ConnectionState.Open)
+            return;
+
+        await conn.OpenAsync();
     }
 
     private static decimal? SafeParseDecimal(string? value)
