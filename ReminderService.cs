@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 
 namespace Reklamacje_Dane
 {
-    // <<< NAPRAWIONO: Dodano PEŁNE definicje klas >>>
     public class ReminderRow
     {
         public long Id { get; set; }
@@ -47,32 +46,12 @@ namespace Reklamacje_Dane
 
     public static class ReminderService
     {
-        public static async Task InitializeAsync()
-        {
-            using (var con = Database.GetNewOpenConnection())
-            using (var cmd = new MySqlCommand(@"
-                CREATE TABLE IF NOT EXISTS Przypomnienia (
-                    Id INT AUTO_INCREMENT PRIMARY KEY,
-                    Tresc TEXT NOT NULL,
-                    DotyczyZgloszenia VARCHAR(255),
-                    CzyZrealizowane TINYINT NOT NULL DEFAULT 0,
-                    DataPrzypomnienia DATETIME,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_przyp_is_done (CzyZrealizowane),
-                    INDEX idx_przyp_ticket (DotyczyZgloszenia)
-                );
-            ", con))
-            {
-                await cmd.ExecuteNonQueryAsync();
-            }
-        }
-
         public static async Task SnoozeAsync(long reminderId, int days)
         {
             using (var con = Database.GetNewOpenConnection())
-            using (var cmd = new MySqlCommand("UPDATE Przypomnienia SET DataPrzypomnienia = datetime(COALESCE(DataPrzypomnienia, CURRENT_TIMESTAMP), @p_days) WHERE Id=@id", con))
+            using (var cmd = new MySqlCommand("UPDATE przypomnienia SET DataPrzypomnienia = DATE_ADD(COALESCE(DataPrzypomnienia, NOW()), INTERVAL @p_days DAY) WHERE Id=@id", con))
             {
-                cmd.Parameters.AddWithValue("@p_days", $"+{days} days");
+                cmd.Parameters.AddWithValue("@p_days", days);
                 cmd.Parameters.AddWithValue("@id", reminderId);
                 await cmd.ExecuteNonQueryAsync();
             }
@@ -81,7 +60,7 @@ namespace Reklamacje_Dane
         public static async Task MarkAsDoneAsync(long reminderId)
         {
             using (var con = Database.GetNewOpenConnection())
-            using (var cmd = new MySqlCommand("UPDATE Przypomnienia SET CzyZrealizowane=1 WHERE Id=@id", con))
+            using (var cmd = new MySqlCommand("UPDATE przypomnienia SET CzyZrealizowane=1, Status='Completed' WHERE Id=@id", con))
             {
                 cmd.Parameters.AddWithValue("@id", reminderId);
                 await cmd.ExecuteNonQueryAsync();
@@ -94,8 +73,9 @@ namespace Reklamacje_Dane
             using (var con = Database.GetNewOpenConnection())
             using (var cmd = new MySqlCommand(@"
                 SELECT Id, Tresc, DotyczyZgloszenia, DataPrzypomnienia 
-                FROM Przypomnienia 
+                FROM przypomnienia 
                 WHERE IFNULL(CzyZrealizowane,0)=0 
+                AND (Status != 'Completed' OR Status IS NULL)
                 ORDER BY CASE WHEN Tresc LIKE '%PILNE%' THEN 1 ELSE 2 END, DataPrzypomnienia ASC", con))
             using (var rd = await cmd.ExecuteReaderAsync())
             {
@@ -123,17 +103,15 @@ namespace Reklamacje_Dane
             {
                 int daysLeft = deadlineDays - (int)(DateTime.Now.Date - dataZgloszenia.Date).TotalDays;
                 string newReminderText = null;
-                bool isUrgent = false;
 
                 if (daysLeft < 0)
                 {
-                    isUrgent = true;
                     int overdue = -daysLeft;
                     newReminderText = $"[AUTO] PILNE: Zgłoszenie po terminie o {overdue} {(overdue == 1 ? "dzień!" : "dni!")}";
                 }
                 else if (daysLeft <= warningThreshold)
                 {
-                    newReminderText = $"[AUTO] Pozostało {daysLeft} {(daysLeft == 1 ? "dzień" : "dni")} na odpowiedź.";
+                    newReminderText = $"[AUTO] Czas na decyzję! Pozostało {daysLeft} {(daysLeft == 1 ? "dzień" : "dni")}.";
                 }
 
                 var existingReminderText = await GetExistingAutoReminderAsync(nrZgloszenia);
@@ -144,7 +122,6 @@ namespace Reklamacje_Dane
                     {
                         await InsertAutoReminderAsync(nrZgloszenia, newReminderText, DateTime.Now);
                         requiresUiRefresh = true;
-                        // ToastManager.ShowToast(isUrgent ? "PILNE Przypomnienie" : "Nowe Przypomnienie", $"Sprawdź zgłoszenie: {nrZgloszenia}", isUrgent ? NotificationType.Error : NotificationType.Info);
                     }
                     else if (existingReminderText != newReminderText)
                     {
@@ -171,7 +148,7 @@ namespace Reklamacje_Dane
 
                 using (var cmd = new MySqlCommand(@"
                     SELECT Id, COALESCE(DotyczyZgloszenia,''), COALESCE(DataPrzypomnienia, created_at)
-                    FROM Przypomnienia
+                    FROM przypomnienia
                     WHERE IFNULL(CzyZrealizowane,0)=0 AND Tresc LIKE '[AUTO]%';", con))
                 using (var rd = await cmd.ExecuteReaderAsync())
                 {
@@ -188,7 +165,7 @@ namespace Reklamacje_Dane
 
                 if (toKeep.Any())
                 {
-                    using (var cmd = new MySqlCommand($"UPDATE Przypomnienia SET CzyZrealizowane=1 WHERE IFNULL(CzyZrealizowane,0)=0 AND Tresc LIKE '[AUTO]%' AND Id NOT IN ({string.Join(",", toKeep)});", con))
+                    using (var cmd = new MySqlCommand($"UPDATE przypomnienia SET CzyZrealizowane=1, Status='Completed' WHERE IFNULL(CzyZrealizowane,0)=0 AND Tresc LIKE '[AUTO]%' AND Id NOT IN ({string.Join(",", toKeep)});", con))
                     {
                         await cmd.ExecuteNonQueryAsync();
                     }
@@ -201,10 +178,9 @@ namespace Reklamacje_Dane
             var result = new List<(string, DateTime)>();
             using (var con = Database.GetNewOpenConnection())
             {
-                // ZMIANA: Patrzymy na StatusOgolny zamiast sztywnych nazw statusów klienta.
-                // Dzięki temu każde zgłoszenie, które nie jest zamknięte, będzie analizowane.
+                // Tylko dla zgłoszeń o statusie "Procesowana" i nie zakończonych przez producenta
                 string query = @"
-                    SELECT nrZgloszenia, dataZgloszenia 
+                    SELECT NrZgloszenia, DataZgloszenia 
                     FROM Zgloszenia 
                     WHERE StatusOgolny = 'Procesowana' 
                     AND (StatusProducent IS NULL OR StatusProducent != 'Zakończone')";
@@ -215,7 +191,6 @@ namespace Reklamacje_Dane
                     while (await rd.ReadAsync())
                     {
                         string nr = rd.IsDBNull(0) ? "" : rd.GetString(0);
-                        // Obsługa różnych formatów daty
                         string rawDate = rd.IsDBNull(1) ? "" : rd.GetString(1);
                         if (DateTime.TryParse(rawDate, out DateTime dt))
                         {
@@ -230,7 +205,7 @@ namespace Reklamacje_Dane
         public static async Task<string> GetExistingAutoReminderAsync(string nrZgloszenia)
         {
             using (var con = Database.GetNewOpenConnection())
-            using (var cmd = new MySqlCommand("SELECT Tresc FROM Przypomnienia WHERE IFNULL(CzyZrealizowane,0)=0 AND Tresc LIKE '[AUTO]%' AND DotyczyZgloszenia=@nr ORDER BY COALESCE(DataPrzypomnienia, created_at) DESC LIMIT 1;", con))
+            using (var cmd = new MySqlCommand("SELECT Tresc FROM przypomnienia WHERE IFNULL(CzyZrealizowane,0)=0 AND Tresc LIKE '[AUTO]%' AND DotyczyZgloszenia=@nr ORDER BY COALESCE(DataPrzypomnienia, created_at) DESC LIMIT 1;", con))
             {
                 cmd.Parameters.AddWithValue("@nr", nrZgloszenia);
                 return (await cmd.ExecuteScalarAsync())?.ToString();
@@ -240,7 +215,8 @@ namespace Reklamacje_Dane
         public static async Task InsertAutoReminderAsync(string nrZgloszenia, string text, DateTime when)
         {
             using (var con = Database.GetNewOpenConnection())
-            using (var cmd = new MySqlCommand("INSERT INTO Przypomnienia (Tresc, DotyczyZgloszenia, DataPrzypomnienia, CzyZrealizowane) VALUES (@t, @nr, @dt, 0);", con))
+            // Dodano wymuszenie Status = 'Nowe' oraz IsAutoGenerated = 1
+            using (var cmd = new MySqlCommand("INSERT INTO przypomnienia (Tresc, DotyczyZgloszenia, DataPrzypomnienia, CzyZrealizowane, Status, IsAutoGenerated) VALUES (@t, @nr, @dt, 0, 'Nowe', 1);", con))
             {
                 cmd.Parameters.AddWithValue("@t", text);
                 cmd.Parameters.AddWithValue("@nr", nrZgloszenia);
@@ -252,7 +228,7 @@ namespace Reklamacje_Dane
         public static async Task UpdateAutoReminderAsync(string nrZgloszenia, string newText, DateTime when)
         {
             using (var con = Database.GetNewOpenConnection())
-            using (var cmd = new MySqlCommand("UPDATE Przypomnienia SET Tresc=@t, DataPrzypomnienia=@dt WHERE IFNULL(CzyZrealizowane,0)=0 AND Tresc LIKE '[AUTO]%' AND DotyczyZgloszenia=@nr;", con))
+            using (var cmd = new MySqlCommand("UPDATE przypomnienia SET Tresc=@t, DataPrzypomnienia=@dt WHERE IFNULL(CzyZrealizowane,0)=0 AND Tresc LIKE '[AUTO]%' AND DotyczyZgloszenia=@nr;", con))
             {
                 cmd.Parameters.AddWithValue("@t", newText);
                 cmd.Parameters.AddWithValue("@dt", when);
@@ -264,18 +240,17 @@ namespace Reklamacje_Dane
         public static async Task DeleteAutoReminderAsync(string nrZgloszenia)
         {
             using (var con = Database.GetNewOpenConnection())
-            using (var cmd = new MySqlCommand("UPDATE Przypomnienia SET CzyZrealizowane=1 WHERE IFNULL(CzyZrealizowane,0)=0 AND Tresc LIKE '[AUTO]%' AND DotyczyZgloszenia=@nr;", con))
+            using (var cmd = new MySqlCommand("UPDATE przypomnienia SET CzyZrealizowane=1, Status='Completed' WHERE IFNULL(CzyZrealizowane,0)=0 AND Tresc LIKE '[AUTO]%' AND DotyczyZgloszenia=@nr;", con))
             {
                 cmd.Parameters.AddWithValue("@nr", nrZgloszenia);
                 await cmd.ExecuteNonQueryAsync();
             }
         }
-        // Metoda do usuwania przypomnienia o konkretnej treści dla danego zgłoszenia
-        // Używana do usuwania "W doręczeniu", gdy paczka zostanie "Doręczona"
+
         public static async Task DeleteSpecificReminderAsync(string nrZgloszenia, string textPattern)
         {
             using (var con = Database.GetNewOpenConnection())
-            using (var cmd = new MySqlCommand("UPDATE Przypomnienia SET CzyZrealizowane=1 WHERE IFNULL(CzyZrealizowane,0)=0 AND DotyczyZgloszenia=@nr AND Tresc LIKE @pattern;", con))
+            using (var cmd = new MySqlCommand("UPDATE przypomnienia SET CzyZrealizowane=1, Status='Completed' WHERE IFNULL(CzyZrealizowane,0)=0 AND DotyczyZgloszenia=@nr AND Tresc LIKE @pattern;", con))
             {
                 cmd.Parameters.AddWithValue("@nr", nrZgloszenia);
                 cmd.Parameters.AddWithValue("@pattern", textPattern);

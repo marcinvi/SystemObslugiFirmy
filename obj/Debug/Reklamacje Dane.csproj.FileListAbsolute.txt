@@ -290,3 +290,4 @@ C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje Dane
 C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje Dane.pdb
 C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\bin\Debug\ObjectListView.dll
 C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\bin\Debug\ObjectListView.xml
+C:\Users\mpaprocki\Documents\GitHub\SystemObslugiFirmy\obj\Debug\Reklamacje_Dane.FormPrzypomnienia.resources

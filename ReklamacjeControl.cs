@@ -33,6 +33,8 @@ namespace Reklamacje_Dane
         private System.Timers.Timer _emailSyncTimer;
         private System.Timers.Timer _remindersCheckTimer;
         private System.Timers.Timer _returnsSyncTimer;
+        private System.Timers.Timer _dpdCheckTimer;
+        private volatile bool _isCheckingDpd = false;
 
         // === FLAGI ===
         private volatile bool _isCheckingPopups = false;
@@ -158,7 +160,7 @@ namespace Reklamacje_Dane
 
             _shipmentNotificationService = new ShipmentNotificationService(this.FindForm(), _privateWebView);
 
-            try { await ReminderService.InitializeAsync(); } catch { }
+         //   try { await ReminderService.InitializeAsync(); } catch { }
 
             ReklamacjeControl_Resize(null, null);
 
@@ -183,11 +185,33 @@ namespace Reklamacje_Dane
             _returnsSyncTimer = NewTimer(60000, async () => await PollReturnsCountFromDb());
             _popupCheckTimer = NewTimer(60000, async () => await CheckForDueRemindersAndPopup());
             _emailSyncTimer = NewTimer(120000, async () => await RunEmailSync());
-
+            _dpdCheckTimer = NewTimer(900000, async () => await RunDpdCheckAsync());
             // Statusy i liczniki z API — gdy API dostępne
             _syncStatusTimer = NewTimer(30000, async () => await PollSyncStatusAndCounters());
         }
+        private async Task RunDpdCheckAsync()
+        {
+            if (_isCheckingDpd) return;
+            _isCheckingDpd = true;
+            try
+            {
+                SetActivity("DPD: Sprawdzanie statusów paczek...");
 
+                if (_shipmentNotificationService != null)
+                {
+                    await _shipmentNotificationService.CheckAndNotifyAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd automatycznego sprawdzania DPD: {ex.Message}");
+            }
+            finally
+            {
+                _isCheckingDpd = false;
+                SetActivity("");
+            }
+        }
         private static System.Timers.Timer NewTimer(double interval, Func<Task> callback)
         {
             var t = new System.Timers.Timer(interval) { AutoReset = true };
@@ -1088,12 +1112,14 @@ namespace Reklamacje_Dane
 
         private void ReklamacjeControl_Disposed(object sender, EventArgs e)
         {
+            StopAndDisposeTimer(_dpdCheckTimer);
             StopAndDisposeTimer(_logCheckTimer);
             StopAndDisposeTimer(_syncStatusTimer);
             StopAndDisposeTimer(_remindersCheckTimer);
             StopAndDisposeTimer(_returnsSyncTimer);
             StopAndDisposeTimer(_popupCheckTimer);
             StopAndDisposeTimer(_emailSyncTimer);
+
             if (_privateWebView != null) _privateWebView.Dispose();
             _statusTooltip.Dispose();
 

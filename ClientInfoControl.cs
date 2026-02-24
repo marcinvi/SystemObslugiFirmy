@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
 using MySql.Data.MySqlClient;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -12,8 +13,12 @@ namespace Reklamacje_Dane
         private int _klientId;
         private bool _isInEditMode = false;
 
-        // NOWE: Prywatne pola do przechowywania czystych danych do kopiowania
-        private string _imieNazwisko, _nazwaFirmy, _email, _telefon, _ulica, _kodPocztowy, _miejscowosc, _nip;
+        // Prywatne pola do przechowywania czystych danych do kopiowania
+        private string _imieNazwisko, _nazwaFirmy, _email, _telefon, _ulica, _kodPocztowy, _miejscowosc, _nip, _notatki;
+
+        // Kontrolki powiadomień generowane z kodu (nie z Designera)
+        private ToolTip _toolTipNotatka;
+        private Label _lblNotatkaIcon;
 
         public event EventHandler DataChanged;
         public event EventHandler ChangeClientRequested;
@@ -21,6 +26,34 @@ namespace Reklamacje_Dane
         public ClientInfoControl()
         {
             InitializeComponent();
+            InitializeNotatkaUI();
+        }
+
+        private void InitializeNotatkaUI()
+        {
+            // Konfiguracja dymka informacyjnego
+            _toolTipNotatka = new ToolTip();
+            _toolTipNotatka.ToolTipTitle = "Ważna notatka o kliencie!";
+            _toolTipNotatka.ToolTipIcon = ToolTipIcon.Warning;
+            _toolTipNotatka.IsBalloon = true; // Ładniejszy, zaokrąglony dymek
+
+            // Konfiguracja czerwonej ikonki (!)
+            _lblNotatkaIcon = new Label();
+            _lblNotatkaIcon.Text = "❗";
+            _lblNotatkaIcon.ForeColor = Color.Crimson;
+            _lblNotatkaIcon.Font = new Font("Segoe UI", 14, FontStyle.Bold);
+            _lblNotatkaIcon.AutoSize = true;
+            _lblNotatkaIcon.Cursor = Cursors.Hand;
+            _lblNotatkaIcon.Visible = false; // Domyślnie ukryte
+
+            // Pozycjonowanie w prawym górnym rogu panelu wyświetlającego
+            if (panelDisplay != null)
+            {
+                _lblNotatkaIcon.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+                _lblNotatkaIcon.Location = new Point(panelDisplay.Width - 35, 10);
+                panelDisplay.Controls.Add(_lblNotatkaIcon);
+                _lblNotatkaIcon.BringToFront();
+            }
         }
 
         public async Task LoadClientData(int klientId)
@@ -55,6 +88,9 @@ namespace Reklamacje_Dane
                                 _miejscowosc = reader["Miejscowosc"]?.ToString();
                                 _nip = reader["NIP"]?.ToString();
 
+                                // NOWOŚĆ: Wczytywanie notatki z bazy
+                                _notatki = reader["Notatki"] != DBNull.Value ? reader["Notatki"].ToString() : "";
+
                                 // Ustawianie etykiet
                                 lblImieNazwisko.Text = $"{_imieNazwisko} | {_nazwaFirmy}";
                                 lblEmail.Text = _email;
@@ -62,6 +98,18 @@ namespace Reklamacje_Dane
                                 lblAdres1.Text = _ulica;
                                 lblAdres2.Text = $"{_kodPocztowy} {_miejscowosc}";
                                 contextMenuStrip1.Enabled = true;
+
+                                // Wyświetlanie ostrzeżenia (ikonki) jeśli notatka istnieje
+                                if (!string.IsNullOrWhiteSpace(_notatki))
+                                {
+                                    _lblNotatkaIcon.Visible = true;
+                                    _toolTipNotatka.SetToolTip(_lblNotatkaIcon, _notatki);
+                                }
+                                else
+                                {
+                                    _lblNotatkaIcon.Visible = false;
+                                    _toolTipNotatka.SetToolTip(_lblNotatkaIcon, "");
+                                }
                             }
                             else
                             {
@@ -86,6 +134,11 @@ namespace Reklamacje_Dane
             lblAdres1.Text = "";
             lblAdres2.Text = "";
             contextMenuStrip1.Enabled = false;
+
+            if (_lblNotatkaIcon != null)
+            {
+                _lblNotatkaIcon.Visible = false;
+            }
         }
 
         private void EnterEditMode()
@@ -123,13 +176,10 @@ namespace Reklamacje_Dane
         {
             ChangeClientRequested?.Invoke(this, EventArgs.Empty);
         }
+
         public Dictionary<string, string> GetDataForPrinting()
         {
             var data = new Dictionary<string, string>();
-
-            // ### KLUCZOWA ZMIANA ###
-            // Pobieramy dane z prywatnych pól, które są zawsze wypełnione po wczytaniu klienta,
-            // a nie z pól tekstowych trybu edycji.
 
             data.Add("Klient", _imieNazwisko);
             data.Add("Firma", _nazwaFirmy);
@@ -153,6 +203,7 @@ namespace Reklamacje_Dane
 
             return data;
         }
+
         private async void btnZapisz_Click(object sender, EventArgs e)
         {
             try
@@ -160,6 +211,7 @@ namespace Reklamacje_Dane
                 using (var con = DatabaseHelper.GetConnection())
                 {
                     await con.OpenAsync();
+                    // Zauważ: nie modyfikujemy tutaj Notatki, więc bezpiecznie zapisujemy tylko edytowane pola
                     string query = @"UPDATE Klienci SET ImieNazwisko = @imie, NazwaFirmy = @firma, Ulica = @ulica, 
                                      KodPocztowy = @kod, Miejscowosc = @miasto, Email = @mail, Telefon = @tel WHERE Id = @id";
                     using (var cmd = new MySqlCommand(query, con))
@@ -179,7 +231,6 @@ namespace Reklamacje_Dane
                 var dziennik = new DziennikLogger();
                 await dziennik.DodajAsync(Program.fullName, $"Zaktualizowano dane klienta: {txtImieNazwisko.Text}", (this.ParentForm as Form2)?.NrZgloszeniaPublic);
 
-
                 MessageBox.Show("Dane klienta zostały zaktualizowane.", "Sukces");
                 LeaveEditMode();
                 DataChanged?.Invoke(this, EventArgs.Empty); // Informuj Form2, że dane się zmieniły
@@ -194,10 +245,9 @@ namespace Reklamacje_Dane
         {
             LeaveEditMode();
         }
+
         private void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
         {
-            // Ta metoda jest wywoływana tuż przed pokazaniem menu
-            // i ustawia widoczność opcji na podstawie dostępnych danych.
             skopiujImięNazwiskoToolStripMenuItem.Visible = !string.IsNullOrEmpty(_imieNazwisko);
             skopiujNazwęFirmyToolStripMenuItem.Visible = !string.IsNullOrEmpty(_nazwaFirmy);
             skopiujNIPToolStripMenuItem.Visible = !string.IsNullOrEmpty(_nip);
@@ -218,7 +268,6 @@ namespace Reklamacje_Dane
         }
 
         private void skopiujImięNazwiskoToolStripMenuItem_Click(object sender, EventArgs e) => KopiujDoSchowka(_imieNazwisko);
-
         private void skopiujNazwęFirmyToolStripMenuItem_Click(object sender, EventArgs e) => KopiujDoSchowka(_nazwaFirmy);
         private void skopiujNIPToolStripMenuItem_Click(object sender, EventArgs e) => KopiujDoSchowka(_nip);
         private void skopiujAdresMailowyToolStripMenuItem_Click(object sender, EventArgs e) => KopiujDoSchowka(_email);
@@ -226,8 +275,5 @@ namespace Reklamacje_Dane
         private void skopiujUlicęToolStripMenuItem_Click(object sender, EventArgs e) => KopiujDoSchowka(_ulica);
         private void skopiujKodPocztowyToolStripMenuItem_Click(object sender, EventArgs e) => KopiujDoSchowka(_kodPocztowy);
         private void skopiujMiejscowośćToolStripMenuItem_Click(object sender, EventArgs e) => KopiujDoSchowka(_miejscowosc);
-
-
     }
 }
-    

@@ -53,7 +53,6 @@ namespace Reklamacje_Dane
 
             AttachEventHandlers();
             InitializeExtraMenuButtons();
-        
 
             // Włącz sprawdzanie pisowni dla wszystkich TextBoxów
             EnableSpellCheckOnAllTextBoxes();
@@ -78,7 +77,6 @@ namespace Reklamacje_Dane
             this.zamowOdKlientaMenuItem.Click += zamowOdKlientaMenuItem_Click;
             this.zamowDoKlientaMenuItem.Click += zamowDoKlientaMenuItem_Click;
 
-            // WAŻNE: Podpięcie przycisku producenta
             this.button2.Click += button2_Click;
 
             this.button3.Click += button3_Click;
@@ -131,18 +129,20 @@ namespace Reklamacje_Dane
             }
         }
 
+        
+
         private void ResizeBubbles(FlowLayoutPanel panel)
         {
             if (panel == null) return;
             panel.SuspendLayout();
-            int newWidth = panel.ClientSize.Width - 25; // Zostaw miejsce na pasek
-            if (newWidth < 100) newWidth = 100; // Zabezpieczenie
+            int newWidth = panel.ClientSize.Width - 25;
+            if (newWidth < 100) newWidth = 100;
 
             foreach (Control c in panel.Controls)
             {
                 c.Width = newWidth;
             }
-            panel.ResumeLayout(true); // true = force layout
+            panel.ResumeLayout(true);
         }
 
         private async void Form2_Load(object sender, EventArgs e)
@@ -159,10 +159,8 @@ namespace Reklamacje_Dane
             catch (Exception ex) { MessageBox.Show($"Błąd startu: {ex.Message}"); }
         }
 
-        // --- BUTTON 2: ZGŁOŚ DO PRODUCENTA (NAPRAWIONY) ---
         private async void button2_Click(object sender, EventArgs e)
         {
-            // 1. Sprawdzenie czy to lodówka (specjalny formularz)
             if (!string.IsNullOrEmpty(this.kategoriaProduktu) && this.kategoriaProduktu.Contains("Lodówka"))
             {
                 UruchomAkcje(new Form6(this.nrZgloszenia));
@@ -175,7 +173,6 @@ namespace Reklamacje_Dane
                 using (var con = DatabaseHelper.GetConnectionAsync())
                 {
                     await con.OpenAsync();
-                    // Pobieramy maila do producenta na podstawie produktu w zgłoszeniu
                     string q = @"SELECT pr.NazwaProducenta, pr.KontaktMail 
                                  FROM Zgloszenia z 
                                  LEFT JOIN Produkty p ON z.ProduktID = p.Id 
@@ -198,23 +195,19 @@ namespace Reklamacje_Dane
             }
             catch (Exception ex) { MessageBox.Show("Błąd bazy danych przy pobieraniu producenta: " + ex.Message); return; }
 
-            // Walidacja
             if (string.IsNullOrEmpty(nazwaProducenta))
             {
                 MessageBox.Show("Nie znaleziono producenta przypisanego do tego produktu.\nSprawdź edycję produktu i bazę producentów.", "Brak danych");
                 return;
             }
 
-            // Otwieramy formularz
             var formReport = new FormReportToManufacturer(this.nrZgloszenia, nazwaProducenta, emailProducenta);
             formReport.ShowDialog();
             await LoadData();
         }
 
-        // --- LOGIKA ŁADOWANIA DANYCH (Z WYMUSZENIEM LAYOUTU) ---
         private async Task LoadData()
         {
-            // Czyścimy i zamrażamy
             flowLayoutPanelHistory.SuspendLayout();
             while (flowLayoutPanelHistory.Controls.Count > 0)
             {
@@ -267,7 +260,36 @@ namespace Reklamacje_Dane
                         }
                     }
 
-                    // Historia wewnętrzna (Działania)
+                    // --- 1. POBRANIE PRZYPOMNIEŃ (ZADAŃ) ---
+                    var reminderEvents = new List<TimelineEvent>();
+                    string przypomnieniaQuery = @"SELECT Id, DataPrzypomnienia, Tresc, PrzypisanyUzytkownik 
+                                                  FROM przypomnienia 
+                                                  WHERE DotyczyZgloszenia = @nrZgloszenia 
+                                                  AND (CzyZrealizowane = 0 OR CzyZrealizowane IS NULL) 
+                                                  AND (Status != 'Completed' OR Status IS NULL)";
+                    using (var cmd = new MySqlCommand(przypomnieniaQuery, con))
+                    {
+                        cmd.Parameters.AddWithValue("@nrZgloszenia", this.nrZgloszenia);
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                DateTime rDate = DateTime.Now;
+                                DateTime.TryParse(reader["DataPrzypomnienia"]?.ToString(), out rDate);
+
+                                reminderEvents.Add(new TimelineEvent
+                                {
+                                    EventDate = rDate,
+                                    Content = "[ZADANIE] " + (reader["Tresc"]?.ToString() ?? ""),
+                                    Author = reader["PrzypisanyUzytkownik"]?.ToString() ?? "Wszyscy Handlowcy",
+                                    Tag = SafeToInt(reader["Id"]),
+                                    IsReminder = true
+                                });
+                            }
+                        }
+                    }
+
+                    // --- 2. POBRANIE DZIAŁAŃ (HISTORII) ---
                     var timelineEvents = new List<TimelineEvent>();
                     string dzialaniaQuery = "SELECT Id, DataDzialania, Tresc, Uzytkownik FROM Dzialania WHERE NrZgloszenia = @nrZgloszenia";
                     using (var cmd = new MySqlCommand(dzialaniaQuery, con))
@@ -284,7 +306,8 @@ namespace Reklamacje_Dane
                                         EventDate = date,
                                         Content = reader["Tresc"]?.ToString(),
                                         Author = reader["Uzytkownik"]?.ToString() ?? "System",
-                                        Tag = SafeToInt(reader["Id"])
+                                        Tag = SafeToInt(reader["Id"]),
+                                        IsReminder = false
                                     });
                                 }
                             }
@@ -292,6 +315,41 @@ namespace Reklamacje_Dane
                     }
                     timelineEvents.Sort();
 
+                    // --- 3. WSTAWIANIE DO UI ---
+
+                    // Najpierw ładujemy przypomnienia (Będą na samej górze i podświetlone)
+                    foreach (var ev in reminderEvents)
+                    {
+                        var itemControl = new TimelineItemControl();
+                        itemControl.Setup(ev.EventDate,   ev.Content, ev.Author, TimelineItemType.Action);
+                        itemControl.DataTag = ev.Tag;
+                        itemControl.BackColor = Color.FromArgb(255, 235, 238); // Czerwonawe tło
+
+                        // Zmiana zachowania: Kliknięcie lewym klawiszem -> Oznacz jako zrealizowane
+                        itemControl.EditClicked += async (sender, args) => {
+                            if (itemControl.DataTag is int remId)
+                            {
+                                if (MessageBox.Show("Czy na pewno chcesz oznaczyć to zadanie jako zrealizowane?", "Realizacja zadania", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                                {
+                                    await _dbService.ExecuteNonQueryAsync("UPDATE przypomnienia SET CzyZrealizowane = 1, Status = 'Completed' WHERE Id = @id", new MySqlParameter("@id", remId));
+                                    await LoadData(); // Przeładuj widok
+                                }
+                            }
+                        };
+
+                        // Zmiana zachowania: Usuń działanie (z menu prawego klawisza) -> Oznacz jako zrealizowane
+                        itemControl.DeleteClicked += async (sender, args) => {
+                            if (itemControl.DataTag is int remId)
+                            {
+                                await _dbService.ExecuteNonQueryAsync("UPDATE przypomnienia SET CzyZrealizowane = 1, Status = 'Completed' WHERE Id = @id", new MySqlParameter("@id", remId));
+                                await LoadData();
+                            }
+                        };
+
+                        flowLayoutPanelHistory.Controls.Add(itemControl);
+                    }
+
+                    // Następnie zwykła historia (posortowana datami)
                     foreach (var ev in timelineEvents)
                     {
                         var type = DetermineEventType(ev.Content, ev.Author);
@@ -299,6 +357,7 @@ namespace Reklamacje_Dane
                         itemControl.Setup(ev.EventDate, ev.Author, ev.Content, type);
                         itemControl.DataTag = ev.Tag;
 
+                        // Standardowe akcje dla logów
                         itemControl.EditClicked += (sender, args) => { if (itemControl.DataTag is int actionId) EditAction(actionId); };
                         itemControl.DeleteClicked += async (sender, args) => { if (itemControl.DataTag is int actionId) await DeleteActionAsync(actionId); };
                         itemControl.OpenTrackingClicked += async (sender, trackingNumber) => { await ShowTrackingDetails(trackingNumber); };
@@ -311,17 +370,12 @@ namespace Reklamacje_Dane
             catch (Exception ex) { MessageBox.Show($"Błąd wczytywania: {ex.Message}"); }
             finally
             {
-                // !!! KLUCZOWA POPRAWKA DLA WYŚWIETLANIA !!!
                 flowLayoutPanelHistory.ResumeLayout();
-                ResizeBubbles(flowLayoutPanelHistory); // Wymuś poprawną szerokość
-
-                // Wymuszenie odświeżenia scrolla
+                ResizeBubbles(flowLayoutPanelHistory);
                 flowLayoutPanelHistory.PerformLayout();
                 if (flowLayoutPanelHistory.Parent != null) flowLayoutPanelHistory.Parent.PerformLayout();
             }
         }
-
-        // --- POZOSTAŁE METODY (Click-to-Call, Dokumenty) ---
 
         private void AttachPhoneClickLogic()
         {
@@ -355,7 +409,7 @@ namespace Reklamacje_Dane
                     {
                         try
                         {
-                             PhoneApiClient.Instance.Dial(numer); // ODKOMENTUJ JEŚLI MASZ METODĘ DIAL
+                            PhoneApiClient.Instance.Dial(numer);
                             MessageBox.Show($"Łap telefon! Wybieranie numeru: {numer}...", "Telefon", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         }
                         catch (Exception ex) { MessageBox.Show("Błąd: " + ex.Message); }
@@ -425,7 +479,6 @@ namespace Reklamacje_Dane
             }
         }
 
-        // --- SKRÓCONE METODY POMOCNICZE (BEZ ZMIAN) ---
         private async Task LoadChatRightPanel()
         {
             flowChatRight.SuspendLayout();
@@ -449,7 +502,6 @@ namespace Reklamacje_Dane
                     if (textToDisplay.Length > 600) textToDisplay = textToDisplay.Substring(0, 600) + "\n[...]";
 
                     ChatBubble bubble = new ChatBubble(textToDisplay, msg.Data.ToString("dd.MM HH:mm"), isIncoming, typeCode);
-                    // SZEROKOŚĆ USTAWIANA PÓŹNIEJ W RESIZE
 
                     if (typeCode == "MAIL")
                     {
@@ -463,90 +515,76 @@ namespace Reklamacje_Dane
             catch (Exception ex) { Console.WriteLine(ex.Message); }
             finally { flowChatRight.ResumeLayout(); ResizeBubbles(flowChatRight); }
         }
+
         private void StyleTrackingGrid()
         {
             var dgv = dgvHistoriaPrzesylki;
-
-            // 1. Podstawowe ustawienia (Płaski wygląd)
             dgv.BorderStyle = BorderStyle.None;
-            dgv.BackgroundColor = Color.White; // Tło całego komponentu
-            dgv.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal; // Tylko poziome linie
+            dgv.BackgroundColor = Color.White;
+            dgv.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
             dgv.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
-            dgv.EnableHeadersVisualStyles = false; // Wyłączamy systemowy styl nagłówków
-            dgv.RowHeadersVisible = false; // Ukrywamy boczny pasek wyboru wiersza
+            dgv.EnableHeadersVisualStyles = false;
+            dgv.RowHeadersVisible = false;
             dgv.AllowUserToResizeRows = false;
             dgv.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgv.MultiSelect = false;
             dgv.ReadOnly = true;
 
-            // 2. Czcionki i Rozmiary
             dgv.Font = new Font("Segoe UI", 10F);
-            dgv.ColumnHeadersHeight = 50; // Wyższy nagłówek
-            dgv.RowTemplate.Height = 45;  // Wyższe wiersze (oddech)
+            dgv.ColumnHeadersHeight = 50;
+            dgv.RowTemplate.Height = 45;
 
-            // 3. Styl Nagłówka (Niebieski, jak w reszcie apki)
             dgv.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(21, 101, 192);
             dgv.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             dgv.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             dgv.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            dgv.ColumnHeadersDefaultCellStyle.Padding = new Padding(15, 0, 0, 0); // Wcięcie tekstu
+            dgv.ColumnHeadersDefaultCellStyle.Padding = new Padding(15, 0, 0, 0);
 
-            // 4. Styl Wierszy
             dgv.DefaultCellStyle.BackColor = Color.White;
             dgv.DefaultCellStyle.ForeColor = Color.FromArgb(64, 64, 64);
-            dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(227, 242, 253); // Jasny błękit przy zaznaczeniu
-            dgv.DefaultCellStyle.SelectionForeColor = Color.Black; // Tekst pozostaje czarny
-            dgv.DefaultCellStyle.Padding = new Padding(15, 0, 0, 0); // Wcięcie tekstu
+            dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(227, 242, 253);
+            dgv.DefaultCellStyle.SelectionForeColor = Color.Black;
+            dgv.DefaultCellStyle.Padding = new Padding(15, 0, 0, 0);
             dgv.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
 
-            // 5. Styl Wierszy Naprzemiennych (Zebra)
             dgv.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(250, 252, 255);
 
-            // 6. Konfiguracja Kolumn (Nazwy i Szerokości)
             if (dgv.Columns.Count > 0)
             {
-                // Zakładamy kolejność: Data, Opis, Oddział (z DpdTrackingService)
-
                 if (dgv.Columns.Contains("DataStatusu"))
                 {
                     dgv.Columns["DataStatusu"].HeaderText = "📅 Data i Godzina";
                     dgv.Columns["DataStatusu"].Width = 180;
                 }
-
                 if (dgv.Columns.Contains("OpisStatusu"))
                 {
                     dgv.Columns["OpisStatusu"].HeaderText = "📝 Status Przesyłki";
-                    dgv.Columns["OpisStatusu"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; // Wypełnia resztę
+                    dgv.Columns["OpisStatusu"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
                 }
-
                 if (dgv.Columns.Contains("Oddzial"))
                 {
                     dgv.Columns["Oddzial"].HeaderText = "🏢 Oddział DPD";
                     dgv.Columns["Oddzial"].Width = 250;
                 }
             }
-
-            // Oczyszczamy zaznaczenie na start
             dgv.ClearSelection();
         }
+
         private string StripRtf(string rtfString) { try { using (RichTextBox rtb = new RichTextBox()) { rtb.Rtf = rtfString; return rtb.Text; } } catch { return rtfString; } }
         private async Task OdswiezPrzyciskMagazynu() { var stan = await _magazynService.PobierzStanAsync(this.nrZgloszenia); if (stan != null) { btnMagazyn.Text = $"Magazyn: {stan.StatusFizyczny}"; if (stan.CzyDawca) btnMagazyn.BackColor = Color.Purple; else if (stan.StatusFizyczny.Contains("Odesłany")) btnMagazyn.BackColor = Color.Gray; else btnMagazyn.BackColor = Color.ForestGreen; } else { btnMagazyn.Text = "Przyjmij na Magazyn"; btnMagazyn.BackColor = Color.FromArgb(100, 100, 100); } }
         private async void btnMagazyn_Click(object sender, EventArgs e) { string model = "Nieznany"; try { using (var con = DatabaseHelper.GetConnection()) { await con.OpenAsync(); var cmd = new MySqlCommand("SELECT NazwaSystemowa FROM Produkty WHERE Id=@id", con); cmd.Parameters.AddWithValue("@id", this.nrProduktu); var res = await cmd.ExecuteScalarAsync(); if (res != null) model = res.ToString(); } } catch { } using (var form = new FormMagazynAction(this.nrZgloszenia, this.nrProduktu, model, this.nrSeryjnyZgloszenia, this.kategoriaProduktu)) { form.ShowDialog(this); if (form.CzyZmieniono) { await OdswiezPrzyciskMagazynu(); await LoadData(); } } }
         private void EditAction(int actionId) { using (var editForm = new FormEditAction(actionId, "", this.nrZgloszenia)) { if (editForm.ShowDialog(this) == DialogResult.OK) _ = LoadData(); } }
         private async Task DeleteActionAsync(int actionId) { if (MessageBox.Show("Usunąć działanie?", "Potwierdzenie", MessageBoxButtons.YesNo) == DialogResult.Yes) { await _dbService.ExecuteNonQueryAsync("DELETE FROM Dzialania WHERE Id = @id", new MySqlParameter("@id", actionId)); await new DziennikLogger().DodajAsync(Program.fullName, "Usunięto działanie", this.nrZgloszenia); await LoadData(); } }
+
         private async Task ShowTrackingDetails(string trackingNumber)
         {
             try
             {
-                // 1. Przełączanie widoku (ukrywamy główne, pokazujemy DPD)
                 splitContainerMain.Visible = false;
                 pnlShipmentHistory.Visible = true;
-
-                // Stylowanie panelu kontenera (dla estetyki)
                 pnlShipmentHistory.BackColor = Color.White;
                 pnlShipmentHistory.Padding = new Padding(20);
 
-                // Stylowanie przycisku "Wróć"
                 btnBackToDetails.Text = "← WRÓĆ DO ZGŁOSZENIA";
                 btnBackToDetails.BackColor = Color.FromArgb(240, 240, 240);
                 btnBackToDetails.ForeColor = Color.Black;
@@ -556,17 +594,14 @@ namespace Reklamacje_Dane
                 btnBackToDetails.Cursor = Cursors.Hand;
                 btnBackToDetails.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
 
-                // 2. Pobieranie danych
                 if (_trackingService == null) _trackingService = new DpdTrackingService();
 
-                dgvHistoriaPrzesylki.DataSource = null; // Reset
+                dgvHistoriaPrzesylki.DataSource = null;
                 var history = await _trackingService.GetShipmentHistoryAsync(trackingNumber);
 
-                // 3. Przypisanie i stylowanie
                 dgvHistoriaPrzesylki.DataSource = history;
-                StyleTrackingGrid(); // <--- TUTAJ WYWOŁUJEMY NOWY STYL
+                StyleTrackingGrid();
 
-                // Jeśli brak historii
                 if (history == null || history.Count == 0)
                 {
                     MessageBox.Show("Brak historii dla tego numeru przesyłki lub numer jest niepoprawny.", "DPD Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -578,6 +613,7 @@ namespace Reklamacje_Dane
                 btnBackToDetails_Click(null, null);
             }
         }
+
         private void btnBackToDetails_Click(object sender, EventArgs e) { pnlShipmentHistory.Visible = false; splitContainerMain.Visible = true; }
         private async void UruchomAkcje(Form formularzAkcji) { formularzAkcji.ShowDialog(this); await LoadData(); await LoadChatRightPanel(); UpdateFilesButton(); }
         private async Task<string> GetClientNameByIdAsync(int clientId) { if (clientId <= 0) return "Nieznany"; var result = await _dbService.ExecuteScalarAsync("SELECT ImieNazwisko FROM Klienci WHERE Id = @id", new MySqlParameter("@id", clientId)); return result?.ToString() ?? "Nieznany"; }
@@ -585,29 +621,25 @@ namespace Reklamacje_Dane
         private void OnEditProductRequested(object sender, int produktId) { if (produktId > 0) UruchomAkcje(new Form15(produktId.ToString())); }
         private async void btnZapiszOpis_Click(object sender, EventArgs e) { await _dbService.ExecuteNonQueryAsync("UPDATE Zgloszenia SET OpisUsterki = @opis WHERE NrZgloszenia = @nr", new MySqlParameter("@opis", textBox1.Text), new MySqlParameter("@nr", this.nrZgloszenia)); await new DziennikLogger().DodajAsync(Program.fullName, "Zaktualizowano opis usterki", this.nrZgloszenia); originalOpisUsterki = textBox1.Text; btnZapiszOpis.Visible = false; }
         private void UpdateFilesButton() { string targetFolder = Path.Combine(AppPaths.GetDataRootPath(), this.nrZgloszenia.Replace('/', '.')); int count = Directory.Exists(targetFolder) ? Directory.GetFiles(targetFolder).Length : 0; button9.Text = $"  📂 Zobacz Pliki ({count})"; }
+
         private void btnPrintToPdf_Click(object sender, EventArgs e) { try { string path = Path.Combine(AppPaths.GetDataRootPath(), $"Zgloszenie_{this.nrZgloszenia.Replace('/', '_')}.pdf"); CreatePdf(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); } catch (Exception ex) { MessageBox.Show("Błąd PDF: " + ex.Message); } }
-        // =========================================================
-        // PEŁNA LOGIKA GENEROWANIA PDF (Naprawiona)
-        // =========================================================
 
         private void CreatePdf(string filePath)
         {
             PdfDocument document = new PdfDocument();
             document.Info.Title = $"Zgłoszenie {this.nrZgloszenia}";
             PdfPage page = document.AddPage();
-            page.Orientation = PdfSharp.PageOrientation.Landscape; // Poziomo, żeby zmieściło się więcej
+            page.Orientation = PdfSharp.PageOrientation.Landscape;
 
             XGraphics gfx = XGraphics.FromPdfPage(page);
             XTextFormatter tf = new XTextFormatter(gfx);
 
-            // Definicje czcionek (używamy standardowego Ariala, bo jest bezpieczny)
             XFont fontTitle = new XFont("Arial", 16, XFontStyleEx.Bold);
             XFont fontHeader = new XFont("Arial", 12, XFontStyleEx.Bold);
             XFont fontRegular = new XFont("Arial", 10);
             XFont fontSmall = new XFont("Arial", 8);
             XFont fontBoldSmall = new XFont("Arial", 10, XFontStyleEx.Bold);
 
-            // Marginesy
             double leftMargin = 40;
             double topMargin = 40;
             double bottomMargin = 40;
@@ -615,38 +647,29 @@ namespace Reklamacje_Dane
             double contentWidth = rightMargin - leftMargin;
             double currentY = topMargin;
 
-            // 1. NAGŁÓWEK (Tytuł i Status)
             gfx.DrawString(lblHeaderTitle.Text, fontTitle, XBrushes.Black, new XRect(0, currentY, page.Width.Point, 0), XStringFormats.TopCenter);
             currentY += 25;
             gfx.DrawString(lblHeaderStatus.Text, fontRegular, XBrushes.DarkSlateGray, new XRect(0, currentY, page.Width.Point, 0), XStringFormats.TopCenter);
-            currentY += 40; // Odstęp po nagłówku
+            currentY += 40;
 
-            // 2. DANE KLIENTA I PRODUKTU (Dwie kolumny)
             double columnWidth = contentWidth / 2 - 10;
             double productDataX = leftMargin + columnWidth + 20;
             double columnsStartY = currentY;
 
-            // Pobieramy dane z kontrolek
             var clientData = clientInfoControl1.GetDataForPrinting();
             var productData = productInfoControl1.GetDataForPrinting();
 
-            // Rysujemy sekcję Klienta
             double clientH = DrawSectionAndReturnHeight(gfx, "DANE KLIENTA", leftMargin, columnsStartY, columnWidth, fontHeader, fontRegular, clientData);
-
-            // Rysujemy sekcję Produktu
             double productH = DrawSectionAndReturnHeight(gfx, "DANE PRODUKTU", productDataX, columnsStartY, columnWidth, fontHeader, fontRegular, productData);
 
-            // Przesuwamy Y o wysokość wyższej kolumny
             currentY = columnsStartY + Math.Max(clientH, productH) + 30;
 
-            // 3. OPIS USTERKI
             gfx.DrawString("OPIS USTERKI:", fontHeader, XBrushes.Black, leftMargin, currentY);
             currentY += 20;
 
             string opisText = textBox1.Text;
             double opisHeight = CalculateWrappedTextHeight(gfx, opisText, fontRegular, contentWidth);
 
-            // Sprawdzenie czy opis zmieści się na stronie
             if (currentY + opisHeight > page.Height.Point - bottomMargin)
             {
                 page = document.AddPage();
@@ -656,33 +679,26 @@ namespace Reklamacje_Dane
                 currentY = topMargin;
             }
 
-            // Rysowanie opisu
             tf.DrawString(opisText, fontRegular, XBrushes.Black, new XRect(leftMargin, currentY, contentWidth, opisHeight + 10), XStringFormats.TopLeft);
             currentY += opisHeight + 20;
 
-            // 4. HISTORIA DZIAŁAŃ (Dymki)
             gfx.DrawString("HISTORIA ZGŁOSZENIA:", fontHeader, XBrushes.Black, leftMargin, currentY);
             currentY += 25;
 
-            // Iterujemy po kontrolkach w FlowLayoutPanel
             foreach (Control ctrl in flowLayoutPanelHistory.Controls)
             {
                 if (ctrl is TimelineItemControl item)
                 {
-                    // Wyciągamy tekst z kontrolek wewnątrz TimelineItemControl
-                    // UWAGA: Używamy .Find, bo propercje mogą być prywatne
                     string dateText = item.Controls.Find("lblDate", true).FirstOrDefault()?.Text ?? "";
                     string headerText = item.Controls.Find("lblHeader", true).FirstOrDefault()?.Text ?? "";
                     string contentText = item.Controls.Find("lblContent", true).FirstOrDefault()?.Text ?? "";
 
                     string fullHeader = $"{dateText} | {headerText}";
 
-                    // Obliczamy wysokość nagłówka i treści
                     double headerH = CalculateWrappedTextHeight(gfx, fullHeader, fontBoldSmall, contentWidth);
                     double contentH = CalculateWrappedTextHeight(gfx, contentText, fontRegular, contentWidth);
-                    double totalItemHeight = headerH + contentH + 15; // + margines
+                    double totalItemHeight = headerH + contentH + 15;
 
-                    // Sprawdzenie nowej strony
                     if (currentY + totalItemHeight > page.Height.Point - bottomMargin)
                     {
                         page = document.AddPage();
@@ -694,34 +710,26 @@ namespace Reklamacje_Dane
                         gfx.DrawString("(cd. Historii)", fontSmall, XBrushes.Gray, leftMargin, currentY - 15);
                     }
 
-                    // Rysowanie wpisu
-                    // 1. Nagłówek (Data + Autor)
                     var headerRect = new XRect(leftMargin, currentY, contentWidth, headerH);
                     tf.DrawString(fullHeader, fontBoldSmall, XBrushes.DarkBlue, headerRect, XStringFormats.TopLeft);
                     currentY += headerH;
 
-                    // 2. Treść
                     var contentRect = new XRect(leftMargin, currentY, contentWidth, contentH);
                     tf.DrawString(contentText, fontRegular, XBrushes.Black, contentRect, XStringFormats.TopLeft);
                     currentY += contentH + 5;
 
-                    // 3. Linia oddzielająca
                     gfx.DrawLine(XPens.LightGray, leftMargin, currentY, rightMargin, currentY);
                     currentY += 10;
                 }
             }
 
-            // Zapisz plik
             document.Save(filePath);
         }
-
-        // --- METODY POMOCNICZE (Bez nich PDF nie zadziała!) ---
 
         private double CalculateWrappedTextHeight(XGraphics gfx, string text, XFont font, double maxWidth)
         {
             if (string.IsNullOrWhiteSpace(text)) return 0;
 
-            // Dzielimy na linie (Entery)
             var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
             double totalHeight = 0;
             double lineHeight = font.GetHeight();
@@ -730,11 +738,10 @@ namespace Reklamacje_Dane
             {
                 if (string.IsNullOrWhiteSpace(line))
                 {
-                    totalHeight += lineHeight; // Pusta linia też ma wysokość
+                    totalHeight += lineHeight;
                     continue;
                 }
 
-                // Mierzymy szerokość linii
                 double lineWidth = gfx.MeasureString(line, font).Width;
 
                 if (lineWidth <= maxWidth)
@@ -743,12 +750,10 @@ namespace Reklamacje_Dane
                 }
                 else
                 {
-                    // Jeśli linia jest szersza niż strona, szacujemy ile wierszy zajmie
                     int linesCount = (int)Math.Ceiling(lineWidth / maxWidth);
                     totalHeight += linesCount * lineHeight;
                 }
             }
-            // Dodajemy mały bufor
             return totalHeight + 5;
         }
 
@@ -757,11 +762,9 @@ namespace Reklamacje_Dane
             double startY = y;
             XTextFormatter tf = new XTextFormatter(gfx);
 
-            // Tytuł sekcji (np. DANE KLIENTA)
             gfx.DrawString(title, titleFont, XBrushes.Black, x, y);
             y += 20;
 
-            // Rysowanie pól (Klucz: Wartość)
             foreach (var entry in data)
             {
                 if (!string.IsNullOrEmpty(entry.Value))
@@ -775,8 +778,9 @@ namespace Reklamacje_Dane
                     y += height;
                 }
             }
-            return y - startY; // Zwracamy całkowitą wysokość sekcji
+            return y - startY;
         }
+
         private async Task PopulateQuickActionsMenu() { _quickActionsMenu.Items.Clear(); var dt = await _dbService.GetDataTableAsync("SELECT Tresc FROM SzablonyDzialan ORDER BY Kolejnosc"); foreach (DataRow row in dt.Rows) _quickActionsMenu.Items.Add(row["Tresc"].ToString(), null, OnQuickAction_Click); _quickActionsMenu.Items.Add(new ToolStripSeparator()); _quickActionsMenu.Items.Add("Zarządzaj szablonami...", null, (s, e) => { new FormSzablonyDzialan().ShowDialog(); _ = PopulateQuickActionsMenu(); }); btnAddAction.ContextMenuStrip = _quickActionsMenu; }
         private void btnAddAction_Click(object sender, EventArgs e) { using (var f = new FormDodajDzialanie(this.nrZgloszenia)) if (f.ShowDialog() == DialogResult.OK) _ = LoadData(); }
         private void btnAddAction_MouseHover(object sender, EventArgs e) { btnAddAction.ContextMenuStrip?.Show(btnAddAction, 0, btnAddAction.Height); }
@@ -794,6 +798,7 @@ namespace Reklamacje_Dane
         private void button8_Click(object sender, EventArgs e) { new FormUploader(this.nrZgloszenia, PhoneApiClient.Instance).Show(); }
         private void button9_Click(object sender, EventArgs e) => new FormFileViewer(this.nrZgloszenia).ShowDialog(this);
         private void button11_Click(object sender, EventArgs e) => new FormDpdTracking().ShowDialog(this);
+
         private async void btnFetchPart_Click(object sender, EventArgs e)
         {
             using (var formSzukaj = new FormWybierzCzesc())
@@ -820,17 +825,30 @@ namespace Reklamacje_Dane
             }
         }
 
-        private struct TimelineEvent : IComparable<TimelineEvent> { public DateTime EventDate { get; set; } public string Content { get; set; } public object Tag { get; set; } public string Author { get; set; } public int CompareTo(TimelineEvent other) => other.EventDate.CompareTo(this.EventDate); }
-        private TimelineItemType DetermineEventType(string text, string author) { string t = text.ToUpper(); if (t.Contains("DPD") || t.Contains("KURIER")) return TimelineItemType.Courier; if (t.Contains("ZMIANA STATUSU")) return TimelineItemType.Status; if (t.Contains("WIADOMOŚĆ") || author.ToUpper().Contains("ALLEGRO")) return TimelineItemType.Message; if (t.Contains("WRL") || t.Contains("KWZ")) return TimelineItemType.Document; return TimelineItemType.Action; }
-    
-        /// <summary>
-        /// Włącza sprawdzanie pisowni po polsku dla wszystkich TextBoxów w formularzu
-        /// </summary>
+        private struct TimelineEvent : IComparable<TimelineEvent>
+        {
+            public DateTime EventDate { get; set; }
+            public string Content { get; set; }
+            public object Tag { get; set; }
+            public string Author { get; set; }
+            public bool IsReminder { get; set; }
+            public int CompareTo(TimelineEvent other) => other.EventDate.CompareTo(this.EventDate);
+        }
+
+        private TimelineItemType DetermineEventType(string text, string author)
+        {
+            string t = text.ToUpper();
+            if (t.Contains("DPD") || t.Contains("KURIER")) return TimelineItemType.Courier;
+            if (t.Contains("ZMIANA STATUSU")) return TimelineItemType.Status;
+            if (t.Contains("WIADOMOŚĆ") || author.ToUpper().Contains("ALLEGRO")) return TimelineItemType.Message;
+            if (t.Contains("WRL") || t.Contains("KWZ")) return TimelineItemType.Document;
+            return TimelineItemType.Action;
+        }
+
         private void EnableSpellCheckOnAllTextBoxes()
         {
             try
             {
-                // Włącz sprawdzanie pisowni dla wszystkich kontrolek typu TextBox i RichTextBox
                 foreach (Control control in GetAllControls(this))
                 {
                     if (control is RichTextBox richTextBox)
@@ -839,7 +857,6 @@ namespace Reklamacje_Dane
                     }
                     else if (control is TextBox textBox && !(textBox is SpellCheckTextBox))
                     {
-                        // Dla zwykłych TextBoxów - bez podkreślania (bo nie obsługują kolorów)
                         textBox.EnableSpellCheck(false);
                     }
                 }
@@ -850,9 +867,6 @@ namespace Reklamacje_Dane
             }
         }
 
-        /// <summary>
-        /// Rekurencyjnie pobiera wszystkie kontrolki z kontenera
-        /// </summary>
         private IEnumerable<Control> GetAllControls(Control container)
         {
             foreach (Control control in container.Controls)
@@ -868,5 +882,5 @@ namespace Reklamacje_Dane
                 }
             }
         }
-}
+    }
 }

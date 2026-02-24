@@ -33,8 +33,16 @@ namespace Reklamacje_Dane
 
         public PhoneApiClient(string apiBaseUrl, string userLogin)
         {
-            _apiBaseUrl = apiBaseUrl?.TrimEnd('/') ?? "http://localhost:5000";
-            _userLogin = userLogin ?? "";
+            // Jeśli apiBaseUrl będzie puste, użyje domyślnego localhost, 
+            // ale dzięki App.config będziesz tu podawał właściwy adres.
+            _apiBaseUrl = !string.IsNullOrWhiteSpace(apiBaseUrl)
+                ? apiBaseUrl.TrimEnd('/')
+               : "http://localhost:50875";
+
+            // Oczyszczamy login (używamy tylko pierwszego członu, np. "Marcin"),
+            // aby zgadzał się z tym, co telefon wysyła w Heartbeat.
+            _userLogin = userLogin?.Split(' ')[0] ?? "";
+
             _client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
             Instance = this;
         }

@@ -1,5 +1,4 @@
-﻿// Plik: Form3.Designer.cs
-namespace Reklamacje_Dane
+﻿namespace Reklamacje_Dane
 {
     partial class Form3
     {
@@ -40,6 +39,8 @@ namespace Reklamacje_Dane
             this.panel1 = new System.Windows.Forms.Panel();
             this.dataGridViewZgloszenia = new System.Windows.Forms.DataGridView();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.txtNotatki = new System.Windows.Forms.TextBox();
+            this.label11 = new System.Windows.Forms.Label();
             this.btnUsun = new System.Windows.Forms.Button();
             this.btnNowy = new System.Windows.Forms.Button();
             this.btnDodaj = new System.Windows.Forms.Button();
@@ -58,8 +59,7 @@ namespace Reklamacje_Dane
             // 
             this.dataGridViewKlienci.AllowUserToAddRows = false;
             this.dataGridViewKlienci.AllowUserToDeleteRows = false;
-            this.dataGridViewKlienci.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-            | System.Windows.Forms.AnchorStyles.Left)
+            this.dataGridViewKlienci.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.dataGridViewKlienci.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dataGridViewKlienci.BackgroundColor = System.Drawing.Color.White;
@@ -72,9 +72,8 @@ namespace Reklamacje_Dane
             this.dataGridViewKlienci.RowHeadersWidth = 51;
             this.dataGridViewKlienci.RowTemplate.Height = 24;
             this.dataGridViewKlienci.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dataGridViewKlienci.Size = new System.Drawing.Size(844, 164);
+            this.dataGridViewKlienci.Size = new System.Drawing.Size(844, 163);
             this.dataGridViewKlienci.TabIndex = 0;
-            // POPRAWKA: Zmiana zdarzenia z SelectionChanged na CellClick
             this.dataGridViewKlienci.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridViewKlienci_CellClick);
             // 
             // label8
@@ -137,7 +136,7 @@ namespace Reklamacje_Dane
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
             this.label3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            this.label3.Location = new System.Drawing.Point(10, 132);
+            this.label3.Location = new System.Drawing.Point(577, 127);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(34, 20);
             this.label3.TabIndex = 33;
@@ -195,10 +194,10 @@ namespace Reklamacje_Dane
             this.txtNIP.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtNIP.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.txtNIP.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            this.txtNIP.Location = new System.Drawing.Point(50, 130);
+            this.txtNIP.Location = new System.Drawing.Point(576, 150);
             this.txtNIP.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.txtNIP.Name = "txtNIP";
-            this.txtNIP.Size = new System.Drawing.Size(234, 27);
+            this.txtNIP.Size = new System.Drawing.Size(255, 27);
             this.txtNIP.TabIndex = 4;
             // 
             // txtUlicaNr
@@ -246,7 +245,7 @@ namespace Reklamacje_Dane
             this.txtMail.Location = new System.Drawing.Point(576, 40);
             this.txtMail.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.txtMail.Name = "txtMail";
-            this.txtMail.Size = new System.Drawing.Size(227, 27);
+            this.txtMail.Size = new System.Drawing.Size(255, 27);
             this.txtMail.TabIndex = 8;
             // 
             // txtTelefon
@@ -258,25 +257,29 @@ namespace Reklamacje_Dane
             this.txtTelefon.Location = new System.Drawing.Point(576, 96);
             this.txtTelefon.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.txtTelefon.Name = "txtTelefon";
-            this.txtTelefon.Size = new System.Drawing.Size(227, 27);
+            this.txtTelefon.Size = new System.Drawing.Size(255, 27);
             this.txtTelefon.TabIndex = 9;
             // 
             // panel1
             // 
-            this.panel1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            this.panel1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.panel1.BackColor = System.Drawing.Color.White;
             this.panel1.Controls.Add(this.dataGridViewZgloszenia);
-            this.panel1.Location = new System.Drawing.Point(12, 451);
+            this.panel1.Location = new System.Drawing.Point(12, 530);
             this.panel1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(844, 137);
+            this.panel1.Size = new System.Drawing.Size(844, 210);
             this.panel1.TabIndex = 42;
             // 
             // dataGridViewZgloszenia
             // 
             this.dataGridViewZgloszenia.AllowUserToAddRows = false;
             this.dataGridViewZgloszenia.AllowUserToDeleteRows = false;
+            this.dataGridViewZgloszenia.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.dataGridViewZgloszenia.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dataGridViewZgloszenia.BackgroundColor = System.Drawing.Color.White;
             this.dataGridViewZgloszenia.BorderStyle = System.Windows.Forms.BorderStyle.None;
@@ -289,7 +292,6 @@ namespace Reklamacje_Dane
             dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
             this.dataGridViewZgloszenia.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
             this.dataGridViewZgloszenia.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridViewZgloszenia.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGridViewZgloszenia.EnableHeadersVisualStyles = false;
             this.dataGridViewZgloszenia.Location = new System.Drawing.Point(0, 0);
             this.dataGridViewZgloszenia.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -304,7 +306,7 @@ namespace Reklamacje_Dane
             this.dataGridViewZgloszenia.RowsDefaultCellStyle = dataGridViewCellStyle2;
             this.dataGridViewZgloszenia.RowTemplate.Height = 28;
             this.dataGridViewZgloszenia.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dataGridViewZgloszenia.Size = new System.Drawing.Size(844, 137);
+            this.dataGridViewZgloszenia.Size = new System.Drawing.Size(844, 210);
             this.dataGridViewZgloszenia.TabIndex = 0;
             this.dataGridViewZgloszenia.CellDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridViewZgloszenia_CellDoubleClick);
             // 
@@ -313,6 +315,8 @@ namespace Reklamacje_Dane
             this.panel2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.panel2.BackColor = System.Drawing.Color.White;
+            this.panel2.Controls.Add(this.txtNotatki);
+            this.panel2.Controls.Add(this.label11);
             this.panel2.Controls.Add(this.btnUsun);
             this.panel2.Controls.Add(this.btnNowy);
             this.panel2.Controls.Add(this.btnDodaj);
@@ -337,8 +341,32 @@ namespace Reklamacje_Dane
             this.panel2.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.panel2.Name = "panel2";
             this.panel2.Padding = new System.Windows.Forms.Padding(12, 15, 12, 15);
-            this.panel2.Size = new System.Drawing.Size(844, 193);
+            this.panel2.Size = new System.Drawing.Size(844, 270);
             this.panel2.TabIndex = 43;
+            // 
+            // txtNotatki
+            // 
+            this.txtNotatki.BackColor = System.Drawing.Color.White;
+            this.txtNotatki.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtNotatki.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.txtNotatki.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            this.txtNotatki.Location = new System.Drawing.Point(16, 151);
+            this.txtNotatki.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.txtNotatki.Multiline = true;
+            this.txtNotatki.Name = "txtNotatki";
+            this.txtNotatki.Size = new System.Drawing.Size(543, 100);
+            this.txtNotatki.TabIndex = 81;
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Font = new System.Drawing.Font("Segoe UI Semibold", 9F, System.Drawing.FontStyle.Bold);
+            this.label11.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            this.label11.Location = new System.Drawing.Point(11, 127);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(121, 20);
+            this.label11.TabIndex = 80;
+            this.label11.Text = "Notatki / Uwagi:";
             // 
             // btnUsun
             // 
@@ -346,7 +374,7 @@ namespace Reklamacje_Dane
             this.btnUsun.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnUsun.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.btnUsun.ForeColor = System.Drawing.Color.White;
-            this.btnUsun.Location = new System.Drawing.Point(419, 152);
+            this.btnUsun.Location = new System.Drawing.Point(576, 186);
             this.btnUsun.Name = "btnUsun";
             this.btnUsun.Size = new System.Drawing.Size(124, 33);
             this.btnUsun.TabIndex = 79;
@@ -360,7 +388,7 @@ namespace Reklamacje_Dane
             this.btnNowy.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnNowy.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.btnNowy.ForeColor = System.Drawing.Color.White;
-            this.btnNowy.Location = new System.Drawing.Point(14, 160);
+            this.btnNowy.Location = new System.Drawing.Point(707, 186);
             this.btnNowy.Name = "btnNowy";
             this.btnNowy.Size = new System.Drawing.Size(124, 33);
             this.btnNowy.TabIndex = 78;
@@ -374,7 +402,7 @@ namespace Reklamacje_Dane
             this.btnDodaj.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnDodaj.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.btnDodaj.ForeColor = System.Drawing.Color.White;
-            this.btnDodaj.Location = new System.Drawing.Point(549, 152);
+            this.btnDodaj.Location = new System.Drawing.Point(576, 222);
             this.btnDodaj.Name = "btnDodaj";
             this.btnDodaj.Size = new System.Drawing.Size(124, 33);
             this.btnDodaj.TabIndex = 77;
@@ -388,7 +416,7 @@ namespace Reklamacje_Dane
             this.btnEdytuj.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnEdytuj.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.btnEdytuj.ForeColor = System.Drawing.Color.White;
-            this.btnEdytuj.Location = new System.Drawing.Point(679, 152);
+            this.btnEdytuj.Location = new System.Drawing.Point(707, 222);
             this.btnEdytuj.Name = "btnEdytuj";
             this.btnEdytuj.Size = new System.Drawing.Size(124, 33);
             this.btnEdytuj.TabIndex = 45;
@@ -447,7 +475,7 @@ namespace Reklamacje_Dane
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.ClientSize = new System.Drawing.Size(868, 600);
+            this.ClientSize = new System.Drawing.Size(868, 755);
             this.Controls.Add(this.chkZmienKlienta);
             this.Controls.Add(this.label10);
             this.Controls.Add(this.txtWyszukajKlienta);
@@ -456,7 +484,7 @@ namespace Reklamacje_Dane
             this.Controls.Add(this.dataGridViewKlienci);
             this.Controls.Add(this.panel2);
             this.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.MinimumSize = new System.Drawing.Size(870, 599);
+            this.MinimumSize = new System.Drawing.Size(870, 755);
             this.Name = "Form3";
             this.Padding = new System.Windows.Forms.Padding(12);
             this.Text = "System reklamacji - klienci";
@@ -501,5 +529,7 @@ namespace Reklamacje_Dane
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.CheckBox chkZmienKlienta;
         private System.Windows.Forms.Button btnUsun;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.TextBox txtNotatki;
     }
 }

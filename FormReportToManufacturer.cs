@@ -430,8 +430,27 @@ namespace Reklamacje_Dane
                 }
 
                 // 4. Wysyłka
+
+
+
+
+                // 4. Wysyłka
                 var svc = new EmailService();
-                await svc.WyslijEmailAsync(konto, txtEmailTo.Text, txtEmailSubject.Text, html, atts);
+
+                // Sklejamy adresy: ten z okna (do producenta) + Wasz stały adres po średniku
+                string wszyscyOdbiorcy = txtEmailTo.Text + ";reklamacje@enatruck.com";
+
+                // Wysyłamy do obu naraz
+                await svc.WyslijEmailAsync(konto, wszyscyOdbiorcy, txtEmailSubject.Text, html, atts);
+
+
+
+
+
+
+
+
+      
 
                 // 5. Zmiana statusu
                 using (var c = DatabaseHelper.GetConnection())

@@ -9,21 +9,30 @@ using MySql.Data.MySqlClient;
 
 namespace Reklamacje_Dane
 {
+    // --- KLASY DTO ---
+    public class DzialanieDto
+    {
+        public string NrZgloszenia { get; set; }
+        public string DataDzialania { get; set; }
+        public string Tresc { get; set; }
+    }
+
+    public class ProducentDto
+    {
+        public string NazwaProducenta { get; set; }
+        public string KontaktMail { get; set; }
+        public string Adres { get; set; }
+        public string PlEng { get; set; }
+        public string Jezyk { get; set; }
+        public string Formularz { get; set; }
+        public string Wymagania { get; set; }
+    }
+
     public class FastDataService
     {
         private MySqlConnection GetConn() => DatabaseHelper.GetConnection();
 
-        /// <summary>
-        /// Callback do aktualizacji statusu ładowania w UI.
-        /// </summary>
         public Action<string> OnProgress { get; set; }
-
-
-        private sealed class DzialaniaAggRow
-        {
-            public string NrZgloszenia { get; set; }
-            public string DzialaniaText { get; set; }
-        }
 
         private void ReportProgress(string msg)
         {
@@ -34,14 +43,9 @@ namespace Reklamacje_Dane
         public async Task<List<ComplaintViewModel>> LoadAllComplaintsAsync()
         {
             DapperTypeHandlerBootstrap.EnsureRegistered();
-
             var swTotal = Stopwatch.StartNew();
-            var sw = Stopwatch.StartNew();
 
-            ReportProgress("Łączenie z bazą...");
-
-            // === Jedno zapytanie SQL: JOINy + GROUP_CONCAT (SearchVector budowany po stronie aplikacji) ===
-            var sql = @"
+            var sqlMain = @"
                 SELECT 
                     z.Id, z.NrZgloszenia, z.DataZgloszenia,
                     COALESCE(z.StatusOgolny, '') AS Status,
@@ -67,13 +71,6 @@ namespace Reklamacje_Dane
                     COALESCE(p.Wymagania, '') AS ProduktWymagania,
                     COALESCE(p.Producent, '') AS Producent,
 
-                    COALESCE(pr.KontaktMail, '') AS ProducentKontaktMail,
-                    COALESCE(pr.Adres, '') AS ProducentAdres,
-                    COALESCE(pr.PlEng, '') AS ProducentPlEng,
-                    COALESCE(pr.Jezyk, '') AS ProducentJezyk,
-                    COALESCE(pr.Formularz, '') AS ProducentFormularz,
-                    COALESCE(pr.Wymagania, '') AS ProducentWymagania,
-
                     COALESCE(z.NrSeryjny, '') AS SN,
                     COALESCE(z.NrFaktury, '') AS FV,
                     COALESCE(z.NrFakturyPrzychodu, '') AS NrFakturyPrzychodu,
@@ -87,9 +84,11 @@ namespace Reklamacje_Dane
                       WHEN z.DataZakupu LIKE '____-__-__' THEN STR_TO_DATE(z.DataZakupu, '%Y-%m-%d')
                       ELSE NULL
                     END AS DataZakupu,
-
-                    COALESCE(z.OpisUsterki, '') AS OpisUsterki,
-                    COALESCE(z.Produkt, '') AS ProduktOpis,
+                    
+                    /* Obcinamy dla bezpieczeństwa sieci */
+                    LEFT(COALESCE(z.OpisUsterki, ''), 1500) AS OpisUsterki,
+                    LEFT(COALESCE(z.Produkt, ''), 1500) AS ProduktOpis,
+                    
                     COALESCE(z.allegroBuyerLogin, '') AS AllegroBuyerLogin,
                     COALESCE(z.allegroOrderId, '') AS AllegroOrderId,
                     COALESCE(z.allegroDisputeId, '') AS AllegroDisputeId,
@@ -101,51 +100,109 @@ namespace Reklamacje_Dane
                     COALESCE(z.NrRMA, '') AS NrRMA,
                     COALESCE(z.NrKPZN, '') AS NrKPZN,
                     CAST(NULLIF(NULLIF(z.CzyNotaRozliczona, ''), '-') AS SIGNED) AS CzyNotaRozliczona,
-                    COALESCE(z.KwotaZwrotu, '') AS KwotaZwrotu,
-
-                    COALESCE(d_agg.DzialaniaText, '') AS Dzialania
+                    COALESCE(z.KwotaZwrotu, '') AS KwotaZwrotu
 
                 FROM Zgloszenia z
                 LEFT JOIN klienci k ON k.Id = z.KlientID
-                LEFT JOIN Produkty p ON p.Id = z.ProduktID
-                LEFT JOIN Producenci pr ON pr.NazwaProducenta = p.Producent
-
-                ORDER BY z.DataZgloszenia DESC;
+                LEFT JOIN Produkty p ON p.Id = z.ProduktID;
             ";
 
-            ReportProgress("Pobieranie danych z bazy...");
+            var sqlActions = @"
+                SELECT 
+                    NrZgloszenia, 
+                    DataDzialania, 
+                    LEFT(Tresc, 1500) AS Tresc
+                FROM dzialania 
+                WHERE Tresc IS NOT NULL AND Tresc != '';
+            ";
 
-            var complaints = await Task.Run(async () =>
+            var sqlProducers = @"
+                SELECT NazwaProducenta, KontaktMail, Adres, PlEng, Jezyk, Formularz, Wymagania 
+                FROM Producenci;
+            ";
+
+            List<ComplaintViewModel> complaints = null;
+            List<DzialanieDto> actions = null;
+            List<ProducentDto> producers = null;
+
+            ReportProgress("Rozpoczynam pobieranie danych (Tryb Synchroniczny - Szybki)...");
+
+            // CAŁOŚĆ WRZUCAMY DO JEDNEGO WĄTKU W TLE, ABY UŻYĆ SYNCHRONICZNEGO DAPPERA
+            await Task.Run(() =>
             {
                 using (var conn = GetConn())
                 {
-                    await conn.OpenAsync();
+                    // Używamy .Open() zamiast .OpenAsync()
+                    conn.Open();
 
-                    sw.Stop();
-                    ReportProgress($"Połączono ({sw.ElapsedMilliseconds}ms). Wykonywanie zapytania...");
-                    sw.Restart();
+                    var swQuery = Stopwatch.StartNew();
 
-                    var result = (await conn.QueryAsync<ComplaintViewModel>(sql, commandTimeout: 120)).AsList();
+                    // Używamy .Query() zamiast .QueryAsync() - omija błąd sterownika
+                    complaints = conn.Query<ComplaintViewModel>(sqlMain, commandTimeout: 120).ToList();
+                    ReportProgress($"[DB] Zgłoszenia pobrane w: {swQuery.ElapsedMilliseconds}ms (Ilość: {complaints.Count})");
 
-                    sw.Stop();
-                    ReportProgress($"SQL: {sw.ElapsedMilliseconds}ms, pobrano {result.Count} zgłoszeń");
+                    swQuery.Restart();
+                    actions = conn.Query<DzialanieDto>(sqlActions, commandTimeout: 120).ToList();
+                    ReportProgress($"[DB] Działania pobrane w: {swQuery.ElapsedMilliseconds}ms (Ilość: {actions.Count})");
 
-                    sw.Restart();
-                    for (int i = 0; i < result.Count; i++)
-                    {
-                        result[i].BuildSearchVector();
-                    }
-                    sw.Stop();
-                    ReportProgress($"Indeks wyszukiwania: {sw.ElapsedMilliseconds}ms");
-
-                    return result;
+                    swQuery.Restart();
+                    producers = conn.Query<ProducentDto>(sqlProducers, commandTimeout: 120).ToList();
+                    ReportProgress($"[DB] Producenci pobrani w: {swQuery.ElapsedMilliseconds}ms (Ilość: {producers.Count})");
                 }
             });
 
-            swTotal.Stop();
-            ReportProgress($"Gotowe! Łącznie: {swTotal.ElapsedMilliseconds}ms");
+            var swMap = Stopwatch.StartNew();
+            ReportProgress($"Mapowanie relacji w RAM...");
 
-            return complaints;
+            var actionsLookup = actions
+                .GroupBy(x => x.NrZgloszenia ?? "")
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var producersLookup = producers
+                .Where(p => !string.IsNullOrWhiteSpace(p.NazwaProducenta))
+                .ToDictionary(p => p.NazwaProducenta, p => p, StringComparer.OrdinalIgnoreCase);
+
+            Parallel.ForEach(complaints, c =>
+            {
+                if (!string.IsNullOrWhiteSpace(c.Producent) && producersLookup.TryGetValue(c.Producent, out var prod))
+                {
+                    c.ProducentKontaktMail = prod.KontaktMail ?? "";
+                    c.ProducentAdres = prod.Adres ?? "";
+                    c.ProducentPlEng = prod.PlEng ?? "";
+                    c.ProducentJezyk = prod.Jezyk ?? "";
+                    c.ProducentFormularz = prod.Formularz ?? "";
+                    c.ProducentWymagania = prod.Wymagania ?? "";
+                }
+
+                if (c.NrZgloszenia != null && actionsLookup.TryGetValue(c.NrZgloszenia, out var cActions))
+                {
+                    var sb = new StringBuilder();
+                    foreach (var act in cActions)
+                    {
+                        sb.Append(act.DataDzialania).Append(": ").Append(act.Tresc).Append(" | ");
+                    }
+                    c.Dzialania = sb.ToString();
+                }
+                else
+                {
+                    c.Dzialania = "";
+                }
+
+                c.BuildSearchVector();
+
+                if (!string.IsNullOrEmpty(c.Dzialania))
+                {
+                    c.SearchVector += " " + c.Dzialania.ToLowerInvariant();
+                }
+            });
+
+            var sortedList = complaints.OrderByDescending(x => x.DataZgloszenia ?? DateTime.MinValue).ToList();
+
+            swMap.Stop();
+            swTotal.Stop();
+            ReportProgress($"Zakończono! Czas mapowania RAM: {swMap.ElapsedMilliseconds}ms. Całkowity czas ładowania: {swTotal.ElapsedMilliseconds}ms");
+
+            return sortedList;
         }
     }
 }

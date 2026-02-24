@@ -29,7 +29,7 @@ namespace Reklamacje_Dane
             // 2. Pobranie zmian (Tylko te, które mają WAŻNY status w nawiasie [])
             string query = @"
                 SELECT p.Id, p.NumerListu, p.NrZgloszenia, p.OstatniStatus, p.OdbiorcaId,
-                       CONCAT(k.ImieNazwisko, ' ', k.NazwaFirmy) AS NazwaOdbiorcy
+                       CONCAT(IFNULL(k.ImieNazwisko,''), ' ', IFNULL(k.NazwaFirmy,'')) AS NazwaOdbiorcy
                 FROM Przesylki p
                 LEFT JOIN Klienci k ON p.OdbiorcaId = k.Id
                 WHERE p.OstatniStatus != IFNULL(p.LastNotificationStatus, '')
@@ -55,59 +55,60 @@ namespace Reklamacje_Dane
                 NotificationType toastType = NotificationType.Info;
 
                 bool createReminder = false;
-                bool clearDeliveryReminder = false;
                 bool shouldNotifyUser = false;
                 bool isForOwnCompany = idFirmyWlasnej > 0 && odbiorcaId == idFirmyWlasnej;
 
-                // --- LOGIKA BIZNESOWA ---
+                // --- NOWA LOGIKA BIZNESOWA DPD ---
 
                 if (ostatniStatus.StartsWith("[PROBLEM]") || ostatniStatus.StartsWith("[ZGUBIONA]"))
                 {
-                    notificationText = $"[PROBLEM DPD] Zgłoszenie {nrZgloszenia}: {ostatniStatus.Substring(9)}";
-                    toastTitle = "Problem z Przesyłką";
-                    toastType = NotificationType.Error;
-                    createReminder = true;
-                    shouldNotifyUser = true;
+                    string czystyStatus = ostatniStatus.Replace("[PROBLEM]", "").Replace("[ZGUBIONA]", "").Trim();
+                    notificationText = $"[PROBLEM DPD] {czystyStatus}";
+
+                    createReminder = true;      // TWORZYMY ZADANIE W FORM2
+                    shouldNotifyUser = false;   // NIE WYŚWIETLAMY TOASTA/POPUPA
                 }
                 else if (ostatniStatus.StartsWith("[ZWROT]"))
                 {
-                    notificationText = $"[ZWROT DPD] Zgłoszenie {nrZgloszenia}: Przesyłka wraca do nadawcy.";
-                    toastTitle = "Zwrot Przesyłki";
-                    toastType = NotificationType.Warning;
-                    createReminder = true;
-                    shouldNotifyUser = true;
+                    string czystyStatus = ostatniStatus.Replace("[ZWROT]", "").Trim();
+                    notificationText = $"[ZWROT DPD] {czystyStatus} (Przesyłka wraca do nas)";
+
+                    createReminder = true;      // TWORZYMY ZADANIE W FORM2
+                    shouldNotifyUser = false;   // NIE WYŚWIETLAMY TOASTA/POPUPA
                 }
                 else if (ostatniStatus.StartsWith("[W DORĘCZENIU]"))
                 {
-                    // Powiadomienie i przypomnienie o "w doręczeniu" tylko dla przesyłek do naszej firmy.
+                    // Powiadomienie tylko dla przesyłek jadących DO NASZEJ FIRMY
                     if (isForOwnCompany)
                     {
-                        notificationText = $"[PRZESYŁKA] Do nas: {nrZgloszenia} jest w doręczeniu.";
+                        string czystyStatus = ostatniStatus.Replace("[W DORĘCZENIU]", "").Trim();
+                        notificationText = $"[DO NAS] Zgłoszenie {nrZgloszenia}: Kurier doręczy dziś paczkę.";
                         toastTitle = "W Doręczeniu";
                         toastType = NotificationType.Info;
-                        createReminder = true;
-                        shouldNotifyUser = true;
+
+                        createReminder = false;    // NIE TWORZYMY ZADANIA (to tylko info)
+                        shouldNotifyUser = true;   // POKAZUJEMY TOAST
                     }
                 }
                 else if (ostatniStatus.StartsWith("[DORĘCZONA]"))
                 {
-                    clearDeliveryReminder = true;
-
-                    // Powiadomienie o doręczeniu tylko dla przesyłek do naszej firmy.
+                    // Powiadomienie tylko dla przesyłek jadących DO NASZEJ FIRMY
                     if (isForOwnCompany)
                     {
-                        notificationText = $"[PRZESYŁKA] Zgłoszenie {nrZgloszenia} zostało doręczone.";
+                        notificationText = $"Zgłoszenie {nrZgloszenia} zostało właśnie doręczone na magazyn.";
                         toastTitle = "Doręczono";
                         toastType = NotificationType.Success;
-                        shouldNotifyUser = true;
+
+                        createReminder = false;    // NIE TWORZYMY ZADANIA
+                        shouldNotifyUser = true;   // POKAZUJEMY ZIELONY TOAST
                     }
                 }
 
                 // --- WYKONANIE AKCJI ---
-                bool hasAction = shouldNotifyUser || createReminder || clearDeliveryReminder;
+                bool hasAction = shouldNotifyUser || createReminder;
                 if (hasAction)
                 {
-                    // 1. Toast (opcjonalny)
+                    // 1. Toast (dymek z boku ekranu)
                     if (shouldNotifyUser && _owner != null && !_owner.IsDisposed && _owner.IsHandleCreated)
                     {
                         _owner.Invoke((MethodInvoker)delegate {
@@ -115,18 +116,13 @@ namespace Reklamacje_Dane
                         });
                     }
 
-                    // 2. Obsługa listy przypomnień
-                    if (clearDeliveryReminder)
-                    {
-                        await ReminderService.DeleteSpecificReminderAsync(nrZgloszenia, "%w doręczeniu%");
-                    }
-
+                    // 2. Obsługa twardych zadań (Przypomnień w Form2)
                     if (createReminder)
                     {
                         await AddReminderAsync(notificationText, nrZgloszenia);
                     }
 
-                    // 3. Dodaj do listy alertów (popup) tylko gdy powiadomienie ma być pokazane użytkownikowi
+                    // 3. Dodaj do listy alertów (zbiorczy popup) TYLKO gdy to jest ważne powiadomienie
                     if (shouldNotifyUser)
                     {
                         alertsToShow.Add(new PrzesylkaAlert
@@ -138,12 +134,12 @@ namespace Reklamacje_Dane
                         });
                     }
 
-                    // 4. Aktualizacja bazy (żeby nie zapętlać notyfikacji)
+                    // 4. Aktualizacja bazy (oznacz jako obsłużone, żeby nie powtarzać)
                     await UpdateLastNotificationStatusAsync(shipmentId, ostatniStatus);
                 }
             }
 
-            // 5. Pokaż okno z listą zmian (Popup)
+            // 5. Pokaż okno z listą powiadomień zbiorczych (Popup ze statusem)
             if (alertsToShow.Any())
             {
                 if (_owner != null && !_owner.IsDisposed && _owner.IsHandleCreated)
@@ -176,7 +172,7 @@ namespace Reklamacje_Dane
 
         private async Task AddReminderAsync(string text, string complaintNumber)
         {
-            string checkQuery = "SELECT COUNT(*) FROM Przypomnienia WHERE Tresc = @tresc AND DotyczyZgloszenia = @nr AND CzyZrealizowane = 0";
+            string checkQuery = "SELECT COUNT(*) FROM Przypomnienia WHERE Tresc = @tresc AND DotyczyZgloszenia = @nr AND (CzyZrealizowane = 0 OR CzyZrealizowane IS NULL)";
             int exists = 0;
 
             using (var con = Database.GetNewOpenConnection())
@@ -189,7 +185,8 @@ namespace Reklamacje_Dane
 
             if (exists == 0)
             {
-                string query = "INSERT INTO Przypomnienia (Tresc, DataPrzypomnienia, CzyZrealizowane, DotyczyZgloszenia) VALUES (@tresc, @data, 0, @nr)";
+                // Dodajemy przypomnienie z poprawnym domyślnym statusem 'Nowe'
+                string query = "INSERT INTO Przypomnienia (Tresc, DataPrzypomnienia, CzyZrealizowane, Status, DotyczyZgloszenia) VALUES (@tresc, @data, 0, 'Nowe', @nr)";
                 var parameters = new MySqlParameter[]
                 {
                     new MySqlParameter("@tresc", text),
@@ -207,7 +204,6 @@ namespace Reklamacje_Dane
         }
     }
 
-    // <<< TO JEST TA KLASA, KTÓREJ BRAKOWAŁO >>>
     public class PrzesylkaAlert
     {
         public int Id { get; set; }

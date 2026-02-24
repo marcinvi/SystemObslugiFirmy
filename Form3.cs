@@ -21,7 +21,7 @@ namespace Reklamacje_Dane
         private bool _startInChangeMode = false;
 
         private const int OriginalPanel2Top = 250;
-        private const int OriginalPanel1Top = 451;
+        private const int OriginalPanel1Top = 540;
 
         public int? NowoWybranyKlientId { get; private set; }
         public bool CzyDaneZostalyZmienione { get; private set; } = false;
@@ -31,7 +31,7 @@ namespace Reklamacje_Dane
             InitializeComponent();
             InitializeSearchTimer();
             _dbService = new DatabaseService(DatabaseHelper.GetConnectionString());
-        
+
 
             // Włącz sprawdzanie pisowni dla wszystkich TextBoxów
             EnableSpellCheckOnAllTextBoxes();
@@ -165,8 +165,9 @@ namespace Reklamacje_Dane
                         {
                             try
                             {
+                                // ZMIANA: Zaktualizowane zapytanie UPDATE uwzględniające Notatki
                                 string query = @"UPDATE Klienci SET ImieNazwisko = @imie, NazwaFirmy = @firma, NIP = @nip, Ulica = @ulica, 
-                                                 KodPocztowy = @kod, Miejscowosc = @miasto, Email = @mail, Telefon = @tel WHERE Id = @id";
+                                                 KodPocztowy = @kod, Miejscowosc = @miasto, Email = @mail, Telefon = @tel, Notatki = @notatki WHERE Id = @id";
                                 using (var cmd = new MySqlCommand(query, con, transaction))
                                 {
                                     cmd.Parameters.AddWithValue("@id", selectedKlientId.Value);
@@ -178,6 +179,11 @@ namespace Reklamacje_Dane
                                     cmd.Parameters.AddWithValue("@miasto", txtMiejscowosc.Text);
                                     cmd.Parameters.AddWithValue("@mail", txtMail.Text);
                                     cmd.Parameters.AddWithValue("@tel", txtTelefon.Text);
+
+                                    // DODANO POLE NOTATKI
+                                    string notatki = (txtNotatki != null) ? txtNotatki.Text : "";
+                                    cmd.Parameters.AddWithValue("@notatki", notatki);
+
                                     await cmd.ExecuteNonQueryAsync();
                                 }
 
@@ -263,6 +269,7 @@ namespace Reklamacje_Dane
                 using (var con = DatabaseHelper.GetConnection())
                 {
                     await con.OpenAsync();
+                    // ZMIANA: Dodano zabezpieczenie przed nullami przy wyszukiwaniu
                     string query = "SELECT Id, ImieNazwisko, NazwaFirmy, Email, Telefon FROM Klienci WHERE (@fraza = '' OR ImieNazwisko LIKE @wzorzec OR NazwaFirmy LIKE @wzorzec OR NIP LIKE @wzorzec) ORDER BY ImieNazwisko";
                     using (var cmd = new MySqlCommand(query, con))
                     {
@@ -349,6 +356,7 @@ namespace Reklamacje_Dane
                 using (var con = DatabaseHelper.GetConnection())
                 {
                     await con.OpenAsync();
+                    // ZMIANA: Pobiera teraz wszystko (*), więc załapie też nową kolumnę Notatki
                     string query = "SELECT * FROM Klienci WHERE Id = @id";
                     using (var cmd = new MySqlCommand(query, con))
                     {
@@ -365,6 +373,12 @@ namespace Reklamacje_Dane
                                 txtMiejscowosc.Text = reader["Miejscowosc"].ToString();
                                 txtMail.Text = reader["Email"].ToString();
                                 txtTelefon.Text = reader["Telefon"].ToString();
+
+                                // DODANO OBSŁUGĘ WYPEŁNIENIA NOTATKI
+                                if (txtNotatki != null)
+                                {
+                                    txtNotatki.Text = reader["Notatki"] != DBNull.Value ? reader["Notatki"].ToString() : "";
+                                }
                             }
                         }
                     }
@@ -423,6 +437,10 @@ namespace Reklamacje_Dane
             txtMiejscowosc.Clear();
             txtMail.Clear();
             txtTelefon.Clear();
+
+            // DODANO CZYSZCZENIE NOTATKI
+            if (txtNotatki != null) txtNotatki.Clear();
+
             txtNowyImieNazwisko.Focus();
             btnEdytuj.Visible = false;
             btnUsun.Visible = false;
@@ -444,7 +462,9 @@ namespace Reklamacje_Dane
                     {
                         try
                         {
-                            string query = "INSERT INTO Klienci (ImieNazwisko, NazwaFirmy, NIP, Ulica, KodPocztowy, Miejscowosc, Email, Telefon) VALUES (@imie, @firma, @nip, @ulica, @kod, @miasto, @mail, @tel)";
+                            // ZMIANA: Zaktualizowane zapytanie INSERT uwzględniające Notatki
+                            string query = "INSERT INTO Klienci (ImieNazwisko, NazwaFirmy, NIP, Ulica, KodPocztowy, Miejscowosc, Email, Telefon, Notatki) " +
+                                           "VALUES (@imie, @firma, @nip, @ulica, @kod, @miasto, @mail, @tel, @notatki)";
                             using (var cmd = new MySqlCommand(query, con, transaction))
                             {
                                 cmd.Parameters.AddWithValue("@imie", txtNowyImieNazwisko.Text);
@@ -455,6 +475,11 @@ namespace Reklamacje_Dane
                                 cmd.Parameters.AddWithValue("@miasto", txtMiejscowosc.Text);
                                 cmd.Parameters.AddWithValue("@mail", txtMail.Text);
                                 cmd.Parameters.AddWithValue("@tel", txtTelefon.Text);
+
+                                // DODANO POLE NOTATKI
+                                string notatki = (txtNotatki != null) ? txtNotatki.Text : "";
+                                cmd.Parameters.AddWithValue("@notatki", notatki);
+
                                 await cmd.ExecuteNonQueryAsync();
                             }
                             DziennikLogger dziennik = new DziennikLogger();
@@ -494,7 +519,7 @@ namespace Reklamacje_Dane
             searchDebounceTimer.Stop();
             searchDebounceTimer.Start();
         }
-    
+
         /// <summary>
         /// Włącza sprawdzanie pisowni po polsku dla wszystkich TextBoxów w formularzu
         /// </summary>
@@ -540,5 +565,5 @@ namespace Reklamacje_Dane
                 }
             }
         }
-}
+    }
 }

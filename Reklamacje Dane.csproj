@@ -1153,6 +1153,9 @@
     <EmbeddedResource Include="FormPolaczenie.resx">
       <DependentUpon>FormPolaczenie.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="FormPrzypomnienia.resx">
+      <DependentUpon>FormPrzypomnienia.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="FormUploader.resx">
       <DependentUpon>FormUploader.cs</DependentUpon>
     </EmbeddedResource>
